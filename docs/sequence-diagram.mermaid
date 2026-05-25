@@ -1,0 +1,73 @@
+sequenceDiagram
+    actor User as 👤 用户
+    participant FE as 前端(React+MUI)
+    participant GW as OpenClaw Gateway
+    participant SAFE as SafetyChain 安全链
+    participant LG as LangGraph/CrewAI 编排
+    participant AGT as EcoAgentEngine
+    participant VER as TAIJI-VERIFY
+    participant LET as LettuceDetect
+    participant MEM as EcoMemoryProvider
+    participant LF as Langfuse
+    participant GOV as GovMCP
+    participant DB as PostgreSQL+TimescaleDB
+
+    User->>FE: 输入查询
+    FE->>GW: POST /api/v1/chat
+    GW->>SAFE: L5-1 象信中文护栏
+
+    alt 护栏拦截
+        SAFE-->>GW: 拒绝(敏感词/越狱)
+        GW-->>FE: EC-004 安全护栏拦截
+        FE-->>User: 提示"内容不符合安全规范"
+    else 护栏通过
+        SAFE-->>GW: 通过 → 清洗后输入
+        GW->>LG: 路由到编排引擎
+
+        alt 需要团队协作
+            LG->>LG: CrewAI/LangGraph 分配任务
+            loop Agent团队执行
+                LG->>AGT: WorkerAgent执行
+                AGT->>DB: 查询TimescaleDB时序数据
+                DB-->>AGT: 数据返回
+                AGT-->>LG: 子任务结果
+            end
+        else 直接Agent执行
+            LG->>AGT: EcoAgentEngine.run()
+            AGT->>MEM: prefetch(记忆预取)
+            MEM-->>AGT: 短期+长期记忆上下文
+            AGT->>AGT: Agent Loop (max 25 iter)
+        end
+
+        AGT-->>LG: LLM原始输出
+        LG->>SAFE: L5-4 输出验证
+
+        VER->>VER: 六层验证(L1-L6)
+        alt 验证PASS
+            VER-->>SAFE: PASS
+        else 验证FAIL(幻觉)
+            VER-->>SAFE: FAIL + FM02事实冲突
+            SAFE->>LET: L5-5 Token级幻觉检测
+            LET-->>SAFE: 幻觉Token标注
+            SAFE->>GW: 触发HITL_REQUIRED
+            GW->>FE: HITL确认面板
+            FE->>User: 显示失败原因+人工修正
+            User->>FE: 修正数据
+            FE->>GW: HITL确认
+            GW->>AGT: 重新执行
+            AGT->>VER: 重新验证
+            VER-->>SAFE: PASS(修正后)
+        end
+
+        SAFE->>LF: L5-7 全链路审计记录
+        LF-->>SAFE: 审计签名
+        SAFE->>GOV: L5-8 国密SM4加密
+        GOV-->>SAFE: 加密输出
+
+        SAFE-->>GW: 最终输出(加密+签名)
+        GW-->>FE: 响应
+        FE-->>User: 结果显示
+
+        AGT->>MEM: sync_turn(同步记忆)
+        MEM->>MEM: Hermes短期 + Mem0长期
+    end

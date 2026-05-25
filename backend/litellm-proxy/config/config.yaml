@@ -1,0 +1,64 @@
+# LiteLLM Proxy Configuration for EcoMind OS
+# 统一 LLM 代理配置，支持多模型路由
+
+model_list:
+  # 主力模型 - Qwen3 (通义千问)
+  - model_name: qwen3
+    litellm_params:
+      model: openai/qwen3-14b
+      api_base: os.environ/OPENAI_API_BASE
+      api_key: os.environ/OPENAI_API_KEY
+      temperature: 0.7
+      max_tokens: 4096
+      stream: true
+
+  # 备选模型 - Qwen3-7B (轻量级)
+  - model_name: qwen3-lite
+    litellm_params:
+      model: openai/qwen3-7b
+      api_base: os.environ/OPENAI_API_BASE
+      api_key: os.environ/OPENAI_API_KEY
+      temperature: 0.7
+      max_tokens: 2048
+
+  # 国密领域专用模型 (指向本地 vLLM)
+  - model_name: gov-crypto
+    litellm_params:
+      model: openai/qwen3-14b
+      api_base: os.environ/VLLM_API_BASE
+      api_key: os.environ/VLLM_API_KEY
+      temperature: 0.1
+      max_tokens: 2048
+
+  # 通用对话模型
+  - model_name: chat
+    litellm_params:
+      model: openai/qwen3-14b
+      api_base: os.environ/OPENAI_API_BASE
+      api_key: os.environ/OPENAI_API_KEY
+      temperature: 0.7
+      max_tokens: 4096
+
+  # Mock 模型 (本地开发无 API Key 时使用)
+  - model_name: mock
+    litellm_params:
+      model: openai/my-fake-model
+      api_base: http://localhost:8080/v1
+      api_key: fake-key
+
+router_settings:
+  routing_strategy: usage-based-routing-v2
+  allowed_fails: 3
+  cooldown_time: 60
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+  database_url: sqlite:///./litellm_proxy.db
+  store_model_in_db: true
+
+litellm_settings:
+  drop_params: true
+  set_verbose: false
+  json_logs: true
+  success_callback: ["prometheus_system"]
+  failure_callback: ["prometheus_system"]

@@ -1,0 +1,51 @@
+{
+  "name": "ecomind-os-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "EcoMind OS - GAIA-ECO Frontend",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\""
+  },
+  "dependencies": {
+    "@ant-design/icons": "^5.6.1",
+    "@ant-design/pro-components": "^2.8.6",
+    "@ant-design/pro-layout": "^7.21.3",
+    "@deck.gl/core": "^9.1.8",
+    "@deck.gl/geo-layers": "^9.1.8",
+    "@deck.gl/layers": "^9.1.8",
+    "@turf/turf": "^7.1.0",
+    "antd": "^5.24.0",
+    "cesium": "^1.127.0",
+    "echarts": "^5.6.0",
+    "echarts-for-react": "^3.0.2",
+    "i18next": "^24.2.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-i18next": "^15.4.1",
+    "react-router-dom": "^6.28.2",
+    "socket.io-client": "^4.8.1",
+    "zustand": "^5.0.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.7",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@typescript-eslint/eslint-plugin": "^8.24.1",
+    "@typescript-eslint/parser": "^8.24.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "eslint": "^9.20.0",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "eslint-plugin-react-refresh": "^0.4.19",
+    "lightningcss-win32-x64-msvc": "^1.32.0",
+    "prettier": "^3.5.3",
+    "tailwindcss": "^4.1.7",
+    "typescript": "^5.7.3",
+    "vite": "^6.1.0",
+    "vite-plugin-cesium": "^1.2.23"
+  }
+}

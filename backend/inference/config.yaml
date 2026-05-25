@@ -1,0 +1,292 @@
+# LiteLLM 统一配置 — EcoMind OS 国产模型路由
+# 支持 10+ 国产大模型，覆盖 opus/sonnet/haiku 三级路由
+
+model_list:
+  # ============================================================
+  # Qwen 系列 (通义千问) — 阿里云 DashScope
+  # ============================================================
+  - model_name: qwen-max
+    litellm_params:
+      model: openai/qwen-max
+      api_base: os.environ/DASHSCOPE_API_BASE
+      api_key: os.environ/DASHSCOPE_API_KEY
+      temperature: 0.7
+      max_tokens: 8192
+      stream: true
+    model_info:
+      mode: chat
+      tier: opus
+      provider: qwen
+
+  - model_name: qwen-plus
+    litellm_params:
+      model: openai/qwen-plus
+      api_base: os.environ/DASHSCOPE_API_BASE
+      api_key: os.environ/DASHSCOPE_API_KEY
+      temperature: 0.7
+      max_tokens: 8192
+      stream: true
+    model_info:
+      mode: chat
+      tier: sonnet
+      provider: qwen
+
+  - model_name: qwen-turbo
+    litellm_params:
+      model: openai/qwen-turbo
+      api_base: os.environ/DASHSCOPE_API_BASE
+      api_key: os.environ/DASHSCOPE_API_KEY
+      temperature: 0.7
+      max_tokens: 8192
+      stream: true
+    model_info:
+      mode: chat
+      tier: haiku
+      provider: qwen
+
+  # ============================================================
+  # GLM 系列 (智谱) — 智谱 AI BigModel
+  # ============================================================
+  - model_name: glm-4
+    litellm_params:
+      model: openai/glm-4
+      api_base: os.environ/GLM_API_BASE
+      api_key: os.environ/GLM_API_KEY
+      temperature: 0.7
+      max_tokens: 8192
+      stream: true
+    model_info:
+      mode: chat
+      tier: opus
+      provider: glm
+
+  - model_name: glm-4-flash
+    litellm_params:
+      model: openai/glm-4-flash
+      api_base: os.environ/GLM_API_BASE
+      api_key: os.environ/GLM_API_KEY
+      temperature: 0.7
+      max_tokens: 4096
+    model_info:
+      mode: chat
+      tier: haiku
+      provider: glm
+
+  # ============================================================
+  # DeepSeek 系列 — DeepSeek API
+  # ============================================================
+  - model_name: deepseek-chat
+    litellm_params:
+      model: openai/deepseek-chat
+      api_base: os.environ/DEEPSEEK_API_BASE
+      api_key: os.environ/DEEPSEEK_API_KEY
+      temperature: 0.7
+      max_tokens: 8192
+      stream: true
+    model_info:
+      mode: chat
+      tier: opus
+      provider: deepseek
+
+  - model_name: deepseek-coder
+    litellm_params:
+      model: openai/deepseek-coder
+      api_base: os.environ/DEEPSEEK_API_BASE
+      api_key: os.environ/DEEPSEEK_API_KEY
+      temperature: 0.5
+      max_tokens: 8192
+      stream: true
+    model_info:
+      mode: chat
+      tier: sonnet
+      provider: deepseek
+
+  # ============================================================
+  # Yi 系列 (零一万物) — Yi API
+  # ============================================================
+  - model_name: yi-large
+    litellm_params:
+      model: openai/yi-large
+      api_base: os.environ/YI_API_BASE
+      api_key: os.environ/YI_API_KEY
+      temperature: 0.7
+      max_tokens: 8192
+      stream: true
+    model_info:
+      mode: chat
+      tier: opus
+      provider: yi
+
+  - model_name: yi-medium
+    litellm_params:
+      model: openai/yi-medium
+      api_base: os.environ/YI_API_BASE
+      api_key: os.environ/YI_API_KEY
+      temperature: 0.7
+      max_tokens: 4096
+    model_info:
+      mode: chat
+      tier: sonnet
+      provider: yi
+
+  # ============================================================
+  # ChatGLM — 智谱 ChatGLM 系列
+  # ============================================================
+  - model_name: chatglm-turbo
+    litellm_params:
+      model: openai/chatglm_turbo
+      api_base: os.environ/GLM_API_BASE
+      api_key: os.environ/GLM_API_KEY
+      temperature: 0.7
+      max_tokens: 4096
+    model_info:
+      mode: chat
+      tier: haiku
+      provider: chatglm
+
+  # ============================================================
+  # Baichuan (百川智能)
+  # ============================================================
+  - model_name: baichuan2-turbo
+    litellm_params:
+      model: openai/Baichuan2-Turbo
+      api_base: os.environ/BAICHUAN_API_BASE
+      api_key: os.environ/BAICHUAN_API_KEY
+      temperature: 0.7
+      max_tokens: 4096
+    model_info:
+      mode: chat
+      tier: sonnet
+      provider: baichuan
+
+  # ============================================================
+  # MiniCPM (面壁智能)
+  # ============================================================
+  - model_name: minicpm-4b
+    litellm_params:
+      model: openai/minicpm-4b
+      api_base: os.environ/LOCAL_VLLM_API_BASE
+      api_key: os.environ/LOCAL_VLLM_API_KEY
+      temperature: 0.7
+      max_tokens: 4096
+    model_info:
+      mode: chat
+      tier: haiku
+      provider: minicpm
+
+  # ============================================================
+  # InternLM (上海AI实验室)
+  # ============================================================
+  - model_name: internlm2-20b
+    litellm_params:
+      model: openai/internlm2-20b
+      api_base: os.environ/LOCAL_SGLANG_API_BASE
+      api_key: os.environ/LOCAL_SGLANG_API_KEY
+      temperature: 0.7
+      max_tokens: 8192
+    model_info:
+      mode: chat
+      tier: sonnet
+      provider: internlm
+
+  # ============================================================
+  # Aquila (智源研究院)
+  # ============================================================
+  - model_name: aquila2-34b
+    litellm_params:
+      model: openai/aquila2-34b
+      api_base: os.environ/LOCAL_VLLM_API_BASE
+      api_key: os.environ/LOCAL_VLLM_API_KEY
+      temperature: 0.7
+      max_tokens: 4096
+    model_info:
+      mode: chat
+      tier: sonnet
+      provider: aquila
+
+  # ============================================================
+  # Skywork (昆仑万维)
+  # ============================================================
+  - model_name: skywork-13b
+    litellm_params:
+      model: openai/skywork-13b
+      api_base: os.environ/LOCAL_SGLANG_API_BASE
+      api_key: os.environ/LOCAL_SGLANG_API_KEY
+      temperature: 0.7
+      max_tokens: 4096
+    model_info:
+      mode: chat
+      tier: haiku
+      provider: skywork
+
+  # ============================================================
+  # 本地推理模型 — vLLM
+  # ============================================================
+  - model_name: local-deepseek-671b
+    litellm_params:
+      model: openai/deepseek-671b
+      api_base: os.environ/LOCAL_VLLM_API_BASE
+      api_key: os.environ/LOCAL_VLLM_API_KEY
+      temperature: 0.7
+      max_tokens: 8192
+      stream: true
+    model_info:
+      mode: chat
+      tier: opus
+      provider: local_vllm
+
+  # 本地推理模型 — SGLang
+  - model_name: local-qwen3-72b
+    litellm_params:
+      model: openai/qwen3-72b
+      api_base: os.environ/LOCAL_SGLANG_API_BASE
+      api_key: os.environ/LOCAL_SGLANG_API_KEY
+      temperature: 0.7
+      max_tokens: 8192
+      stream: true
+    model_info:
+      mode: chat
+      tier: opus
+      provider: local_sglang
+
+  # Mock 模型 (开发测试用)
+  - model_name: mock
+    litellm_params:
+      model: openai/my-fake-model
+      api_base: http://localhost:8080/v1
+      api_key: fake-key
+
+# ==============================================================
+# 路由策略
+# ==============================================================
+router_settings:
+  routing_strategy: usage-based-routing-v2
+  allowed_fails: 3
+  cooldown_time: 60
+  num_retries: 2
+  timeout: 30
+  retry_after: 60
+  model_group_alias:
+    opus: local-deepseek-671b
+    sonnet: qwen-plus
+    haiku: qwen-turbo
+
+# ==============================================================
+# 通用设置
+# ==============================================================
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+  database_url: sqlite:///./litellm_proxy.db
+  store_model_in_db: true
+  drop_params: true
+
+# ==============================================================
+# LiteLLM 设置
+# ==============================================================
+litellm_settings:
+  drop_params: true
+  set_verbose: false
+  json_logs: true
+  success_callback: ["prometheus_system"]
+  failure_callback: ["prometheus_system"]
+  request_timeout: 60

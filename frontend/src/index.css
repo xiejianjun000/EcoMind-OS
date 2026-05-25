@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+/* EcoMind OS Global Styles */
+
+:root {
+  --ecomind-primary: #1890ff;
+  --ecomind-success: #52c41a;
+  --ecomind-warning: #faad14;
+  --ecomind-error: #ff4d4f;
+  --ecomind-bg: #f0f2f5;
+  --ecomind-sidebar-bg: #001529;
+}
+
+[data-theme='dark'] {
+  --ecomind-bg: #141414;
+  --ecomind-sidebar-bg: #1f1f1f;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
+    Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    'Segoe UI Symbol', 'Noto Color Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Ant Design Pro Layout overrides */
+.ant-pro-layout {
+  min-height: 100vh;
+}
+
+/* Custom utility classes */
+.status-online {
+  @apply bg-green-500;
+}
+
+.status-offline {
+  @apply bg-gray-400;
+}
+
+.status-warning {
+  @apply bg-yellow-500;
+}
+
+.status-error {
+  @apply bg-red-500;
+}

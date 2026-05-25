@@ -1,0 +1,78 @@
+{
+  "dashboard": {
+    "title": "Dashboard",
+    "description": "System Overview & Status Monitoring"
+  },
+  "agents": {
+    "title": "Agent Management",
+    "description": "Agent configuration, lifecycle & monitoring"
+  },
+  "workflows": {
+    "title": "Workflow Orchestration",
+    "description": "LangGraph workflow design & debugging"
+  },
+  "security": {
+    "title": "Security Governance",
+    "description": "VERIFY hallucination detection, SM2 & approval flows"
+  },
+  "models": {
+    "title": "Model Management",
+    "description": "Local model routing, GPU load & fine-tuning"
+  },
+  "domains": {
+    "title": "Domain Configuration",
+    "description": "12 domain knowledge preloading & RAG"
+  },
+  "conversations": {
+    "title": "Conversation Audit",
+    "description": "Conversation replay, tool calls & trajectory tracing"
+  },
+  "cesium": {
+    "title": "Data & IoT",
+    "description": "Hunan Province 3D Digital Twin Scene"
+  },
+  "settings": {
+    "title": "System Settings",
+    "description": "RBAC, compliance & deployment configuration"
+  },
+  "common": {
+    "online": "Online",
+    "offline": "Offline",
+    "loading": "Loading...",
+    "search": "Search",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "refresh": "Refresh",
+    "expand": "Expand",
+    "collapse": "Collapse",
+    "localOnly": "Local Only",
+    "deployMode": "Deploy Mode"
+  },
+  "dashboardPage": {
+    "agentStatus": "Agent Status",
+    "modelLoad": "Model Load",
+    "securityAlerts": "Security Alerts",
+    "approvalQueue": "Approval Queue",
+    "onlineAgents": "Online Agents",
+    "offlineAgents": "Offline Agents",
+    "gpuUsage": "GPU Usage",
+    "inferenceQueue": "Inference Queue",
+    "alerts24h": "Alerts (24h)",
+    "pendingApprovals": "Pending Approvals",
+    "lawEnforcement": "Law Enforcement",
+    "envMonitoring": "Environmental Monitoring",
+    "govApproval": "Gov Approval",
+    "publicService": "Public Service",
+    "recentActivity": "Recent Activity",
+    "modelRouting": "Model Routing Status",
+    "securityEvents": "Security Events",
+    "pendingApprovalList": "Approval Queue",
+    "verifyDetection": "VERIFY Hallucination Detection",
+    "sm2Certificate": "SM2 Certificate",
+    "approvalFlow": "GOVMCP Approval Flow"
+  }
+}

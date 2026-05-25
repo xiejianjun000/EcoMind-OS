@@ -1,0 +1,54 @@
+# vLLM Docker Compose Configuration
+# 等待 GPU 就绪后启动: docker compose up -d
+
+version: '3.8'
+
+services:
+  vllm:
+    image: vllm/vllm-openai:latest
+    container_name: ecomind-vllm
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - MODEL_NAME=Qwen/Qwen3-14B
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./models:/root/.cache/huggingface
+    command: >
+      --model Qwen/Qwen3-14B
+      --served-model-name qwen3-14b
+      --host 0.0.0.0
+      --port 8000
+      --dtype auto
+      --gpu-memory-utilization 0.9
+      --max-model-len 8192
+      --trust-remote-code
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+
+  # CPU 量化方案 (低配环境)
+  vllm-cpu:
+    image: vllm/vllm-openai:latest
+    container_name: ecomind-vllm-cpu
+    profiles:
+      - cpu
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./models:/root/.cache/huggingface
+    command: >
+      --model Qwen/Qwen3-7B-Q4
+      --served-model-name qwen3-7b-q4
+      --host 0.0.0.0
+      --port 8000
+      --dtype float32
+      --max-model-len 4096
+      --trust-remote-code
+    restart: unless-stopped

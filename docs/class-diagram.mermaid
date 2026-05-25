@@ -1,0 +1,336 @@
+classDiagram
+    direction TB
+
+    %% ─── 核心引擎 ───────────────────────────
+    class EcoAgentEngine {
+        +AgentProfile profile
+        +EcoVerifyAdapter _verifier
+        +EventBus _bus
+        +SafetyChain _safety
+        +LangGraphOrchestrator _orchestrator
+        +float _hitl_threshold
+        +int max_iterations
+        +run(user_message, session_id, stream) AsyncIterator~str~
+        +_pre_verify(user_message) bool
+        +_post_verify(output, session_id) VerifyResult
+        +_hitl_gate(output, verify_result) str
+    }
+
+    class EventBus {
+        +dict _subscribers
+        +subscribe(event_type, handler) None
+        +publish(event) None
+        +unsubscribe(event_type, handler) None
+    }
+
+    class Plugin {
+        <<abstract>>
+        +str plugin_id
+        +str version
+        +on_load() None*
+        +on_unload() None*
+    }
+
+    %% ─── 编排层 ───────────────────────────
+    class LangGraphOrchestrator {
+        +str _mode
+        +StateGraph _graph
+        +Checkpointer _checkpointer
+        +_build_graph() StateGraph
+        +_supervisor_node(state) dict
+        +_approval_node(state) dict
+        +execute(task, context) OrchestratorState
+    }
+
+    class CrewAITeamBuilder {
+        +LLMRegistry _llm_registry
+        +build_team(config) Crew
+        +_build_agent(config) Agent
+        +_build_task(config, agents) Task
+        +monitoring_station_team() TeamConfig$
+        +enforcement_team() TeamConfig$
+        +inspector_team() TeamConfig$
+    }
+
+    class OrchestratorState {
+        +str state_id
+        +str team_id
+        +str task
+        +list messages
+        +dict context
+        +OrchestratorStatus status
+        +str current_node
+        +dict worker_results
+        +str required_approval_level
+        +bool approved
+        +list safety_checkpoints
+        +str checkpoint_id
+    }
+
+    class Team {
+        +str team_id
+        +str name
+        +str engine
+        +str process
+        +list~AgentConfig~ agents
+        +list~dict~ tasks
+        +datetime created_at
+        +bool is_template
+    }
+
+    class AgentConfig {
+        +str agent_id
+        +str role
+        +str goal
+        +str backstory
+        +str llm_key
+        +list~str~ tools
+        +bool allow_delegation
+        +int permission_level
+    }
+
+    %% ─── 安全层 ───────────────────────────
+    class SafetyChain {
+        +XiangxinGuardrails _xiangxin
+        +NeMoGuardrails _nemo
+        +EcoVerifyAdapter _verifier
+        +LettuceDetect _lettuce
+        +GuardrailsValidator _guardrails_validator
+        +LangfuseTracer _langfuse
+        +GovMCPCrypto _govmcp
+        +pre_llm_check(user_input) tuple
+        +post_llm_verify(input, output, rag_context) VerifyResult
+    }
+
+    class XiangxinGuardrails {
+        +check(text) tuple~bool, str~
+        +get_violations() list~str~
+    }
+
+    class LettuceDetect {
+        +str model_path
+        +detect(text, context) list~HallucinationSpan~
+        +get_confidence() float
+    }
+
+    class LangfuseTracer {
+        +str public_key
+        +str secret_key
+        +trace(name, input, output) str
+        +log_block(layer, content) None
+        +get_trace(trace_id) dict
+    }
+
+    %% ─── 验证层 ───────────────────────────
+    class EcoVerifyAdapter {
+        +EventBus _bus
+        +EcoVerifyConfig _config
+        +TaijiVerifyEngine _engine
+        +verify(input, output, ground_truth, context) VerifyResult
+        +verify_stream(stream, kwargs) None
+    }
+
+    class EcoVerifyConfig {
+        +bool enable_eco_rules
+        +float min_confidence_threshold
+        +list~str~ failure_mode_filter
+        +bool hitl_on_verify_fail
+    }
+
+    class VerifyResult {
+        +str verify_id
+        +bool is_passing
+        +str verdict
+        +float confidence
+        +list~dict~ failure_modes
+        +list~str~ eco_rule_violations
+        +dict layer_results
+        +datetime verified_at
+        +str llm_output_hash
+    }
+
+    %% ─── 记忆层 ───────────────────────────
+    class EcoMemoryProvider {
+        +HermesMemoryPlugin _hermes
+        +Mem0Client _mem0
+        +GraphitiClient _graphiti
+        +GraphRAGClient _graphrag
+        +prefetch(query, user_role, top_k) dict
+        +sync_turn(user_content, assistant_content, session_id) None
+        +curate_session(session_id) None
+    }
+
+    class HermesMemoryPlugin {
+        +str plugin_id
+        +EcoMemoryProvider _provider
+        +on_load() None
+        +_on_turn_start(event) None
+        +_on_turn_end(event) None
+        +_on_session_end(event) None
+        +on_unload() None
+    }
+
+    class MemoryRecord {
+        +str memory_id
+        +MemoryType memory_type
+        +str user_role
+        +str session_id
+        +str content
+        +list~float~ embedding
+        +float importance_score
+        +datetime created_at
+        +datetime expires_at
+        +list~str~ tags
+        +str mem0_entity_id
+        +str graphiti_edge_id
+        +str graphrag_community_id
+        +tuple temporal_range
+    }
+
+    %% ─── 政务层 ───────────────────────────
+    class GovWorkflowManager {
+        +create_workflow(case_type, applicant_id, materials, priority) ApprovalWorkflow
+        +advance_status(workflow_id, new_status, operator_id, comment) ApprovalWorkflow
+        +add_countersign(workflow_id, countersigner_id, opinion, approve) None
+        +query_status(workflow_id) ApprovalWorkflow
+        +generate_certificate(workflow_id) bytes
+    }
+
+    class ApprovalWorkflow {
+        +str workflow_id
+        +str case_type
+        +str applicant_id
+        +str current_status
+        +int priority
+        +datetime created_at
+        +datetime deadline
+        +list~ApprovalRecord~ records
+        +list~dict~ countersign_results
+        +list~str~ materials
+        +str temporal_workflow_id
+        +bool encrypted
+    }
+
+    %% ─── 工具层 ───────────────────────────
+    class EcoToolRegistry {
+        +register(tool) None
+        +get_tools_for_role(role) list~EcoTool~
+        +get_mcp_schema() dict
+    }
+
+    class EcoTool {
+        +str name
+        +str description
+        +Callable handler
+        +bool requires_approval
+        +int permission_level
+        +bool gov_tool
+    }
+
+    %% ─── 用户/会话 ─────────────────────────
+    class User {
+        +str user_id
+        +str username
+        +str display_name
+        +UserRole role
+        +str department
+        +str phone
+        +bool is_active
+        +datetime created_at
+        +datetime last_login_at
+    }
+
+    class Session {
+        +str session_id
+        +str user_id
+        +UserRole user_role
+        +str title
+        +str status
+        +int turn_count
+        +datetime created_at
+        +datetime updated_at
+        +datetime expires_at
+        +dict metadata
+    }
+
+    class AgentTask {
+        +str task_id
+        +str session_id
+        +str user_role
+        +str user_message
+        +str status
+        +int iterations_used
+        +list~dict~ tool_calls
+        +str result
+        +VerifyResult verify_result
+        +str orchestration_mode
+        +str team_id
+        +dict safety_chain_log
+    }
+
+    %% ─── Agent角色 ─────────────────────────
+    class BaseAgentProfile {
+        <<abstract>>
+        +str role
+        +str prompt_template
+        +list~str~ tool_permissions
+    }
+
+    class EnforcementAgentProfile {
+        +str role = "enforcement"
+    }
+
+    class MonitoringAgentProfile {
+        +str role = "monitoring"
+    }
+
+    class ApprovalAgentProfile {
+        +str role = "approval"
+    }
+
+    class PublicAgentProfile {
+        +str role = "public"
+    }
+
+    %% ─── 关系定义 ─────────────────────────
+    EcoAgentEngine --> EcoVerifyAdapter : uses
+    EcoAgentEngine --> EventBus : publishes to
+    EcoAgentEngine --> SafetyChain : delegates
+    EcoAgentEngine --> LangGraphOrchestrator : orchestrates via
+    EcoAgentEngine --> EcoMemoryProvider : reads/writes
+
+    LangGraphOrchestrator --> OrchestratorState : manages
+    LangGraphOrchestrator --> EcoAgentEngine : invokes
+
+    CrewAITeamBuilder --> Team : builds
+    CrewAITeamBuilder --> AgentConfig : configures
+    Team "1" *-- "N" AgentConfig : contains
+
+    SafetyChain --> XiangxinGuardrails : L5-1
+    SafetyChain --> EcoVerifyAdapter : L5-4
+    SafetyChain --> LettuceDetect : L5-5
+    SafetyChain --> LangfuseTracer : L5-7
+    SafetyChain --> GovWorkflowManager : L5-8
+
+    EcoVerifyAdapter --> EcoVerifyConfig : configured by
+    EcoVerifyAdapter --> VerifyResult : produces
+    EcoVerifyAdapter --> EventBus : publishes to
+
+    EcoMemoryProvider "1" *-- "1" HermesMemoryPlugin : L1 short-term
+    EcoMemoryProvider --> MemoryRecord : manages
+
+    HermesMemoryPlugin --|> Plugin : extends
+
+    GovWorkflowManager --> ApprovalWorkflow : manages
+
+    EcoToolRegistry "1" *-- "N" EcoTool : registers
+
+    BaseAgentProfile <|-- EnforcementAgentProfile
+    BaseAgentProfile <|-- MonitoringAgentProfile
+    BaseAgentProfile <|-- ApprovalAgentProfile
+    BaseAgentProfile <|-- PublicAgentProfile
+
+    User "1" -- "N" Session : has
+    Session "1" -- "N" AgentTask : contains
+    AgentTask --> VerifyResult : references
+    AgentTask --> OrchestratorState : references
