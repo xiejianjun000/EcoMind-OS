@@ -9,3 +9,8 @@ export type {
   ApprovalNotification,
   WorkflowProgressInfo,
 } from './appStore';
+
+// New stores for conversational UI
+export { useChatStore } from './chatStore';
+export { useExpertStore } from './expertStore';
+export { useArtifactStore } from './artifactStore';

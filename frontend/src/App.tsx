@@ -1,43 +1,26 @@
 import React from 'react';
 import { RouterProvider } from 'react-router-dom';
-import { ConfigProvider, App as AntdApp, theme } from 'antd';
-import zhCN from 'antd/locale/zh_CN';
-import enUS from 'antd/locale/en_US';
 import { router } from '@/router';
-import { useAppStore } from '@/store';
-import { lightTheme, darkTheme, ThemeInitializer } from '@/theme';
+import { ThemeProvider } from '@/providers/ThemeProvider';
 import { WebSocketProvider } from '@/providers/WebSocketProvider';
 import '@/locales';
+import { Toaster } from 'sonner';
 
-/** Inner application content — separated so WebSocketProvider wraps it */
 const AppContent: React.FC = () => {
-  const { theme: themeMode, locale } = useAppStore();
-
-  const antdTheme = themeMode === 'dark' ? darkTheme : lightTheme;
-  const antdLocale = locale === 'zh-CN' ? zhCN : enUS;
-
   return (
-    <ConfigProvider
-      locale={antdLocale}
-      theme={{
-        ...antdTheme,
-        algorithm: themeMode === 'dark' ? theme.darkAlgorithm : theme.defaultAlgorithm,
-      }}
-    >
-      <ThemeInitializer theme={themeMode}>
-        <AntdApp>
-          <RouterProvider router={router} />
-        </AntdApp>
-      </ThemeInitializer>
-    </ConfigProvider>
+    <>
+      <RouterProvider router={router} />
+      <Toaster position="top-right" richColors closeButton />
+    </>
   );
 };
 
-/** Root application component with WebSocket provider */
 const App: React.FC = () => {
   return (
     <WebSocketProvider>
-      <AppContent />
+      <ThemeProvider defaultTheme="system" storageKey="ecomind-ui-theme">
+        <AppContent />
+      </ThemeProvider>
     </WebSocketProvider>
   );
 };
