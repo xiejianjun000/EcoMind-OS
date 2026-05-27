@@ -20,3 +20,8 @@
 - ✅ ShareDialog（链接 + SVG 二维码）
 - ✅ Chat 类型文件抽离（Message / EnvDataCard）
 - ✅ 空对话时按钮禁用
+
+## 2026-05-27（晚）— task-009 消息全文搜索
+- ✅ 搜索栏 UI（展开/收起 + 动画）
+- ✅ 关键词高亮 + 匹配计数
+- ✅ Ctrl+K / Escape 快捷键
