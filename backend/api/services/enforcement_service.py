@@ -101,18 +101,19 @@ class EnforcementService:
     async def create_case(self, data: dict[str, Any]) -> CaseRecord:
         case_id = str(uuid.uuid4())
         case_number = self._generate_case_number()
+        # 执法专有字段存入 metadata
+        enf_fields = {k: data[k] for k in ("enterprise_name","credit_code","legal_person","violation","city","officers","severity","source") if k in data}
         record = CaseRecord(
             case_id=case_id,
             case_number=case_number,
             title=data.get("title", ""),
             stage="线索",
-            description=data.get("description", ""),
+            description=data.get("violation", data.get("description", "")),
             department=data.get("department", ""),
-            priority=data.get("priority", "normal"),
-            reporter=data.get("reporter", ""),
-            assignee=data.get("assignee", ""),
-            tags=data.get("tags", []),
-            metadata=data.get("metadata", {}),
+            priority=data.get("severity", "normal"),
+            reporter=data.get("applicant", data.get("reporter", "")),
+            assignee=",".join(data.get("officers", [])) if isinstance(data.get("officers"), list) else data.get("assignee", ""),
+            metadata={**data.get("metadata", {}), **enf_fields},
         )
         self._append_timeline(record, "create")
         self._log_audit(record, "create_case")

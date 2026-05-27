@@ -8,7 +8,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from api.schemas.enforcement import CaseCreateRequest, CaseTransitionRequest
+from api.schemas.enforcement import CaseCreateRequest, CaseTransitionRequest, CaseUpdateRequest
 from api.services.enforcement_service import EnforcementService, get_enforcement_service
 
 router = APIRouter(prefix="/api/enforcement", tags=["enforcement"])
@@ -61,11 +61,11 @@ async def get_case(
 @router.put("/cases/{case_id}", summary="更新案件信息")
 async def update_case(
     case_id: str,
-    request: dict,
+    request: CaseUpdateRequest,
     service: EnforcementService = Depends(get_enforcement_service),
 ) -> dict:
     """更新案件基本信息（标题、描述、部门、优先级、承办人等可编辑字段）。"""
-    record = await service.update_case(case_id, request)
+    record = await service.update_case(case_id, request.model_dump(exclude_none=True))
     if record is None:
         raise HTTPException(status_code=404, detail=f"案件不存在: {case_id}")
     return record.to_dict()

@@ -75,6 +75,19 @@ class CaseTransitionRequest(BaseModel):
     operator: str = Field(..., min_length=1, max_length=64, description="操作人")
 
 
+
+class CaseUpdateRequest(BaseModel):
+    """更新案件请求体"""
+    title: Optional[str] = Field(default=None, max_length=256, description="案件标题")
+    enterprise_name: Optional[str] = Field(default=None, max_length=256, description="企业名称")
+    credit_code: Optional[str] = Field(default=None, max_length=64, description="统一社会信用代码")
+    legal_person: Optional[str] = Field(default=None, max_length=64, description="法定代表人")
+    violation: Optional[str] = Field(default=None, description="违法事实描述")
+    city: Optional[str] = Field(default=None, max_length=64, description="所属城市")
+    officers: Optional[list[str]] = Field(default=None, description="执法人员列表")
+    severity: Optional[str] = Field(default=None, max_length=16, description="严重程度")
+
+
 class CaseResponse(BaseModel):
     """案件详情响应"""
     id: str = Field(..., description="案件唯一标识")

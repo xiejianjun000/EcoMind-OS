@@ -48,7 +48,13 @@ class ReportService:
     async def generate(self, data: dict[str, Any]) -> Report:
         report_type = data.get("report_type", "监测报告")
         template = _REPORT_TEMPLATES.get(report_type, _REPORT_TEMPLATES["监测报告"])
-        content = template.format(**data.get("params", {}), date=datetime.now().strftime("%Y-%m-%d"))
+        from string import Formatter
+        fields = {f[1] for f in Formatter().parse(template) if f[1]}
+        fmt_args = {"date": datetime.now().strftime("%Y-%m-%d")}
+        fmt_args.update(data.get("params", {}))
+        for f in fields:
+            fmt_args.setdefault(f, "—")
+        content = template.format(**fmt_args)
         report = Report(
             report_id=str(uuid.uuid4()),
             title=data.get("title", f"{report_type}-{datetime.now():%Y%m%d}"),
