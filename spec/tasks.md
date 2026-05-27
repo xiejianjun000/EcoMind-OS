@@ -19,3 +19,7 @@
 - [x] task-010-voice-io — 语音输入/输出
 - [x] task-011-skill-panel — 技能面板集成
 - [x] task-012-connector-panel — 连接器集成
+
+## Sprint 2: 审计与管理
+
+- [x] task-013-conversations — 对话审计页面（会话列表 + 搜索筛选 + 详情预览 + 删除）
