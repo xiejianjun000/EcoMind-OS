@@ -1,10 +1,10 @@
 /**
  * 生态环境实时数据服务
  *
- * 数据来源:
- *   - World Air Quality Index (waqi.info) — 全球 AQI 免费 API
- *   - Open-Meteo (open-meteo.com) — 免费气象 API
- *   - 湖南生态环境厅公开数据 — 各市州监测站点
+ * 数据来源（按优先级）:
+ *   1. 湖南省生态环境厅官方 API (hn.leitesoft.cn) — 实时 AQI + 六项污染物
+ *   2. Open-Meteo (open-meteo.com) — 免费气象 API (温度/湿度/风速)
+ *   3. 季节性偏移模型 — 最终回退
  *
  * 支持: AQI/PM2.5/PM10/O3/NO2/SO2/CO, 水质, 气象, 监测站点坐标
  */
@@ -50,6 +50,21 @@ export interface WaterQuality {
   nh3n: number;  // 氨氮
   lat: number;
   lng: number;
+}
+
+/** 后端返回的城市详细数据结构 */
+interface BackendCityDetail {
+  city: string;
+  aqi: number;
+  level: string;
+  primary: string;
+  time: string;
+  pm25: number;
+  pm10: number;
+  o3: number;
+  no2: number;
+  so2: number;
+  co: number;
 }
 
 // ─── 湖南14市州坐标 ───
@@ -99,39 +114,56 @@ function getStations(city: string): StationInfo[] {
   ];
 }
 
-// ─── WAQI API 集成 ───
+// ─── 湖南省生态环境厅官方 API（通过后端代理） ───
 
-const WAQI_TOKEN = ''; // 免费 token 在 https://aqicn.org/data-platform/token/ 获取
-const WAQI_BASE = 'https://api.waqi.info';
+/** 后端环境数据 API 缓存 */
+let _citiesDetailCache: BackendCityDetail[] | null = null;
+let _citiesDetailCacheTime = 0;
+const CACHE_TTL = 5 * 60 * 1000; // 5 分钟缓存
 
-/** 从 WAQI API 获取真实 AQI 数据 */
-async function fetchWaqiAqi(cityEnglish: string): Promise<Partial<CityAQI> | null> {
-  if (!WAQI_TOKEN) return null;
+/**
+ * 从后端获取 14 市州实时详细监测数据
+ * 后端对接: hn.leitesoft.cn:9020/HNAirWebAPI (湖南省生态环境厅)
+ */
+async function fetchBackendCitiesDetail(): Promise<BackendCityDetail[]> {
+  const now = Date.now();
+  if (_citiesDetailCache && (now - _citiesDetailCacheTime) < CACHE_TTL) {
+    return _citiesDetailCache;
+  }
   try {
-    const url = `${WAQI_BASE}/feed/${cityEnglish}/?token=${WAQI_TOKEN}`;
-    const resp = await fetch(url);
-    const data = await resp.json();
-    if (data.status === 'ok' && data.data) {
-      const iaqi = data.data.iaqi || {};
-      return {
-        aqi: data.data.aqi,
-        pm25: iaqi.pm25?.v ?? 0,
-        pm10: iaqi.pm10?.v ?? 0,
-        o3: iaqi.o3?.v ?? 0,
-        no2: iaqi.no2?.v ?? 0,
-        so2: iaqi.so2?.v ?? 0,
-        co: iaqi.co?.v ?? 0,
-        temperature: iaqi.t?.v ?? 0,
-        humidity: iaqi.h?.v ?? 0,
-        wind: iaqi.w?.v ? `${iaqi.w.v}` : '',
-        updateTime: data.data.time?.s || new Date().toISOString(),
-      };
+    const resp = await fetch('/api/environment/cities-detail');
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const json = await resp.json();
+    if (json.code === 200 && Array.isArray(json.data)) {
+      _citiesDetailCache = json.data;
+      _citiesDetailCacheTime = now;
+      console.log('[EnvData] ✅ 湖南省生态环境厅实时数据已接入，共', json.data.length, '个城市');
+      return json.data;
     }
   } catch (e) {
-    console.warn('[EnvData] WAQI fetch failed:', e);
+    console.warn('[EnvData] 官方 API 获取失败，将使用模型回退:', e);
+  }
+  return [];
+}
+
+/**
+ * 从后端获取单个城市实时详细监测数据
+ */
+async function fetchBackendCityDetail(cityName: string): Promise<BackendCityDetail | null> {
+  try {
+    const resp = await fetch(`/api/environment/city/${encodeURIComponent(cityName)}`);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const json = await resp.json();
+    if (json.code === 200 && json.data) {
+      return json.data as BackendCityDetail;
+    }
+  } catch (e) {
+    console.warn(`[EnvData] 城市 ${cityName} 官方数据获取失败:`, e);
   }
   return null;
 }
+
+// ─── Open-Meteo 气象 API ───
 
 /** 从 Open-Meteo 获取真实气象数据 (免费, 无需 Key) */
 async function fetchOpenMeteo(lat: number, lng: number): Promise<{ temperature: number; humidity: number; windSpeed: number } | null> {
@@ -152,7 +184,7 @@ async function fetchOpenMeteo(lat: number, lng: number): Promise<{ temperature: 
   return null;
 }
 
-// ─── 数据生成器 ───
+// ─── 季节性偏移模型（最终回退） ───
 
 function aqiToLevel(aqi: number): CityAQI['level'] {
   if (aqi <= 50) return '优';
@@ -171,52 +203,124 @@ function getCitySeasonalOffset(city: string): { aqiOffset: number; pm25Ratio: nu
   return { aqiOffset: 5, pm25Ratio: 1.0, o3Ratio: 1.0 };
 }
 
-// ─── 主 API ───
-
-/** 获取城市实时 AQI (真实 API → 模型回退) */
-export async function getCityAQI(city: string): Promise<CityAQI> {
-  const cityInfo = HUNAN_CITIES[city];
-  if (!cityInfo) throw new Error(`未找到城市: ${city}`);
-
-  // 1. 尝试真实 API
-  const [waqi, meteo] = await Promise.all([
-    fetchWaqiAqi(cityInfo.english).catch(() => null),
-    fetchOpenMeteo(cityInfo.lat, cityInfo.lng).catch(() => null),
-  ]);
-
+/** 生成回退模型数据 */
+function buildFallbackAQI(city: string, cityInfo: { lat: number; lng: number }, meteo: { temperature: number; humidity: number; windSpeed: number } | null): CityAQI {
   const offset = getCitySeasonalOffset(city);
-
-  // 2. 合并真实数据 + 模型数据
-  const baseAqi = waqi?.aqi ?? (55 + offset.aqiOffset + Math.floor(Math.random() * 30));
-  const pm25 = waqi?.pm25 ?? Math.floor((25 + offset.aqiOffset * 0.4 + Math.random() * 20) * offset.pm25Ratio);
-  const pm10 = waqi?.pm10 ?? pm25 + Math.floor(Math.random() * 30);
-  const o3 = waqi?.o3 ?? Math.floor((60 + Math.random() * 50) * offset.o3Ratio);
-  const no2 = waqi?.no2 ?? Math.floor(20 + Math.random() * 25);
-  const so2 = waqi?.so2 ?? Math.floor(5 + Math.random() * 10);
-  const co = waqi?.co ?? +(0.4 + Math.random() * 0.6).toFixed(1);
+  const baseAqi = 55 + offset.aqiOffset + Math.floor(Math.random() * 30);
+  const pm25 = Math.floor((25 + offset.aqiOffset * 0.4 + Math.random() * 20) * offset.pm25Ratio);
+  const pm10 = pm25 + Math.floor(Math.random() * 30);
+  const o3 = Math.floor((60 + Math.random() * 50) * offset.o3Ratio);
+  const no2 = Math.floor(20 + Math.random() * 25);
+  const so2 = Math.floor(5 + Math.random() * 10);
+  const co = +(0.4 + Math.random() * 0.6).toFixed(1);
 
   return {
     city,
     aqi: baseAqi,
     level: aqiToLevel(baseAqi),
     primaryPollutant: pm25 > 50 ? 'PM2.5' : o3 > 100 ? 'O3' : 'PM10',
-    pm25,
-    pm10,
-    o3,
-    no2,
-    so2,
-    co,
-    temperature: meteo?.temperature ?? (waqi?.temperature || (20 + Math.floor(Math.random() * 10))),
-    humidity: meteo?.humidity ?? (waqi?.humidity || (50 + Math.floor(Math.random() * 30))),
-    wind: waqi?.wind || `${['北','东北','东','东南','南','西南','西','西北'][Math.floor(Math.random()*8)]}风 ${meteo?.windSpeed?.toFixed(0) || (1+Math.floor(Math.random()*4))}级`,
-    updateTime: waqi?.updateTime || new Date().toISOString(),
+    pm25, pm10, o3, no2, so2, co,
+    temperature: meteo?.temperature ?? (20 + Math.floor(Math.random() * 10)),
+    humidity: meteo?.humidity ?? (50 + Math.floor(Math.random() * 30)),
+    wind: `${['北','东北','东','东南','南','西南','西','西北'][Math.floor(Math.random()*8)]}风 ${meteo?.windSpeed?.toFixed(0) || (1+Math.floor(Math.random()*4))}级`,
+    updateTime: new Date().toISOString(),
     lat: cityInfo.lat,
     lng: cityInfo.lng,
   };
 }
 
-/** 获取所有湖南城市 AQI */
+// ─── 主 API ───
+
+/**
+ * 获取城市实时 AQI（优先级：官方 API → Open-Meteo 气象 → 模型回退）
+ *
+ * 数据对接状态:
+ *   ✅ AQI/PM2.5/PM10/O3/NO2/SO2/CO — 湖南省生态环境厅 hn.leitesoft.cn
+ *   ✅ 温度/湿度/风速 — Open-Meteo 免费气象 API
+ *   ⚠️ 模型回退 — 仅官方 API 不可用时启用
+ */
+export async function getCityAQI(city: string): Promise<CityAQI> {
+  const cityInfo = HUNAN_CITIES[city];
+  if (!cityInfo) throw new Error(`未找到城市: ${city}`);
+
+  // 1. 并行获取：官方 AQI 数据 + 气象数据
+  const [backendDetail, meteo] = await Promise.all([
+    fetchBackendCityDetail(city).catch(() => null),
+    fetchOpenMeteo(cityInfo.lat, cityInfo.lng).catch(() => null),
+  ]);
+
+  // 2. 如果有官方数据，使用真实 AQI + 气象
+  if (backendDetail && backendDetail.aqi > 0) {
+    return {
+      city,
+      aqi: backendDetail.aqi,
+      level: aqiToLevel(backendDetail.aqi),
+      primaryPollutant: backendDetail.primary || '—',
+      pm25: backendDetail.pm25 || 0,
+      pm10: backendDetail.pm10 || 0,
+      o3: backendDetail.o3 || 0,
+      no2: backendDetail.no2 || 0,
+      so2: backendDetail.so2 || 0,
+      co: backendDetail.co || 0,
+      temperature: meteo?.temperature ?? 20,
+      humidity: meteo?.humidity ?? 50,
+      wind: meteo
+        ? `${['北','东北','东','东南','南','西南','西','西北'][Math.floor(Math.random()*8)]}风 ${meteo.windSpeed.toFixed(0)}级`
+        : '微风 2级',
+      updateTime: backendDetail.time || new Date().toISOString(),
+      lat: cityInfo.lat,
+      lng: cityInfo.lng,
+    };
+  }
+
+  // 3. 官方数据不可用 → 模型回退
+  console.warn(`[EnvData] ${city} 使用模型回退数据`);
+  return buildFallbackAQI(city, cityInfo, meteo);
+}
+
+/**
+ * 获取所有湖南城市 AQI（优先使用批量官方 API）
+ */
 export async function getAllCitiesAQI(): Promise<CityAQI[]> {
+  // 1. 尝试批量官方 API
+  const citiesDetail = await fetchBackendCitiesDetail().catch(() => []);
+  if (citiesDetail.length > 0) {
+    // 并行获取气象数据
+    const meteoResults = await Promise.all(
+      citiesDetail.map(d => {
+        const info = HUNAN_CITIES[d.city];
+        return info ? fetchOpenMeteo(info.lat, info.lng).catch(() => null) : null;
+      })
+    );
+
+    return citiesDetail.map((d, i) => {
+      const info = HUNAN_CITIES[d.city];
+      const meteo = meteoResults[i];
+      return {
+        city: d.city,
+        aqi: d.aqi || 0,
+        level: aqiToLevel(d.aqi || 0),
+        primaryPollutant: d.primary || '—',
+        pm25: d.pm25 || 0,
+        pm10: d.pm10 || 0,
+        o3: d.o3 || 0,
+        no2: d.no2 || 0,
+        so2: d.so2 || 0,
+        co: d.co || 0,
+        temperature: meteo?.temperature ?? 20,
+        humidity: meteo?.humidity ?? 50,
+        wind: meteo
+          ? `${['北','东北','东','东南','南','西南','西','西北'][Math.floor(Math.random()*8)]}风 ${meteo.windSpeed.toFixed(0)}级`
+          : '微风 2级',
+        updateTime: d.time || new Date().toISOString(),
+        lat: info?.lat ?? 28.0,
+        lng: info?.lng ?? 112.0,
+      };
+    });
+  }
+
+  // 2. 逐个回退
+  console.warn('[EnvData] 批量官方 API 不可用，逐个获取...');
   const cities = Object.keys(HUNAN_CITIES);
   const results = await Promise.all(cities.map(c => getCityAQI(c).catch(() => null)));
   return results.filter(Boolean) as CityAQI[];
