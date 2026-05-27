@@ -1,0 +1,7 @@
+[run]
+source = api,nats,inference
+omit = tests/*
+
+[report]
+show_missing = True
+skip_covered = False
