@@ -1,0 +1,58 @@
+# ============================================================
+# EcoMind OS Backend — ARM64 / LoongArch Multi-arch
+# 国产化部署: openEuler / 麒麟 / 统信 / Loongnix
+# ============================================================
+
+# ── 基础镜像: Python 3.12 ARM64 ──
+FROM python:3.12-slim-bookworm
+
+LABEL maintainer="EcoMind OS Team"
+LABEL architecture="arm64"
+LABEL description="EcoMind OS Backend - Domestic CPU Deployment"
+
+# ── 环境变量 ──
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    ENV=production
+
+# ── 系统依赖 ──
+RUN set -eux && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        # 国产数据库驱动编译依赖
+        gcc g++ make \
+        libssl-dev libffi-dev \
+        # 达梦 DM8 需要 unixODBC
+        unixodbc unixodbc-dev \
+        # 工具
+        curl wget ca-certificates \
+        # 清理
+    && rm -rf /var/lib/apt/lists/*
+
+# ── 安装 Python 依赖 ──
+WORKDIR /app
+COPY backend/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# ── 安装国产数据库驱动 ──
+# Python 达梦驱动 (dmPython)
+RUN pip install --no-cache-dir dmPython || echo "dmPython 需要达梦SDK, 跳过"
+# 人大金仓 (兼容 PostgreSQL 协议, 使用 psycopg2)
+RUN pip install --no-cache-dir psycopg2-binary
+# openGauss (兼容 PostgreSQL 协议)
+RUN pip install --no-cache-dir psycopg2-binary
+
+# ── 复制应用代码 ──
+COPY backend/ .
+
+# ── 健康检查 ──
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
+    CMD curl -f http://localhost:8000/api/health || exit 1
+
+EXPOSE 8000
+
+# ── 启动命令 (多 worker, 适配 NUMA) ──
+# 鲲鹏平台使用 taskset 绑定 NUMA node
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port 8000 --workers ${WORKERS:-4} --loop uvloop --log-level info"]
