@@ -28,9 +28,7 @@ import {
   Wrench,
   Plug,
   BookOpen,
-  Share2,
   Search,
-  LayoutGrid,
   ThumbsUp,
   Clipboard,
   Volume2,
@@ -41,25 +39,8 @@ import {
 import { chatStream, isApiKeyConfigured } from "@/services/deepseek"
 import { getCityAQI, getCityStations, getCityWaterQuality, getCityCoordinates, getAllCities, type CityAQI } from "@/services/envDataService"
 import ChatMapEmbed from "@/components/ChatMap/ChatMapEmbed"
-
-interface Message {
-  id: string
-  role: "user" | "assistant" | "system"
-  content: string
-  expert?: { id: string; name: string }
-  timestamp: string
-  isStreaming?: boolean
-  /** 附加的真实环境数据 */
-  envData?: EnvDataCard
-}
-
-interface EnvDataCard {
-  type: 'aqi' | 'water' | 'stations'
-  city: string
-  aqi?: CityAQI
-  waterQuality?: ReturnType<typeof getCityWaterQuality>
-  stations?: ReturnType<typeof getCityStations>
-}
+import { ExportMenu } from "@/components/Chat/ExportMenu"
+import type { Message, EnvDataCard } from "./types"
 
 const EXPERT_MAP: Record<string, { id: string; name: string }> = {
   gaia: { id: "gaia", name: "GAIA 生态主控" },
@@ -270,14 +251,7 @@ export default function ChatPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Share2 className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>分享</TooltipContent>
-            </Tooltip>
+            <ExportMenu messages={messages} />
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="icon">

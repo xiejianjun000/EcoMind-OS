@@ -14,3 +14,9 @@
 - 10 个语义化 commit，73 files，+15894/-811 lines
 - 构建验证通过（6111 modules, 14.67s）
 - 符合 SpecCoding 七阶段标准
+
+## 2026-05-27（晚）— task-008 对话导出与分享
+- ✅ ExportMenu 下拉菜单（Markdown / 复制全文 / 分享链接）
+- ✅ ShareDialog（链接 + SVG 二维码）
+- ✅ Chat 类型文件抽离（Message / EnvDataCard）
+- ✅ 空对话时按钮禁用
