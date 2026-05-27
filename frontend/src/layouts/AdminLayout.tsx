@@ -20,6 +20,7 @@ import {
   SafetyOutlined,
   FileTextOutlined,
   EnvironmentOutlined,
+  BranchesOutlined,
 } from '@ant-design/icons';
 import { useAppStore } from '@/store';
 
@@ -99,6 +100,11 @@ const AdminLayout: React.FC = () => {
       path: '/admin/reports',
       name: '报告生成',
       icon: <FileTextOutlined />,
+    },
+    {
+      path: '/admin/knowledge-graph',
+      name: '知识图谱',
+      icon: <BranchesOutlined />,
     },
     {
       path: '/settings',

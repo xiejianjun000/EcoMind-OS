@@ -120,3 +120,26 @@
 - ✅ businessApi 新增 marketplaceApi
 
 - ✅ 构建验证通过（15.25s）
+
+## 2026-05-27（深夜）— task-023 知识图谱
+
+### 后端
+- ✅ 新增 `/api/knowledge-graph` 路由（7 端点）
+  - GET /full — 完整图谱数据
+  - GET /nodes + /nodes/{id} — 节点查询 + 邻居展开
+  - GET /edges — 所有边
+  - GET /search?q= — 关键词搜索
+  - GET /mermaid — Mermaid 导出
+  - GET /stats — 图谱统计
+- ✅ 注册至 FastAPI 主应用
+- ✅ 复用 graph/understand_adapter.py KnowledgeGraph 引擎
+
+### 前端
+- ✅ 新增 KnowledgeGraph 页面 (+ /admin/knowledge-graph 路由)
+- ✅ ECharts 力导向图交互式可视化（拖拽/缩放/高亮邻居）
+- ✅ 节点类型筛选 + 颜色区分（法规蓝/Agent绿/工具黄/案例红）
+- ✅ 左侧搜索栏（实时 API 搜索 + 本地降级）
+- ✅ 节点详情面板（属性/关联边）
+- ✅ Mermaid 代码导出（可复制）
+- ✅ AdminLayout 导航新增「知识图谱」
+- ✅ 构建验证通过（14.93s）
