@@ -3,17 +3,18 @@
  *
  * 8 阶段流程: 线索 → 受理 → 立案 → 调查 → 告知 → 决定 → 执行 → 归档
  */
-import React, { useState, useMemo } from "react"
+import React, { useState, useMemo, useEffect } from "react"
 import {
   Row, Col, Card, Table, Tag, Typography, Space, Button, Select,
-  Input, Statistic, Badge, Timeline, Descriptions, Drawer, message,
+  Input, Statistic, Badge, Timeline, Descriptions, Drawer, message, Spin,
 } from "antd"
 import {
   ThunderboltOutlined, SearchOutlined, PlusOutlined,
   EyeOutlined, ArrowRightOutlined, CheckCircleOutlined,
   ClockCircleOutlined, ExclamationCircleOutlined,
-  EnvironmentOutlined, FileProtectOutlined,
+  EnvironmentOutlined, FileProtectOutlined, ReloadOutlined,
 } from "@ant-design/icons"
+import { enforcementApi } from "@/services/businessApi"
 
 const { Title, Text } = Typography
 
@@ -93,25 +94,54 @@ const EnforcementPage: React.FC = () => {
   const [severityFilter, setSeverityFilter] = useState<string>("all")
   const [selectedCase, setSelectedCase] = useState<EnforcementCase | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [apiCases, setApiCases] = useState<EnforcementCase[] | null>(null)
+
+  // Fetch from API on mount, fallback to mock
+  const fetchCases = async () => {
+    setLoading(true)
+    const data = await enforcementApi.list()
+    if (data && Array.isArray(data) && data.length > 0) {
+      const mapped = data.map((c: any) => ({
+        id: c.id || c.case_id || '',
+        title: c.title || c.name || '',
+        stage: c.stage || c.current_stage || '线索',
+        severity: c.severity || c.priority || '中',
+        city: c.city || c.department || '',
+        source: c.source || '',
+        description: c.description || '',
+        createdAt: c.created_at || '',
+        updatedAt: c.updated_at || '',
+        assignee: c.assignee || '-',
+        timeline: c.timeline || [],
+      }))
+      setApiCases(mapped as EnforcementCase[])
+    }
+    setLoading(false)
+  }
+
+  useEffect(() => { fetchCases() }, [])
+
+  const allCases = apiCases || MOCK_CASES
 
   const filteredCases = useMemo(() => {
-    let list = MOCK_CASES
+    let list = allCases
     if (searchQuery.trim()) {
       const q = searchQuery.trim().toLowerCase()
-      list = list.filter(c => c.title.toLowerCase().includes(q) || c.id.toLowerCase().includes(q) || c.city.includes(q))
+      list = list.filter(c => c.title.toLowerCase().includes(q) || c.id.toLowerCase().includes(q) || (c.city || '').includes(q))
     }
     if (stageFilter !== "all") list = list.filter(c => c.stage === stageFilter)
     if (severityFilter !== "all") list = list.filter(c => c.severity === severityFilter)
     return list
-  }, [searchQuery, stageFilter, severityFilter])
+  }, [allCases, searchQuery, stageFilter, severityFilter])
 
   // Stats
   const stats = useMemo(() => ({
-    total: MOCK_CASES.length,
-    active: MOCK_CASES.filter(c => !["归档"].includes(c.stage)).length,
-    high: MOCK_CASES.filter(c => c.severity === "高").length,
-    archived: MOCK_CASES.filter(c => c.stage === "归档").length,
-  }), [])
+    total: allCases.length,
+    active: allCases.filter(c => !["归档"].includes(c.stage)).length,
+    high: allCases.filter(c => c.severity === "高").length,
+    archived: allCases.filter(c => c.stage === "归档").length,
+  }), [allCases])
 
   const columns = [
     { title: "案件编号", dataIndex: "id", key: "id", width: 140, render: (v: string) => <Text code>{v}</Text> },
@@ -143,7 +173,10 @@ const EnforcementPage: React.FC = () => {
           </Title>
           <Text type="secondary">生态环境违法案件全生命周期管理 · 8 阶段流程</Text>
         </div>
-        <Button type="primary" icon={<PlusOutlined />}>新建案件</Button>
+        <Space>
+          <Button icon={<ReloadOutlined />} onClick={fetchCases} loading={loading}>刷新</Button>
+          <Button type="primary" icon={<PlusOutlined />}>新建案件</Button>
+        </Space>
       </div>
 
       {/* KPI Cards */}

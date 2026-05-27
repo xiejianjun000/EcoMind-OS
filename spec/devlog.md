@@ -92,3 +92,14 @@
 ### task-020 AdminLayout 导航扩充
 - ✅ 新增 6 个菜单项：环境监测/执法办案/审批中心/合规检查/报告生成/对话审计
 - ✅ 所有模块构建验证通过（15.15s）
+
+## 2026-05-27（深夜）— task-021 业务模块 API 集成
+- ✅ 新增 `businessApi.ts`（enforcement / approval / compliance / reports 4 模块 API）
+- ✅ 4 个业务页面全部接入真实 API:
+  - Enforcement: `useEffect` 加载 → API 成功用真实数据，失败降级 Mock
+  - Approval: 列表 + 筛选 + AI 预审通过 API 获取
+  - Compliance: 安全发现列表通过 API 获取
+  - Reports: 报告列表通过 API 获取
+- ✅ 每个页面新增"刷新"按钮（ReloadOutlined）
+- ✅ Vite proxy `/api` → `http://localhost:8000` 已配置
+- ✅ 构建验证通过（15.21s）

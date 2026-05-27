@@ -1,15 +1,16 @@
 /**
  * 环评审批中心 — 三级审批 + AI 预审
  */
-import React, { useState, useMemo } from "react"
+import React, { useState, useMemo, useEffect } from "react"
 import {
   Row, Col, Card, Table, Tag, Typography, Space, Button, Select,
-  Statistic, Descriptions, List, message,
+  Statistic, Descriptions, List, message, Spin,
 } from "antd"
 import {
   AuditOutlined, CheckOutlined, CloseOutlined, ClockCircleOutlined,
-  SafetyCertificateOutlined, FileProtectOutlined, SearchOutlined,
+  SafetyCertificateOutlined, FileProtectOutlined, SearchOutlined, ReloadOutlined,
 } from "@ant-design/icons"
+import { approvalApi } from "@/services/businessApi"
 
 const { Title, Text } = Typography
 
@@ -45,17 +46,42 @@ const TYPE_COLORS: Record<ApprovalType, string> = {
 const ApprovalPage: React.FC = () => {
   const [selected, setSelected] = useState<ApprovalItem | null>(null)
   const [filter, setFilter] = useState<string>("pending")
+  const [loading, setLoading] = useState(false)
+  const [apiData, setApiData] = useState<ApprovalItem[] | null>(null)
+
+  const fetchApprovals = async () => {
+    setLoading(true)
+    const data = await approvalApi.list()
+    if (data && Array.isArray(data) && data.length > 0) {
+      setApiData(data.map((a: any) => ({
+        id: a.id || a.approval_id || '',
+        type: a.type || a.approval_type || '',
+        applicant: a.applicant || a.submitter || '',
+        level: a.level || 'L1',
+        status: a.status || 'pending',
+        submitTime: a.submit_time || a.created_at || '',
+        deadline: a.deadline || '',
+        urgency: a.urgency || 'normal',
+        aiPrediction: a.ai_prediction,
+      })) as ApprovalItem[])
+    }
+    setLoading(false)
+  }
+
+  useEffect(() => { fetchApprovals() }, [])
+
+  const allApprovals = apiData || MOCK_APPROVALS
 
   const filtered = useMemo(() =>
-    MOCK_APPROVALS.filter(a => filter === "all" || a.status === filter),
-    [filter]
+    allApprovals.filter(a => filter === "all" || a.status === filter),
+    [allApprovals, filter]
   )
 
   const stats = useMemo(() => ({
-    pending: MOCK_APPROVALS.filter(a => a.status === "pending").length,
-    approved: MOCK_APPROVALS.filter(a => a.status === "approved").length,
-    rejected: MOCK_APPROVALS.filter(a => a.status === "rejected").length,
-  }), [])
+    pending: allApprovals.filter(a => a.status === "pending").length,
+    approved: allApprovals.filter(a => a.status === "approved").length,
+    rejected: allApprovals.filter(a => a.status === "rejected").length,
+  }), [allApprovals])
 
   const columns = [
     { title: "审批编号", dataIndex: "id", key: "id", width: 130, render: (v: string) => <Text code>{v}</Text> },
@@ -85,6 +111,7 @@ const ApprovalPage: React.FC = () => {
           <Text type="secondary">环评审批 · 排污许可 · 辐射安全 · 三级审批 + AI 预审</Text>
         </div>
         <Space>
+          <Button icon={<ReloadOutlined />} onClick={fetchApprovals} loading={loading}>刷新</Button>
           <Select value={filter} onChange={setFilter} style={{ width: 120 }}>
             <Select.Option value="pending">待我审批</Select.Option>
             <Select.Option value="approved">已通过</Select.Option>

@@ -1,12 +1,13 @@
 /**
  * 合规检查 — SafetyChain 六层安全 + 法规合规检查
  */
-import React, { useMemo } from "react"
-import { Row, Col, Card, Tag, Typography, Progress, List, Space, Descriptions } from "antd"
+import React, { useMemo, useEffect, useState } from "react"
+import { Row, Col, Card, Tag, Typography, Progress, List, Space, Button } from "antd"
 import {
   SafetyCertificateOutlined, CheckCircleOutlined, WarningOutlined,
-  CloseCircleOutlined, SafetyOutlined, SearchOutlined, FileTextOutlined,
+  CloseCircleOutlined, SafetyOutlined, FileTextOutlined, ReloadOutlined,
 } from "@ant-design/icons"
+import { complianceApi } from "@/services/businessApi"
 import ReactEChartsCore from "echarts-for-react/lib/core"
 import * as echarts from "echarts/core"
 import { RadarChart } from "echarts/charts"
@@ -45,6 +46,23 @@ const REGULATIONS = [
 ]
 
 const CompliancePage: React.FC = () => {
+  const [apiFindings, setApiFindings] = useState<typeof RECENT_FINDINGS | null>(null)
+
+  useEffect(() => {
+    complianceApi.list().then(data => {
+      if (data && Array.isArray(data) && data.length > 0) {
+        setApiFindings(data.map((c: any) => ({
+          title: c.title || c.category || '检查项',
+          desc: c.description || c.result || '',
+          severity: c.severity || c.status === 'failed' ? 'high' : 'low',
+          time: c.created_at ? new Date(c.created_at).toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'}) : '',
+        })))
+      }
+    }).catch(() => {})
+  }, [])
+
+  const findings = apiFindings || RECENT_FINDINGS
+
   const radarOption = useMemo(() => ({
     tooltip: {},
     legend: { data: ["当前得分", "基线要求"] },
@@ -101,7 +119,7 @@ const CompliancePage: React.FC = () => {
         </Col>
         <Col xs={24} lg={12}>
           <Card size="small" title="最近安全发现" extra={<Tag color="orange">4 条</Tag>}>
-            <List size="small" dataSource={RECENT_FINDINGS}
+            <List size="small" dataSource={findings}
               renderItem={(item) => (
                 <List.Item style={{ padding: "8px 0" }}>
                   <div className="w-full">

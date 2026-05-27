@@ -1,12 +1,13 @@
 /**
  * 报告生成 — 监测日报/执法周报/碳排放月报/环评报告/年度公报
  */
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { Row, Col, Card, Table, Tag, Typography, Button, Space, DatePicker, Select, Statistic } from "antd"
 import {
   FileTextOutlined, DownloadOutlined, EyeOutlined, BarChartOutlined,
-  FilePdfOutlined, FileExcelOutlined,
+  FilePdfOutlined, FileExcelOutlined, ReloadOutlined,
 } from "@ant-design/icons"
+import { reportsApi } from "@/services/businessApi"
 
 const { Title, Text } = Typography
 
@@ -45,17 +46,40 @@ const AI_TEMPLATES = [
 
 const ReportsPage: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState("all")
+  const [loading, setLoading] = useState(false)
+  const [apiReports, setApiReports] = useState<typeof MOCK_REPORTS | null>(null)
+
+  const fetchReports = async () => {
+    setLoading(true)
+    const data = await reportsApi.list()
+    if (data && Array.isArray(data) && data.length > 0) {
+      setApiReports(data.map((r: any) => ({
+        id: r.id || r.report_id || '',
+        name: r.name || r.title || '',
+        type: r.type || r.report_type || 'daily',
+        dept: r.department || r.dept || '',
+        time: r.created_at || r.time || '',
+        status: r.status || 'generated',
+        author: r.author || r.generated_by || '',
+      })))
+    }
+    setLoading(false)
+  }
+
+  useEffect(() => { fetchReports() }, [])
+
+  const allReports = apiReports || MOCK_REPORTS
 
   const filtered = typeFilter === "all"
-    ? MOCK_REPORTS
-    : MOCK_REPORTS.filter(r => r.type === typeFilter)
+    ? allReports
+    : allReports.filter(r => r.type === typeFilter)
 
   // Stats
   const stats = {
-    total: MOCK_REPORTS.length,
-    generated: MOCK_REPORTS.filter(r => r.status === "generated").length,
-    review: MOCK_REPORTS.filter(r => r.status === "review").length,
-    published: MOCK_REPORTS.filter(r => r.status === "published").length,
+    total: allReports.length,
+    generated: allReports.filter(r => r.status === "generated").length,
+    review: allReports.filter(r => r.status === "review").length,
+    published: allReports.filter(r => r.status === "published").length,
   }
 
   const columns = [
@@ -91,6 +115,7 @@ const ReportsPage: React.FC = () => {
           <Text type="secondary">监测日报 · 执法周报 · 碳排放月报 · 环评报告 · AI 辅助生成</Text>
         </div>
         <Space>
+          <Button icon={<ReloadOutlined />} onClick={fetchReports} loading={loading}>刷新</Button>
           <Button type="primary" icon={<FileTextOutlined />}>AI 生成报告</Button>
         </Space>
       </div>
