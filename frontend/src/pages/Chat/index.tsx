@@ -41,6 +41,7 @@ import { getCityAQI, getCityStations, getCityWaterQuality, getCityCoordinates, g
 import ChatMapEmbed from "@/components/ChatMap/ChatMapEmbed"
 import { ExportMenu } from "@/components/Chat/ExportMenu"
 import { VoiceInputButton, speakText, stopSpeaking } from "@/components/Chat/VoiceInputButton"
+import { SlidePanel, PanelItem } from "@/components/Chat/SlidePanel"
 import type { Message, EnvDataCard } from "./types"
 
 const EXPERT_MAP: Record<string, { id: string; name: string }> = {
@@ -63,6 +64,7 @@ export default function ChatPage() {
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true)
   const [searchQuery, setSearchQuery] = useState("")
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [activePanel, setActivePanel] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const abortRef = useRef<(() => void) | null>(null)
@@ -383,7 +385,7 @@ export default function ChatPage() {
             {/* Quick Actions */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" size="icon">
+                <Button variant={activePanel === 'skills' ? 'secondary' : 'outline'} size="icon" onClick={() => setActivePanel(activePanel === 'skills' ? null : 'skills')}>
                   <Sparkles className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
@@ -391,7 +393,7 @@ export default function ChatPage() {
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" size="icon">
+                <Button variant={activePanel === 'tools' ? 'secondary' : 'outline'} size="icon" onClick={() => setActivePanel(activePanel === 'tools' ? null : 'tools')}>
                   <Wrench className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
@@ -399,7 +401,7 @@ export default function ChatPage() {
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" size="icon">
+                <Button variant={activePanel === 'connectors' ? 'secondary' : 'outline'} size="icon" onClick={() => setActivePanel(activePanel === 'connectors' ? null : 'connectors')}>
                   <Plug className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
@@ -407,7 +409,7 @@ export default function ChatPage() {
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" size="icon">
+                <Button variant={activePanel === 'knowledge' ? 'secondary' : 'outline'} size="icon" onClick={() => setActivePanel(activePanel === 'knowledge' ? null : 'knowledge')}>
                   <BookOpen className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
@@ -473,6 +475,66 @@ export default function ChatPage() {
           </div>
         </div>
       </div>
+
+      {/* Skills Panel */}
+      <SlidePanel open={activePanel === 'skills'} onClose={() => setActivePanel(null)} title="🧠 技能面板">
+        <div className="space-y-1">
+          <p className="text-xs text-muted-foreground mb-3">GAIA 生态主控可调用以下专家技能：</p>
+          {[
+            { icon: "📊", title: "环境监测分析", desc: "AQI、水质、噪声实时数据解读" },
+            { icon: "🚔", title: "执法案件辅助", desc: "违法事实认定、法律适用建议" },
+            { icon: "📋", title: "环评报告审查", desc: "环评文件技术评估要点" },
+            { icon: "🏭", title: "碳排放核算", desc: "企业碳足迹计算与核查" },
+            { icon: "🚨", title: "应急响应建议", desc: "突发环境事件处置方案" },
+            { icon: "💧", title: "水环境治理", desc: "流域水质分析与治理建议" },
+            { icon: "🔍", title: "合规检查", desc: "环保法规合规性审核" },
+            { icon: "📝", title: "报告生成", desc: "自动生成监测/执法/审批报告" },
+          ].map((s, i) => <PanelItem key={i} {...s} />)}
+        </div>
+      </SlidePanel>
+
+      {/* Tools Panel */}
+      <SlidePanel open={activePanel === 'tools'} onClose={() => setActivePanel(null)} title="🔧 工具面板">
+        <div className="space-y-1">
+          <p className="text-xs text-muted-foreground mb-3">环境监测常用工具快捷入口：</p>
+          {[
+            { icon: "🌡", title: "空气质量查询", desc: "实时 AQI + 6项污染物" },
+            { icon: "💧", title: "水质断面查询", desc: "14市州水质监测数据" },
+            { icon: "🗺️", title: "3D 地图分析", desc: "Cesium 湖南全境可视化" },
+            { icon: "📈", title: "趋势分析", desc: "历史数据对比与趋势图" },
+            { icon: "🔔", title: "预警订阅", desc: "超标自动推送通知" },
+          ].map((t, i) => <PanelItem key={i} {...t} />)}
+        </div>
+      </SlidePanel>
+
+      {/* Connectors Panel */}
+      <SlidePanel open={activePanel === 'connectors'} onClose={() => setActivePanel(null)} title="🔌 连接器">
+        <div className="space-y-1">
+          <p className="text-xs text-muted-foreground mb-3">数据源连接状态：</p>
+          {[
+            { icon: "🟢", title: "DeepSeek API", desc: "已连接 · deepseek-chat" },
+            { icon: "🟢", title: "WAQI 空气质量", desc: "已连接 · 免费 API" },
+            { icon: "🟢", title: "Open-Meteo 天气", desc: "已连接 · 无需密钥" },
+            { icon: "🟡", title: "WebSocket", desc: "待连接 · ws://localhost:8000" },
+            { icon: "⚪", title: "NATS 消息总线", desc: "未配置 · P2 规划" },
+          ].map((c, i) => <PanelItem key={i} {...c} />)}
+        </div>
+      </SlidePanel>
+
+      {/* Knowledge Panel */}
+      <SlidePanel open={activePanel === 'knowledge'} onClose={() => setActivePanel(null)} title="📚 资料库">
+        <div className="space-y-1">
+          <p className="text-xs text-muted-foreground mb-3">环保法规标准快速检索：</p>
+          {[
+            { icon: "📕", title: "环境保护法", desc: "2014年修订 · 主席令第9号" },
+            { icon: "📗", title: "大气污染防治法", desc: "2018年修订" },
+            { icon: "📘", title: "水污染防治法", desc: "2017年修订" },
+            { icon: "📙", title: "环境影响评价法", desc: "2018年修订" },
+            { icon: "📓", title: "碳排放权交易管理办法", desc: "2021年施行" },
+            { icon: "📔", title: "湖南省环境保护条例", desc: "2020年修订" },
+          ].map((k, i) => <PanelItem key={i} {...k} />)}
+        </div>
+      </SlidePanel>
     </TooltipProvider>
   )
 }
