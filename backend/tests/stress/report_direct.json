@@ -1,0 +1,66 @@
+{
+  "title": "EcoMind OS 压力测试报告",
+  "timestamp": "2026-05-27T13:03:03.946619+00:00",
+  "config": {
+    "mode": "stress",
+    "concurrency": 50,
+    "duration": 120,
+    "base_url": "http://127.0.0.1:8000"
+  },
+  "summary": {
+    "total_requests": 500,
+    "success": 0,
+    "errors": 500,
+    "timeouts": 0,
+    "error_rate": 100.0,
+    "throughput_rps": 35685.87812888186,
+    "duration_s": 0.014011144638061523
+  },
+  "latency": {
+    "p50": 0,
+    "p90": 0,
+    "p95": 0,
+    "p99": 0,
+    "avg": 0,
+    "min": 0,
+    "max": 0
+  },
+  "per_scenario": {
+    "approval": {
+      "total": 125,
+      "errors": 125,
+      "error_rate": 100.0,
+      "avg_ms": 0,
+      "p95_ms": 0,
+      "min_ms": 0,
+      "max_ms": 0
+    },
+    "compliance": {
+      "total": 125,
+      "errors": 125,
+      "error_rate": 100.0,
+      "avg_ms": 0,
+      "p95_ms": 0,
+      "min_ms": 0,
+      "max_ms": 0
+    },
+    "enforcement": {
+      "total": 125,
+      "errors": 125,
+      "error_rate": 100.0,
+      "avg_ms": 0,
+      "p95_ms": 0,
+      "min_ms": 0,
+      "max_ms": 0
+    },
+    "reports": {
+      "total": 125,
+      "errors": 125,
+      "error_rate": 100.0,
+      "avg_ms": 0,
+      "p95_ms": 0,
+      "min_ms": 0,
+      "max_ms": 0
+    }
+  }
+}
