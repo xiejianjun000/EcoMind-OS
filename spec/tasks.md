@@ -56,7 +56,7 @@
 
 - [ ] task-025-nats-bus — NATS 消息总线（Agent P2P + 跨市州同步）
 - [ ] task-026-ollama-local — Ollama 本地推理（联邦蒸馏 72B→14B→7B→3B）
-- [ ] task-027-knowledge-graph — 知识图谱（GraphRAG + 法规/案例/监测关联）
+- [x] task-027-knowledge-graph — 知识图谱（GraphRAG + 法规/案例/监测关联）
 - [x] task-028-skill-market — 技能市场（Agent 技能订阅与分发）
 - [ ] task-029-safety-chain — 6 层 SafetyChain 安全技能层
 - [ ] task-030-taiji-migration — Taiji Agent 2.0 架构迁移（v2.0→v6.5）
