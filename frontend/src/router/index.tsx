@@ -20,6 +20,10 @@ const ModelsPage = lazy(() => import('@/pages/Models'));
 const DomainsPage = lazy(() => import('@/pages/Domains'));
 const ConversationsPage = lazy(() => import('@/pages/Conversations'));
 const MonitorPage = lazy(() => import('@/pages/Monitor'));
+const EnforcementPage = lazy(() => import('@/pages/Enforcement'));
+const ApprovalPage = lazy(() => import('@/pages/Approval'));
+const CompliancePage = lazy(() => import('@/pages/Compliance'));
+const ReportsPage = lazy(() => import('@/pages/Reports'));
 const CesiumPage = lazy(() => import('@/pages/Cesium'));
 const SettingsPage = lazy(() => import('@/pages/Settings'));
 const AdminPage = lazy(() => import('@/pages/Admin'));
@@ -200,6 +204,22 @@ export const router = createBrowserRouter([
       {
         path: 'monitor',
         element: <LazyPage><MonitorPage /></LazyPage>,
+      },
+      {
+        path: 'enforcement',
+        element: <LazyPage><EnforcementPage /></LazyPage>,
+      },
+      {
+        path: 'approval',
+        element: <LazyPage><ApprovalPage /></LazyPage>,
+      },
+      {
+        path: 'compliance',
+        element: <LazyPage><CompliancePage /></LazyPage>,
+      },
+      {
+        path: 'reports',
+        element: <LazyPage><ReportsPage /></LazyPage>,
       },
     ],
   },
