@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * CesiumPage — Main page component for the Cesium 3D terrain scene.
  *

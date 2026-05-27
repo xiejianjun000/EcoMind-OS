@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 import { Modal, Input, Typography, Tag, Space, List } from 'antd';
 import { SendOutlined, RobotOutlined, UserOutlined } from '@ant-design/icons';
 import { agentApi, safeCall } from '@/services/api';
-import type { AgentMessageResponse } from '@/services/types';
+import type { AgentMessageResponse } from '@/services/api';
 
 const { Paragraph } = Typography;
 const { TextArea } = Input;
@@ -54,7 +54,7 @@ const SendMessageModal: React.FC<SendMessageModalProps> = ({
     if (result) {
       const assistantMsg: ChatMessage = {
         role: 'assistant',
-        content: result.message,
+        content: result.message ?? result.content,
         timestamp: new Date(),
         metadata: {
           iterations: result.iterations,

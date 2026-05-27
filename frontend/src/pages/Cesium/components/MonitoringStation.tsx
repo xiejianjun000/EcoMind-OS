@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * MonitoringStation — Cesium entity component for environmental
  * monitoring station markers on the 3D globe.

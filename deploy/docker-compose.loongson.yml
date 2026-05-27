@@ -1,0 +1,74 @@
+# ============================================================
+# 龙芯 3A6000 个人工作站部署
+# CPU: 龙芯 3A6000 (LoongArch), 4 核 2.5GHz
+# OS:  Loongnix 20.3 / 统信 UOS (LoongArch)
+# 推理: llama.cpp 源码编译, 量化模型
+# ============================================================
+
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: ../deploy/Dockerfile.frontend-loongarch
+    container_name: ecomind-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - ecomind-net
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: ../deploy/Dockerfile.backend-loongarch
+    container_name: ecomind-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - ENV=workstation
+      - CPU_ARCH=loongarch64
+      - CPU_VENDOR=loongson
+      - LLAMA_CPP_PATH=/app/llama-cli
+      - LLAMA_MODEL_PATH=/models/qwen2.5-7b-q4.gguf
+      - DB_TYPE=sqlite
+      - DB_PATH=/data/ecomind.db
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ../models:/models:ro
+      - ecomind-data:/data
+    depends_on:
+      - redis
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 8G
+    networks:
+      - ecomind-net
+
+  redis:
+    image: redis:7.4-alpine  # alpine 有 loongarch 移植
+    container_name: ecomind-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --maxmemory 1gb --maxmemory-policy allkeys-lru
+    restart: unless-stopped
+    networks:
+      - ecomind-net
+
+volumes:
+  redis-data:
+    driver: local
+  ecomind-data:
+    driver: local
+
+networks:
+  ecomind-net:
+    driver: bridge

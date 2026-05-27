@@ -2,11 +2,16 @@ import React, { Suspense, lazy } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { Spin } from 'antd';
 import MainLayout from '@/layouts/MainLayout';
-import ChatLayout from '@/layouts/ChatLayout';
+import { ChatLayout } from '@/layouts/ChatLayout';
 import AdminLayout from '@/layouts/AdminLayout';
+import AuthGuard from '@/components/AuthGuard';
 
 /** Lazy-loaded page components */
 const ChatPage = lazy(() => import('@/pages/Chat'));
+const ExpertsPage = lazy(() => import('@/pages/Experts'));
+const SkillsPage = lazy(() => import('@/pages/Skills'));
+const ConnectorsPage = lazy(() => import('@/pages/Connectors'));
+const AutomationPage = lazy(() => import('@/pages/Automation'));
 const DashboardPage = lazy(() => import('@/pages/Dashboard'));
 const AgentsPage = lazy(() => import('@/pages/Agents'));
 const WorkflowsPage = lazy(() => import('@/pages/Workflows'));
@@ -17,6 +22,9 @@ const ConversationsPage = lazy(() => import('@/pages/Conversations'));
 const CesiumPage = lazy(() => import('@/pages/Cesium'));
 const SettingsPage = lazy(() => import('@/pages/Settings'));
 const AdminPage = lazy(() => import('@/pages/Admin'));
+const LoginPage = lazy(() => import('@/pages/Login'));
+const ChiefDashboardPage = lazy(() => import('@/pages/ChiefDashboard'));
+const CityDashboardPage = lazy(() => import('@/pages/CityDashboard'));
 
 /** Loading fallback for lazy-loaded routes */
 const PageLoading: React.FC = () => (
@@ -30,14 +38,27 @@ const LazyPage: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <Suspense fallback={<PageLoading />}>{children}</Suspense>
 );
 
-/** Application router configuration */
+/** Application router configuration — v6.5: RBAC + Agent Portal */
 export const router = createBrowserRouter([
   // ============================================================
+  // Login (no auth required)
+  // ============================================================
+  {
+    path: '/login',
+    element: <LazyPage><LoginPage /></LazyPage>,
+  },
+
+  // ============================================================
   // Main Chat Interface (WorkBuddy-style three-panel layout)
+  // Requires authentication
   // ============================================================
   {
     path: '/',
-    element: <ChatLayout />,
+    element: (
+      <AuthGuard>
+        <ChatLayout />
+      </AuthGuard>
+    ),
     children: [
       {
         index: true,
@@ -51,6 +72,54 @@ export const router = createBrowserRouter([
         path: 'chat/:sessionId',
         element: <LazyPage><ChatPage /></LazyPage>,
       },
+      {
+        path: 'experts',
+        element: <LazyPage><ExpertsPage /></LazyPage>,
+      },
+      {
+        path: 'skills',
+        element: <LazyPage><SkillsPage /></LazyPage>,
+      },
+      {
+        path: 'connectors',
+        element: <LazyPage><ConnectorsPage /></LazyPage>,
+      },
+      {
+        path: 'automation',
+        element: <LazyPage><AutomationPage /></LazyPage>,
+      },
+    ],
+  },
+
+  // ============================================================
+  // Role-based Dashboards
+  // ============================================================
+  {
+    path: '/chief-dashboard',
+    element: (
+      <AuthGuard allowedRoles={['chief']}>
+        <MainLayout />
+      </AuthGuard>
+    ),
+    children: [
+      {
+        index: true,
+        element: <LazyPage><ChiefDashboardPage /></LazyPage>,
+      },
+    ],
+  },
+  {
+    path: '/city-dashboard',
+    element: (
+      <AuthGuard allowedRoles={['city']}>
+        <MainLayout />
+      </AuthGuard>
+    ),
+    children: [
+      {
+        index: true,
+        element: <LazyPage><CityDashboardPage /></LazyPage>,
+      },
     ],
   },
 
@@ -63,11 +132,15 @@ export const router = createBrowserRouter([
   },
 
   // ============================================================
-  // Settings (standalone)
+  // Settings (standalone, auth required)
   // ============================================================
   {
     path: '/settings',
-    element: <MainLayout />,
+    element: (
+      <AuthGuard>
+        <MainLayout />
+      </AuthGuard>
+    ),
     children: [
       {
         index: true,
@@ -77,11 +150,15 @@ export const router = createBrowserRouter([
   },
 
   // ============================================================
-  // Admin / Operations Panel (existing management pages)
+  // Admin / Operations Panel (management pages)
   // ============================================================
   {
     path: '/admin',
-    element: <AdminLayout />,
+    element: (
+      <AuthGuard allowedRoles={['admin', 'leader']}>
+        <AdminLayout />
+      </AuthGuard>
+    ),
     children: [
       {
         index: true,
@@ -158,7 +235,7 @@ export const router = createBrowserRouter([
     element: <Navigate to="/map" replace />,
   },
 
-  // 404 fallback
+  // 404 fallback → redirect to login or chat
   {
     path: '*',
     element: <Navigate to="/chat" replace />,

@@ -1,6 +1,6 @@
 /**
  * Chat API service layer — 对话相关 API 封装
- * 后端暂未实现，先提供 Mock 数据支持前端开发
+ * v6.5: DeepSeek 真实 API 集成 + Mock 降级
  */
 
 import type {
@@ -12,6 +12,7 @@ import type {
   SendMessageResponse,
   StreamChunk,
 } from '@/types/chat';
+import { chatStream, isApiKeyConfigured } from '@/services/deepseek';
 
 const API_BASE = '/api';
 
@@ -103,7 +104,8 @@ export async function sendMessage(
 export type StreamCallback = (chunk: StreamChunk) => void;
 
 /**
- * Send a message and receive streaming response via WebSocket.
+ * Send a message and receive streaming response.
+ * v6.5: Uses DeepSeek API when key is configured, falls back to mock.
  * Returns a cleanup function to abort the stream.
  */
 export function sendMessageStream(
@@ -114,36 +116,72 @@ export function sendMessageStream(
   onChunk: StreamCallback,
   ws: WebSocket | null
 ): () => void {
-  if (!ws || ws.readyState !== WebSocket.OPEN) {
-    onChunk({
-      type: 'error',
-      sessionId,
-      messageId,
-      error: 'WebSocket 未连接，无法发送消息',
-    });
+  // ── 优先使用 WebSocket (后端已部署时) ──
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(
+      JSON.stringify({
+        action: 'chat',
+        session_id: sessionId,
+        message,
+        expert_id: expertId,
+        message_id: messageId,
+      })
+    );
     return () => {};
   }
 
-  // Send the message via WebSocket
-  ws.send(
-    JSON.stringify({
-      action: 'chat',
-      session_id: sessionId,
-      message,
-      expert_id: expertId,
-      message_id: messageId,
-    })
-  );
+  // ── DeepSeek API 真实调用 ──
+  if (isApiKeyConfigured()) {
+    return chatStream(message, {
+      expertId,
+      onChunk: (text) => {
+        onChunk({ type: 'chunk', sessionId, messageId, content: text });
+      },
+      onDone: () => {
+        onChunk({ type: 'done', sessionId, messageId });
+      },
+      onError: (err) => {
+        console.warn('[DeepSeek] Stream error, falling back to mock:', err.message);
+        // 降级到 Mock 回复
+        sendMockStream(sessionId, message, messageId, onChunk);
+      },
+    });
+  }
 
-  // The WebSocketProvider will route response chunks to the store.
-  // For now, simulate a mock streaming response.
-  const mockReply = `收到您的消息："${message}"。\n\n这是模拟的流式回复。实际部署后将通过 WebSocket 接收 TAIJI-AGENT 的实时推理输出。\n\n当前系统能力：\n- 12 个业务域专家 Agent\n- WebSocket 实时推送\n- 产物/任务/通知面板\n- 3D 地图内嵌预览`;
+  // ── Mock 降级 ──
+  sendMockStream(sessionId, message, messageId, onChunk);
+  return () => {};
+}
 
-  const words = mockReply.split('');
+/** Mock 流式回复 (API Key 未配置时的降级方案) */
+function sendMockStream(
+  sessionId: string,
+  message: string,
+  messageId: string,
+  onChunk: StreamCallback
+) {
+  const mockReply = `收到您的消息："${message}"。
+
+我是 EcoMind OS 智能助手。当前为 Mock 模式回复。
+
+💡 提示：配置 DeepSeek API Key 即可启用真实 AI 对话。
+   在项目根目录 .env 文件中设置：
+   VITE_DEEPSEEK_API_KEY=你的API密钥
+
+   获取免费 Key: https://platform.deepseek.com/api_keys
+
+当前系统能力：
+• 12 个业务域专家 Agent
+• 实时流式对话
+• 产物/任务/通知面板
+• 3D 地图内嵌预览
+• 技能市场 & 自动化`;
+
+  const chars = mockReply.split('');
   let index = 0;
 
   const interval = setInterval(() => {
-    const batch = words.slice(index, index + 3);
+    const batch = chars.slice(index, index + 3);
     if (batch.length === 0) {
       clearInterval(interval);
       onChunk({ type: 'done', sessionId, messageId });

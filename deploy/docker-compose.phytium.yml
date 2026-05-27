@@ -1,0 +1,133 @@
+# ============================================================
+# 飞腾 S2500 市州级部署
+# CPU: 飞腾 S2500 (ARM64), 64 核 FTC663
+# OS:  银河麒麟 V10 / 统信 UOS
+# 推理: llama.cpp Q4 量化, 7B 模型
+# ============================================================
+
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: ../deploy/Dockerfile.frontend
+    container_name: ecomind-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - ecomind-net
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: ../deploy/Dockerfile.backend
+    container_name: ecomind-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - ENV=city
+      - CPU_ARCH=arm64
+      - CPU_VENDOR=phytium
+      - OLLAMA_HOST=http://ollama:11434
+      - DB_TYPE=kingbase
+      - DB_HOST=kingbase
+      - DB_PORT=54321
+      - DB_NAME=ECOMIND
+      - DB_USER=ecomind_city
+      - DB_PASSWORD=${DB_PASSWORD:-Changeme123!}
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      kingbase:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '8'
+          memory: 16G
+    networks:
+      - ecomind-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 飞腾 CPU 无独立 GPU, 纯 CPU 推理
+  ollama:
+    image: ollama/ollama:0.9.0-arm64
+    container_name: ecomind-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+      - ./ollama-setup-phytium.sh:/setup.sh:ro
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+      - OLLAMA_NUM_PARALLEL=2
+      - OLLAMA_KEEP_ALIVE=12h
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '16'
+          memory: 32G
+    networks:
+      - ecomind-net
+    entrypoint: ["/bin/sh", "-c", "/setup.sh && exec ollama serve"]
+
+  # 人大金仓 KingbaseES
+  kingbase:
+    image: kingbase/kb8-arm64:v8r6c8  # 需从金仓官网获取
+    container_name: ecomind-kingbase
+    ports:
+      - "54321:54321"
+    environment:
+      - DB_USER=ecomind_city
+      - DB_PASSWORD=${DB_PASSWORD:-Changeme123!}
+      - DB_NAME=ECOMIND
+      - CASE_SENSITIVE=N
+    volumes:
+      - kingbase-data:/home/kingbase/userdata
+      - ./init-db/kingbase-init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8G
+    networks:
+      - ecomind-net
+    healthcheck:
+      test: ["CMD-SHELL", "ksql -d ECOMIND -c 'SELECT 1'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  redis:
+    image: redis:7.4-alpine-arm64
+    container_name: ecomind-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --maxmemory 2gb --maxmemory-policy allkeys-lru
+    restart: unless-stopped
+    networks:
+      - ecomind-net
+
+volumes:
+  ollama-models:
+    driver: local
+  kingbase-data:
+    driver: local
+  redis-data:
+    driver: local
+
+networks:
+  ecomind-net:
+    driver: bridge

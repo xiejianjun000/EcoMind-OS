@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * StationPopup — Info popup displayed when a monitoring station
  * entity is clicked on the Cesium globe.

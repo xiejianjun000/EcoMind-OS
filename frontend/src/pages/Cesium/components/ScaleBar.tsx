@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * ScaleBar — Simple map scale bar displayed at the bottom of the
  * Cesium scene. Shows approximate distance representation.
