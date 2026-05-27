@@ -14,9 +14,16 @@ from pydantic import BaseModel, Field, ConfigDict
 class AgentStatus(str, Enum):
     """Agent 运行状态枚举"""
     RUNNING = "running"
-    PAUSED = "paused"
     STOPPED = "stopped"
+    PAUSED = "paused"
     ERROR = "error"
+
+
+class AgentTierResponse(str, Enum):
+    """Agent 模型层级"""
+    OPUS = "opus"
+    SONNET = "sonnet"
+    HAIKU = "haiku"
 
 
 class AgentProvider(str, Enum):
@@ -39,8 +46,9 @@ class AgentCreateRequest(BaseModel):
     soul: str = Field(default="default", description="Soul 人格标识")
     temperature: float = Field(default=0.7, ge=0.0, le=2.0, description="生成温度")
     max_tokens: int = Field(default=4096, ge=1, le=131072, description="最大 token 数")
-    max_iterations: int = Field(default=25, ge=1, le=200, description="最大迭代次数")
-    taiji_verify_enabled: bool = Field(default=True, description="是否启用防幻觉验证")
+    max_iterations: int = Field(default=10, ge=1, le=100, description="最大循环轮数")
+    tier: AgentTierResponse = Field(default=AgentTierResponse.SONNET, description="模型层级")
+    taiji_verify_enabled: bool = Field(default=False, description="是否启用输出验证")
     tools: list[str] = Field(default_factory=list, description="已启用工具列表")
     metadata: dict[str, Any] = Field(default_factory=dict, description="扩展元数据")
 
@@ -68,6 +76,7 @@ class AgentMessageRequest(BaseModel):
     """向 Agent 发送消息请求体"""
     message: str = Field(..., min_length=1, description="消息内容")
     system_message: Optional[str] = Field(default=None, description="可选的系统消息覆盖")
+    session_id: Optional[str] = Field(default=None, description="会话 ID（用于记忆持久化）")
     stream: bool = Field(default=False, description="是否流式返回")
 
 
@@ -82,8 +91,9 @@ class AgentResponse(BaseModel):
     soul: str = Field(default="default", description="Soul 人格标识")
     temperature: float = Field(default=0.7)
     max_tokens: int = Field(default=4096)
-    max_iterations: int = Field(default=25)
-    taiji_verify_enabled: bool = Field(default=True)
+    max_iterations: int = Field(default=10)
+    tier: AgentTierResponse = Field(default=AgentTierResponse.SONNET, description="模型层级")
+    taiji_verify_enabled: bool = Field(default=False)
     tools: list[str] = Field(default_factory=list)
     metadata: dict[str, Any] = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=datetime.now)
@@ -106,3 +116,4 @@ class AgentMessageResponse(BaseModel):
     tools_used: list[str] = Field(default_factory=list, description="使用的工具列表")
     hallucination_risk: float = Field(default=0.0, ge=0.0, le=1.0, description="幻觉风险")
     status: str = Field(default="completed", description="执行状态")
+    session_id: Optional[str] = Field(default=None, description="会话 ID")

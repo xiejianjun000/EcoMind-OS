@@ -11,6 +11,7 @@ from .agent import (
     AgentMessageResponse,
     AgentStatus,
     AgentProvider,
+    AgentTierResponse,
 )
 from .workflow import (
     WorkflowCreateRequest,
@@ -49,6 +50,7 @@ __all__ = [
     "AgentMessageResponse",
     "AgentStatus",
     "AgentProvider",
+    "AgentTierResponse",
     # Workflow
     "WorkflowCreateRequest",
     "WorkflowExecuteRequest",

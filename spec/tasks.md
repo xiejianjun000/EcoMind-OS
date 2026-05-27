@@ -40,9 +40,9 @@
 ## 五、业务模块（P1 待实现）
 
 - [ ] task-016-enforcement — 执法办案模块（案件生命周期：线索→立案→调查→处罚）
-- [ ] task-017-approval — 环评审批中心（环评报告审查 + 排污许可三级审批）
-- [ ] task-018-compliance — 合规检查（法规查询 + 自动化检查 + 报告生成）
-- [ ] task-019-reports — 报告生成（监测报告/执法报告/审批报告）
+- [x] task-017-approval — 环评审批中心（环评报告审查 + 排污许可三级审批）
+- [x] task-018-compliance — 合规检查（法规查询 + 自动化检查 + 报告生成）
+- [x] task-019-reports — 报告生成（监测报告/执法报告/审批报告）
 - [ ] task-020-websocket — WebSocket 实时推送（环境数据 + Agent 状态）
 
 ## 六、ECC 技能系统

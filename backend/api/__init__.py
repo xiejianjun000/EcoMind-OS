@@ -1,7 +1,8 @@
 """
 EcoMind OS FastAPI Backend API Package
 
-提供 RESTful API + WebSocket，集成 TAIJI-AGENT 和 GOVMCP 模块。
+生态环境智能管理平台 — 独立后端。
+自建 Agent 引擎 + 安全验证 + 记忆系统 + 工作流编排，零外部 Agent 框架依赖。
 """
 
-__version__ = "1.0.0"
+__version__ = "2.0.0"

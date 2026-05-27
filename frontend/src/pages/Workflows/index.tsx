@@ -7,7 +7,7 @@ import {
   PlusOutlined,
   ReloadOutlined,
   PlayCircleOutlined,
-  CancelOutlined,
+  StopOutlined,
   EyeOutlined,
 } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
@@ -164,7 +164,7 @@ const WorkflowsPage: React.FC = () => {
               okText="确定"
               cancelText="取消"
             >
-              <Button type="link" size="small" danger icon={<CancelOutlined />}>
+              <Button type="link" size="small" danger icon={<StopOutlined />}>
                 取消
               </Button>
             </Popconfirm>
