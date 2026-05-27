@@ -7,6 +7,12 @@
 ## 2026-05-27 — SpecCoding 体系初始化
 
 ## 2026-05-27（傍晚）— OpenSpec 文档补全
+## 2026-05-27（傍晚）— 联调测试 + 部署配置
+
+- task-031 ✅ 前后端联调（10个集成测试用例覆盖4个模块）
+- task-032 ✅ 自动化测试（enforcement/approval/compliance/reports 状态机验证）
+- task-033 ✅ Docker Compose 部署配置
+
 
 - 为 approval/compliance/reports 三个模块补全 OpenSpec 文档（proposal + design）
 - 归档至 openspec/archive/
