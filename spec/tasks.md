@@ -10,7 +10,7 @@
 - [x] task-004-env-data — 城市检测 + 环境数据卡片
 - [x] task-005-chat-map — 对话气泡嵌入地图
 - [x] task-006-request-logger — Vite 请求监控插件
-- [ ] task-007-chat-polish — Chat 页面打磨与正式提交（← 当前任务）
+- [x] task-007-chat-polish — Chat 页面打磨与正式提交（← 当前任务）
 
 ## 待规划
 
