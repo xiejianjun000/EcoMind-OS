@@ -31,3 +31,4 @@
 - [x] task-019-reports — 报告生成（5 类报告 + AI 模板库 + 统计）
 - [x] task-020-admin-nav — AdminLayout 导航扩充（6 个新模块入口）
 - [x] task-021-api-integration — 业务模块 API 集成（enforcement/approval/compliance/reports）
+- [x] task-022-skill-marketplace — 技能市场（已安装/市场双Tab + 12 项可安装技能 + 分类筛选 + 安装动画）
