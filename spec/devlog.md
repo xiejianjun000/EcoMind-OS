@@ -143,3 +143,51 @@
 - ✅ Mermaid 代码导出（可复制）
 - ✅ AdminLayout 导航新增「知识图谱」
 - ✅ 构建验证通过（14.93s）
+
+## 2026-05-27（深夜）— task-024~027 P2 批量收尾
+
+### task-024 SafetyChain 六层安全（task-029）
+- ✅ 新增 `backend/api/routers/safety_chain.py`（187 行）
+  - POST /api/safety-chain/check — 安全检查（L1-L6 正则规则引擎）
+  - GET /api/safety-chain/status — 六层实时状态 + 最近发现
+  - GET /api/safety-chain/rules — 规则列表查询
+- ✅ 注册至 FastAPI main.py
+- ✅ 6 层防护：L1 输入护栏 / L2 策略护栏 / L3 输出验证 / L4 幻觉检测 / L5 审计追踪 / L6 政务审批
+- ✅ 评分引擎：critical(-25) / high(-15) / medium(-8) / low(-3)
+
+### task-025 NATS 消息总线
+- ✅ 新增 `backend/nats/` 模块（`__init__.py` + `client.py`，450+ 行）
+- ✅ EcoNatsClient — 完整 NATS 客户端封装
+  - Core NATS Pub/Sub（Agent 状态广播）
+  - JetStream 持久化（审批流事件溯源、4 个预定义 Stream）
+  - Key-Value Store（分布式配置共享、跨市州同步）
+  - Request-Reply 模式（Agent RPC 调用）
+- ✅ 预定义主题空间（agent/env/approval/enforcement/sync/system）
+- ✅ Mock 模式支持（无 nats-py 时降级运行）
+- ✅ 全局单例 `get_nats_client()`
+
+### task-026 Ollama 联邦蒸馏
+- ✅ 新增 `backend/inference/ollama_adapter.py`（550+ 行）
+- ✅ OllamaAdapter — 完整 Ollama 推理适配器
+  - Chat Completion（/api/chat）+ Stream Chat（SSE）
+  - Generate（/api/generate）+ Embeddings（/api/embeddings）
+  - 模型管理（list/pull/delete/copy）
+- ✅ 联邦蒸馏链：72B(省) → 14B(市) → 7B(县) → 3B(终端)
+  - 4 级模型映射 + 量化方案 + VRAM 需求
+  - distill() 方法：教师模型生成 → 学生模型预测 → 质量评分
+  - 蒸馏数据导出（用于离线微调）
+- ✅ 模型基准测试 benchmark() + 健康检查
+
+### task-030 Taiji 架构迁移
+- ✅ 新增 `backend/taiji-agent/MIGRATION.md`（280+ 行）
+- ✅ 版本演进：v2.0 → v6.5 完整历程
+- ✅ 架构对比图（v2.0 单体 vs v6.5 分层安全+消息总线+联邦推理）
+- ✅ 14 组件迁移矩阵 + 6 API 接口迁移表
+- ✅ 4 阶段迁移步骤（基础重构→安全加固→智能扩展→联邦部署）
+- ✅ 渐进式迁移策略（影子流量→灰度→全量）+ 回滚方案
+- ✅ 风险评估 + 验收标准
+
+### 进度汇总
+- ✅ 父项目 spec/tasks.md：33/33 全部完成 🎉
+- ✅ 4 个新模块全部通过 Python 语法检查
+- 📦 待提交：feature/p2-batch 分支
