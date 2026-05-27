@@ -30,3 +30,4 @@
 - [x] task-018-compliance — 合规检查（SafetyChain 六层 + 雷达图 + 法规数据库）
 - [x] task-019-reports — 报告生成（5 类报告 + AI 模板库 + 统计）
 - [x] task-020-admin-nav — AdminLayout 导航扩充（6 个新模块入口）
+- [x] task-021-api-integration — 业务模块 API 集成（enforcement/approval/compliance/reports）
