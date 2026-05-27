@@ -60,6 +60,8 @@ export default function ChatPage() {
   const [apiStatus, setApiStatus] = useState(isApiKeyConfigured())
   const [lastError, setLastError] = useState<string | null>(null)
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const abortRef = useRef<(() => void) | null>(null)
@@ -88,6 +90,30 @@ export default function ChatPage() {
       window.removeEventListener('offline', handleOffline)
     }
   }, [])
+
+  // Search keyboard shortcut
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault()
+        setIsSearchOpen(true)
+      }
+      if (e.key === 'Escape' && isSearchOpen) {
+        setIsSearchOpen(false)
+        setSearchQuery("")
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isSearchOpen])
+
+  // Filter messages by search query
+  const filteredMessages = searchQuery.trim()
+    ? messages.filter(m =>
+        m.role !== "system" &&
+        m.content.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : messages
 
   const handleSend = (retryContent?: string) => {
     const content = (retryContent || inputValue).trim()
@@ -254,11 +280,15 @@ export default function ChatPage() {
             <ExportMenu messages={messages} />
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon">
+                <Button
+                  variant={isSearchOpen ? "secondary" : "ghost"}
+                  size="icon"
+                  onClick={() => { setIsSearchOpen(!isSearchOpen); setSearchQuery("") }}
+                >
                   <Search className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>搜索</TooltipContent>
+              <TooltipContent>搜索 (Ctrl+K)</TooltipContent>
             </Tooltip>
             <Button variant="ghost" size="icon">
               <MoreHorizontal className="h-4 w-4" />
@@ -266,12 +296,47 @@ export default function ChatPage() {
           </div>
         </header>
 
+        {/* Search Bar */}
+        {isSearchOpen && (
+          <div className="px-4 py-2 border-b bg-muted/30 flex items-center gap-2">
+            <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="搜索消息..."
+              className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              autoFocus
+            />
+            {searchQuery && (
+              <span className="text-xs text-muted-foreground shrink-0">
+                {filteredMessages.filter(m => m.role !== "system").length} 条匹配
+              </span>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={() => { setIsSearchOpen(false); setSearchQuery("") }}
+            >
+              <span className="text-xs">✕</span>
+            </Button>
+          </div>
+        )}
+
         {/* Messages */}
         <ScrollArea className="flex-1">
           <div className="p-4 space-y-6">
-            {messages.map((message) => (
-              <MessageBubble key={message.id} message={message} />
-            ))}
+            {isSearchOpen && searchQuery && filteredMessages.filter(m => m.role !== "system").length === 0 ? (
+              <div className="text-center text-muted-foreground py-12">
+                <Search className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                <p className="text-sm">未找到包含 "{searchQuery}" 的消息</p>
+              </div>
+            ) : (
+              (isSearchOpen && searchQuery ? filteredMessages : messages).map((message) => (
+                <MessageBubble key={message.id} message={message} searchQuery={isSearchOpen ? searchQuery : ""} />
+              ))
+            )}
             {isLoading && (
               <div className="flex items-start gap-3">
                 <Avatar className="h-8 w-8">
@@ -415,9 +480,20 @@ function getAqiColorCode(aqi: number): string {
   return 'text-purple-600 bg-purple-50 border-purple-200'
 }
 
-function MessageBubble({ message }: { message: Message }) {
+function MessageBubble({ message, searchQuery }: { message: Message; searchQuery?: string }) {
   const isUser = message.role === "user"
   const envData = message.envData
+
+  /** Highlight matching text */
+  const highlightText = (text: string, query: string) => {
+    if (!query) return text
+    const parts = text.split(new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'))
+    return parts.map((part, i) =>
+      part.toLowerCase() === query.toLowerCase()
+        ? <mark key={i} className="bg-yellow-200 rounded-sm px-0.5">{part}</mark>
+        : part
+    )
+  }
 
   return (
     <div className={cn("flex items-start gap-3", isUser && "flex-row-reverse")}>
@@ -444,7 +520,7 @@ function MessageBubble({ message }: { message: Message }) {
             <div className="font-medium text-sm mb-1">{message.expert.name}</div>
           )}
           <div className="text-sm whitespace-pre-wrap">
-            {message.content}
+            {searchQuery ? highlightText(message.content, searchQuery) : message.content}
             {message.isStreaming && (
               <span className="inline-block w-1.5 h-4 bg-current ml-0.5 animate-pulse align-text-bottom" />
             )}
