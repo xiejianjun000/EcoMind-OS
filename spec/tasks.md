@@ -24,3 +24,4 @@
 
 - [x] task-013-conversations — 对话审计页面（会话列表 + 搜索筛选 + 详情预览 + 删除）
 - [x] task-014-env-monitor — 环境数据监测面板（14 市州实时 AQI + 水质 + 监测站 + 饼图）
+- [x] task-015-login-fix — 登录重定向修复（/command-cockpit → 按角色路由）

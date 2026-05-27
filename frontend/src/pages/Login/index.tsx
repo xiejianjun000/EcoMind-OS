@@ -29,12 +29,25 @@ const LoginPage: React.FC = () => {
   const { login } = useAuthStore();
   const [loading, setLoading] = useState(false);
 
+  /** Resolve redirect path from auth store after login */
+  const getRedirectPath = (): string => {
+    const { user } = useAuthStore.getState()
+    if (!user) return '/chat'
+    const role = user.role
+    switch (role) {
+      case 'leader': return '/chief-dashboard'
+      case 'city': return '/city-dashboard'
+      case 'admin': return '/admin/dashboard'
+      default: return '/chat'
+    }
+  }
+
   const handleLogin = async (values: { username: string; password: string }) => {
     setLoading(true);
     try {
       await login(values.username, values.password);
       message.success('登录成功');
-      navigate('/command-cockpit', { replace: true });
+      navigate(getRedirectPath(), { replace: true });
     } catch (err: any) {
       message.error(err.message || '登录失败');
     } finally {
@@ -47,7 +60,7 @@ const LoginPage: React.FC = () => {
     try {
       await login(username, '123456');
       message.success('登录成功');
-      navigate('/command-cockpit', { replace: true });
+      navigate(getRedirectPath(), { replace: true });
     } catch (err: any) {
       message.error(err.message || '登录失败');
     } finally {

@@ -44,7 +44,7 @@ export const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
     label: '厅领导',
     icon: '🏛️',
     menuGroups: ['group-command-cockpit', 'group-agents', 'group-enforcement', 'group-security', 'group-models'],
-    homePath: '/command-cockpit',
+    homePath: '/chief-dashboard',
   },
   chief: {
     role: 'chief',
@@ -65,7 +65,7 @@ export const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
     label: '管理员',
     icon: '🛡️',
     menuGroups: ['group-security', 'group-models', 'group-agents'],
-    homePath: '/security',
+    homePath: '/admin/dashboard',
   },
 };
 

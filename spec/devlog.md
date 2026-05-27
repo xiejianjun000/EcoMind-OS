@@ -54,3 +54,12 @@
 - ✅ 5 分钟自动刷新 + 手动刷新
 - ✅ 数据来源：envDataService（WAQI + Open-Meteo 真实 API）
 - ✅ 构建验证通过（15.14s）
+
+## 2026-05-27（夜）— task-015 登录重定向修复
+- ✅ 修复登录后跳转 /command-cockpit（不存在）→ 按角色路由
+  - leader → /chief-dashboard
+  - chief → /chief-dashboard
+  - city → /city-dashboard
+  - admin → /admin/dashboard
+- ✅ 修复 authStore ROLE_CONFIGS.homePath 与实际路由一致
+- ✅ 构建验证通过（13.76s）
