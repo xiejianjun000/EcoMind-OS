@@ -25,3 +25,7 @@
 - ✅ 搜索栏 UI（展开/收起 + 动画）
 - ✅ 关键词高亮 + 匹配计数
 - ✅ Ctrl+K / Escape 快捷键
+
+## 2026-05-27（晚）— task-010 语音输入/输出
+- ✅ 语音输入（Web SpeechRecognition，按住录音）
+- ✅ TTS 朗读（Web SpeechSynthesis，Volume2 按钮）

@@ -40,6 +40,7 @@ import { chatStream, isApiKeyConfigured } from "@/services/deepseek"
 import { getCityAQI, getCityStations, getCityWaterQuality, getCityCoordinates, getAllCities, type CityAQI } from "@/services/envDataService"
 import ChatMapEmbed from "@/components/ChatMap/ChatMapEmbed"
 import { ExportMenu } from "@/components/Chat/ExportMenu"
+import { VoiceInputButton, speakText, stopSpeaking } from "@/components/Chat/VoiceInputButton"
 import type { Message, EnvDataCard } from "./types"
 
 const EXPERT_MAP: Record<string, { id: string; name: string }> = {
@@ -415,6 +416,10 @@ export default function ChatPage() {
           </div>
 
           <div className="mt-3 flex items-end gap-2">
+            <VoiceInputButton
+              onResult={(text) => setInputValue((prev) => prev + text)}
+              disabled={isLoading}
+            />
             <Textarea
               ref={textareaRef}
               value={inputValue}
@@ -602,7 +607,7 @@ function MessageBubble({ message, searchQuery }: { message: Message; searchQuery
             <Button variant="ghost" size="icon" className="h-7 w-7">
               <Clipboard className="h-3 w-3" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7">
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => speakText(message.content)}>
               <Volume2 className="h-3 w-3" />
             </Button>
           </div>
