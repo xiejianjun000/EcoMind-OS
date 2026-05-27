@@ -16,6 +16,6 @@
 
 - [x] task-008-export-share — 对话导出与分享
 - [x] task-009-message-search — 消息全文搜索
-- [ ] task-010-voice-io — 语音输入/输出
+- [x] task-010-voice-io — 语音输入/输出
 - [ ] task-011-skill-panel — 技能面板集成
 - [ ] task-012-connector-panel — 连接器集成
