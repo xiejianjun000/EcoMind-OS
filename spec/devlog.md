@@ -45,3 +45,12 @@
 - ✅ 空状态引导
 - ✅ 数据来源：useChatStore（Zustand localStorage persist）
 - ✅ 构建验证通过（13.40s）
+
+## 2026-05-27（夜）— task-014 环境数据监测面板
+- ✅ 新增 Monitor 页面（/monitor + /admin/monitor 双路由）
+- ✅ 14 市州实时 AQI 概览卡片（等级颜色 + 温度 + PM2.5）
+- ✅ AQI 等级分布饼图（ECharts）
+- ✅ 城市详情面板：6 项污染物 + 气象 + 水质断面 + 监测站
+- ✅ 5 分钟自动刷新 + 手动刷新
+- ✅ 数据来源：envDataService（WAQI + Open-Meteo 真实 API）
+- ✅ 构建验证通过（15.14s）

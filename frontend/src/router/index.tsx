@@ -19,6 +19,7 @@ const SecurityPage = lazy(() => import('@/pages/Security'));
 const ModelsPage = lazy(() => import('@/pages/Models'));
 const DomainsPage = lazy(() => import('@/pages/Domains'));
 const ConversationsPage = lazy(() => import('@/pages/Conversations'));
+const MonitorPage = lazy(() => import('@/pages/Monitor'));
 const CesiumPage = lazy(() => import('@/pages/Cesium'));
 const SettingsPage = lazy(() => import('@/pages/Settings'));
 const AdminPage = lazy(() => import('@/pages/Admin'));
@@ -195,6 +196,28 @@ export const router = createBrowserRouter([
       {
         path: 'cesium',
         element: <LazyPage><CesiumPage /></LazyPage>,
+      },
+      {
+        path: 'monitor',
+        element: <LazyPage><MonitorPage /></LazyPage>,
+      },
+    ],
+  },
+
+  // ============================================================
+  // Monitor (standalone, auth required)
+  // ============================================================
+  {
+    path: '/monitor',
+    element: (
+      <AuthGuard>
+        <MainLayout />
+      </AuthGuard>
+    ),
+    children: [
+      {
+        index: true,
+        element: <LazyPage><MonitorPage /></LazyPage>,
       },
     ],
   },
