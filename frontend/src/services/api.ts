@@ -338,6 +338,30 @@ export const enforcementApi = {
   },
 };
 
+
+/* ========== Approval API ========== */
+
+export const approvalApi = {
+  list: async (params?: Record<string, unknown>): Promise<any[]> => {
+    const query = buildQuery(params ?? {});
+    return request<any[]>(\`/approval/items\${query}\`);
+  },
+
+  create: async (data: any): Promise<any> => {
+    return request<any>('/approval/items', { method: 'POST', body: JSON.stringify(data) });
+  },
+
+  get: async (id: string): Promise<any> => {
+    return request<any>(\`/approval/items/\${id}\`);
+  },
+
+  transition: async (id: string, data: any): Promise<any> => {
+    return request<any>(\`/approval/items/\${id}/transition\`, {
+      method: 'POST', body: JSON.stringify(data),
+    });
+  },
+};
+
 /* ========== 错误处理工具 ========== */
 
 export async function safeCall<T>(fn: () => Promise<T>): Promise<T | null> {

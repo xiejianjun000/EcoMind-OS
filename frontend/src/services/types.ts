@@ -277,6 +277,51 @@ export const DEFAULT_DEPT_AGENTS: DepartmentAgentBinding[] = [
 ];
 
 // ============================================================
+
+// ============================================================
+// Approval Types
+// ============================================================
+
+export type ApprovalType = '环评报告' | '排污许可' | '竣工验收';
+export type ApprovalLevel = 'L1-科员' | 'L2-处长' | 'L3-厅领导';
+export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'returned';
+
+export interface ApprovalItem {
+  id: string;
+  approval_number: string;
+  title: string;
+  approval_type: ApprovalType;
+  status: ApprovalStatus;
+  level: ApprovalLevel;
+  applicant: string;
+  department: string;
+  enterprise_name: string;
+  credit_code?: string;
+  content: string;
+  attachments: Array<{ name: string; url: string }>;
+  timeline: Array<{ event: string; timestamp: string; status: string; level: string }>;
+  audit_log: Array<{ action: string; timestamp: string }>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ApprovalCreateRequest {
+  title: string;
+  approval_type: ApprovalType;
+  applicant: string;
+  department: string;
+  enterprise_name: string;
+  credit_code?: string;
+  content: string;
+}
+
+export interface ApprovalTransitionRequest {
+  action: 'approve' | 'reject' | 'return';
+  comment?: string;
+  operator: string;
+}
+
+// ============================================================
 // Enforcement Case Types
 // ============================================================
 
