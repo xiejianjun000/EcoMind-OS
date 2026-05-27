@@ -5,6 +5,14 @@
 ---
 
 ## 2026-05-27 — SpecCoding 体系初始化
+## 2026-05-27（下午）— P1 业务模块批量推进
+
+- task-017-approval ✅ 环评审批模块（三级审批 L1→L2→L3 状态机）
+- task-018-compliance ✅ 合规检查模块（法规标准查询 + 自动化检查）
+- task-019-reports ✅ 报告生成模块（监测/执法/审批三种模板）
+- task-020-websocket ✅ WebSocket 实时推送（后端管理器已就绪，前端对接完成）
+- task-024-agent-prompts ✅ Agent Prompt 集合（9 部门提示词已填充）
+
 
 - 创建项目级规格文档体系（`spec/`）
 - 引入 SpecCoding 方法论：Claude Code（执行者）+ OpenSpec（规格管家）+ Superpowers（工作流引擎）

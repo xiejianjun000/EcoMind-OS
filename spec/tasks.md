@@ -39,18 +39,18 @@
 
 ## 五、业务模块（P1 待实现）
 
-- [ ] task-016-enforcement — 执法办案模块（案件生命周期：线索→立案→调查→处罚）
+- [x] task-016-enforcement — 执法办案模块（案件生命周期：线索→立案→调查→处罚）
 - [x] task-017-approval — 环评审批中心（环评报告审查 + 排污许可三级审批）
 - [x] task-018-compliance — 合规检查（法规查询 + 自动化检查 + 报告生成）
 - [x] task-019-reports — 报告生成（监测报告/执法报告/审批报告）
-- [ ] task-020-websocket — WebSocket 实时推送（环境数据 + Agent 状态）
+- [x] task-020-websocket — WebSocket 实时推送（环境数据 + Agent 状态）
 
 ## 六、ECC 技能系统
 
 - [x] task-021-ecc-bridge — ECC 技能加载器 + Instincts 引擎
 - [x] task-022-agent-mapping — 湖南省厅 19 部门 P0-P3 四级 Agent 映射
 - [~] task-023-workspace-setup — 4 个 Agent 协作工作空间（协调/教育/党务/水务）
-- [ ] task-024-agent-prompts — Agent Prompt 集合填充
+- [x] task-024-agent-prompts — Agent Prompt 集合填充
 
 ## 七、高级特性（P2 规划）
 
@@ -73,9 +73,9 @@
 
 | 状态 | 数量 |
 |:---|---:|
-| 已完成 | 15 |
+| 已完成 | 22 |
 | 进行中 | 1 |
-| 待开始 | 17 |
+| 待开始 | 10 |
 | 总计 | 33 |
 
 ---
