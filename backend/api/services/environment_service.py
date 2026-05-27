@@ -52,22 +52,53 @@ async def _fetch(url: str, params: dict = None) -> dict:
         raise
 
 
+def _parse_station_item(item: dict) -> dict:
+    """解析监测站数据，提取所有污染物字段"""
+    def _to_int(key: str) -> int:
+        try:
+            return int(item.get(key, 0))
+        except (ValueError, TypeError):
+            return 0
+
+    def _to_float(key: str) -> float:
+        try:
+            return float(item.get(key, 0))
+        except (ValueError, TypeError):
+            return 0.0
+
+    return {
+        "city": item.get("StationName", ""),
+        "station_code": item.get("UniqueCode", ""),
+        "aqi": _to_int("AQI"),
+        "level": item.get("AQType", ""),
+        "degree": item.get("AQDegree", ""),
+        "primary": item.get("PrimaryEP") or "",
+        "time": item.get("QueryTime", ""),
+        "pm25": _to_int("PM25"),
+        "pm10": _to_int("PM10"),
+        "o3": _to_int("O3"),
+        "no2": _to_int("NO2"),
+        "so2": _to_int("SO2"),
+        "co": _to_float("CO"),
+        "lat": _to_float("SLatitude"),
+        "lng": _to_float("SLongitude"),
+    }
+
+
 async def get_realtime_aqi() -> list[dict]:
-    """获取14市州实时AQI数据"""
+    """获取14市州实时AQI数据（含六项污染物详情）"""
     cache_key = "realtime_aqi"
     if cache_key in _cache and time.time() - _cache[cache_key]["ts"] < _cache_ttl:
         return _cache[cache_key]["data"]
 
     raw = await _fetch(f"{API_BASE}/MobileApp/GetSortNow", {"stationType": "STCenter"})
-    result = []
-    for item in raw:
-        result.append({
-            "city": item.get("StationName", ""),
-            "aqi": int(item.get("AQI", 0)),
-            "level": item.get("AQType", ""),
-            "primary": item.get("PrimaryEP") or "",
-            "time": item.get("QueryTime", ""),
-        })
+    # 过滤掉"全省"汇总数据，仅保留14市州
+    result = [_parse_station_item(item) for item in raw
+              if item.get("StationName", "") not in ("全省",)]
+    # 过滤"湘西州" -> 兼容旧数据中的"湘西土家族苗族自治州"
+    for r in result:
+        if "湘西" in r["city"] and r["city"] != "湘西州":
+            r["city"] = "湘西州"
     _cache[cache_key] = {"data": result, "ts": time.time()}
     return result
 
@@ -130,3 +161,20 @@ async def get_ranking(date: str = "") -> list[dict]:
 
     _cache[cache_key] = {"data": result, "ts": time.time()}
     return result
+
+
+async def get_city_hourly_detail(city_name: str) -> dict:
+    """获取指定城市的逐小时详细监测数据（含 PM2.5/PM10/O3/NO2/SO2/CO）"""
+    # 从批量 GetSortNow 中过滤，因为 GetCurHourlyDataByStn 需要站点编码
+    all_data = await get_realtime_aqi()
+    for d in all_data:
+        if d["city"] == city_name:
+            return d
+    return {"city": city_name, "aqi": 0, "level": "无数据", "primary": "", "time": "",
+            "pm25": 0, "pm10": 0, "o3": 0, "no2": 0, "so2": 0, "co": 0.0,
+            "lat": 0, "lng": 0}
+
+
+async def get_all_cities_detail() -> list[dict]:
+    """批量获取 14 市州逐小时详细监测数据（含六项污染物）"""
+    return await get_realtime_aqi()
