@@ -54,12 +54,12 @@
 
 ## 七、高级特性（P2 规划）
 
-- [ ] task-025-nats-bus — NATS 消息总线（Agent P2P + 跨市州同步）
-- [ ] task-026-ollama-local — Ollama 本地推理（联邦蒸馏 72B→14B→7B→3B）
+- [x] task-025-nats-bus — NATS 消息总线（Agent P2P + 跨市州同步）
+- [x] task-026-ollama-local — Ollama 本地推理（联邦蒸馏 72B→14B→7B→3B）
 - [x] task-027-knowledge-graph — 知识图谱（GraphRAG + 法规/案例/监测关联）
 - [x] task-028-skill-market — 技能市场（Agent 技能订阅与分发）
-- [ ] task-029-safety-chain — 6 层 SafetyChain 安全技能层
-- [ ] task-030-taiji-migration — Taiji Agent 2.0 架构迁移（v2.0→v6.5）
+- [x] task-029-safety-chain — 6 层 SafetyChain 安全技能层
+- [x] task-030-taiji-migration — Taiji Agent 2.0 架构迁移（v2.0→v6.5）
 
 ## 八、联调与部署
 
@@ -73,9 +73,9 @@
 
 | 状态 | 数量 |
 |:---|---:|
-| 已完成 | 26 |
+| 已完成 | 33 |
 | 进行中 | 0 |
-| 待开始 | 6 |
+| 待开始 | 0 |
 | 总计 | 33 |
 
 ---

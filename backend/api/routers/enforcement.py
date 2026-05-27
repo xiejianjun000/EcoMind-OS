@@ -96,12 +96,13 @@ async def transition_case(
     return record.to_dict()
 
 
-@router.delete("/cases/{case_id}", status_code=204, summary="删除案件")
+@router.delete("/cases/{case_id}", summary="删除案件")
 async def delete_case(
     case_id: str,
     service: EnforcementService = Depends(get_enforcement_service),
-) -> None:
+) -> dict:
     """删除指定案件记录。"""
     deleted = await service.delete_case(case_id)
     if not deleted:
         raise HTTPException(status_code=404, detail=f"案件不存在: {case_id}")
+    return {"status": "deleted", "case_id": case_id}
