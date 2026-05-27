@@ -25,3 +25,8 @@
 - [x] task-013-conversations — 对话审计页面（会话列表 + 搜索筛选 + 详情预览 + 删除）
 - [x] task-014-env-monitor — 环境数据监测面板（14 市州实时 AQI + 水质 + 监测站 + 饼图）
 - [x] task-015-login-fix — 登录重定向修复（/command-cockpit → 按角色路由）
+- [x] task-016-enforcement — 执法办案模块（8 阶段生命周期 + 案件列表 + Timeline 详情）
+- [x] task-017-approval — 环评审批中心（三级审批 + AI 预审 + 材料清单）
+- [x] task-018-compliance — 合规检查（SafetyChain 六层 + 雷达图 + 法规数据库）
+- [x] task-019-reports — 报告生成（5 类报告 + AI 模板库 + 统计）
+- [x] task-020-admin-nav — AdminLayout 导航扩充（6 个新模块入口）

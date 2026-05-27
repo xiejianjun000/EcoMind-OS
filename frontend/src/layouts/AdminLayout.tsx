@@ -15,6 +15,11 @@ import {
   GlobalOutlined,
   SettingOutlined,
   ArrowLeftOutlined,
+  ThunderboltOutlined,
+  AuditOutlined,
+  SafetyOutlined,
+  FileTextOutlined,
+  EnvironmentOutlined,
 } from '@ant-design/icons';
 import { useAppStore } from '@/store';
 
@@ -69,6 +74,31 @@ const AdminLayout: React.FC = () => {
       path: '/admin/cesium',
       name: '3D 数字孪生',
       icon: <GlobalOutlined />,
+    },
+    {
+      path: '/admin/monitor',
+      name: '环境监测',
+      icon: <EnvironmentOutlined />,
+    },
+    {
+      path: '/admin/enforcement',
+      name: '执法办案',
+      icon: <ThunderboltOutlined />,
+    },
+    {
+      path: '/admin/approval',
+      name: '审批中心',
+      icon: <AuditOutlined />,
+    },
+    {
+      path: '/admin/compliance',
+      name: '合规检查',
+      icon: <SafetyOutlined />,
+    },
+    {
+      path: '/admin/reports',
+      name: '报告生成',
+      icon: <FileTextOutlined />,
     },
     {
       path: '/settings',
