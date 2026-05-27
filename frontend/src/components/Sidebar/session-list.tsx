@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { cn } from "@/lib/utils"
 import { ChevronDown, ChevronRight, CheckCircle2, Circle } from "lucide-react"
 
@@ -96,9 +97,4 @@ function SessionItem({ session }: SessionItemProps) {
       </div>
     </button>
   )
-}
-
-function useState<T>(initial: T): [T, (value: T) => void] {
-  const [state, setState] = require("react").useState(initial)
-  return [state, setState]
 }

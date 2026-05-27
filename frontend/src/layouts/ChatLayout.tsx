@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Outlet } from "react-router-dom"
 import { cn } from "@/lib/utils"
-import { Sidebar } from "@/components/sidebar/sidebar"
+import { Sidebar } from "@/components/Sidebar/sidebar"
 import { ArtifactPanel } from "@/components/artifact-panel/artifact-panel"
 
 interface ChatLayoutProps {

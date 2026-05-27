@@ -22,6 +22,7 @@ import { useChatStore } from '@/store/chatStore';
 import { useExpertStore } from '@/store/expertStore';
 import { useArtifactStore } from '@/store/artifactStore';
 import { sendMessageStream } from '@/services/chatApi';
+import { isApiKeyConfigured } from '@/services/deepseek';
 
 interface ChatInputProps {
   sessionId: string | null;
@@ -186,10 +187,21 @@ const ChatInput: React.FC<ChatInputProps> = ({ sessionId }) => {
           </Button>
         </Tooltip>
 
-        <div className="ml-auto flex items-center gap-1">
+        <div className="ml-auto flex items-center gap-2">
+          {/* DeepSeek API 状态指示 */}
+          <Tooltip title={isApiKeyConfigured() ? 'DeepSeek API 已连接' : 'DeepSeek API 未配置 (使用Mock)'}>
+            <Badge
+              status={isApiKeyConfigured() ? 'success' : 'warning'}
+              text={
+                <span className="text-xs" style={{ color: mutedColor }}>
+                  {isApiKeyConfigured() ? 'DeepSeek' : 'Mock'}
+                </span>
+              }
+            />
+          </Tooltip>
           <SafetyOutlined className="text-xs" style={{ color: mutedColor }} />
           <span className="text-xs" style={{ color: mutedColor }}>
-            当前权限: {expert?.safetyLevel || 'L2'} · {expert?.safetyLevel === 'L3' ? '需审批' : '需确认'}
+            {expert?.safetyLevel || 'L2'} · {expert?.safetyLevel === 'L3' ? '需审批' : '需确认'}
           </span>
         </div>
       </div>
