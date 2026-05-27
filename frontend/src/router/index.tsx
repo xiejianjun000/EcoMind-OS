@@ -24,6 +24,7 @@ const EnforcementPage = lazy(() => import('@/pages/Enforcement'));
 const ApprovalPage = lazy(() => import('@/pages/Approval'));
 const CompliancePage = lazy(() => import('@/pages/Compliance'));
 const ReportsPage = lazy(() => import('@/pages/Reports'));
+const KnowledgeGraphPage = lazy(() => import('@/pages/KnowledgeGraph'));
 const CesiumPage = lazy(() => import('@/pages/Cesium'));
 const SettingsPage = lazy(() => import('@/pages/Settings'));
 const AdminPage = lazy(() => import('@/pages/Admin'));
@@ -220,6 +221,10 @@ export const router = createBrowserRouter([
       {
         path: 'reports',
         element: <LazyPage><ReportsPage /></LazyPage>,
+      },
+      {
+        path: 'knowledge-graph',
+        element: <LazyPage><KnowledgeGraphPage /></LazyPage>,
       },
     ],
   },
