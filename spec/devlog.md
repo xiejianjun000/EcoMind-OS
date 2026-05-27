@@ -103,3 +103,20 @@
 - ✅ 每个页面新增"刷新"按钮（ReloadOutlined）
 - ✅ Vite proxy `/api` → `http://localhost:8000` 已配置
 - ✅ 构建验证通过（15.21s）
+
+## 2026-05-27（深夜）— task-022 技能市场
+
+### 前端
+- ✅ Skills 页面重构：双 Tab（已安装 | 技能市场）
+- ✅ 市场 12 项可安装技能（含生态环保专业领域）
+- ✅ 热门技能推荐栏（Top 3 按下载量排序）
+- ✅ 分类筛选（全部/分析/可视化/合规/生成/识别）
+- ✅ 安装动画 + 成功提示
+- ✅ 技能详情：下载量、评分、版本号、标签、作者
+
+### 后端
+- ✅ 新增 `/api/marketplace` 路由（skills/trending/detail）
+- ✅ 注册至 FastAPI 主应用
+- ✅ businessApi 新增 marketplaceApi
+
+- ✅ 构建验证通过（15.25s）

@@ -153,6 +153,19 @@ export const reportsApi = {
     apiFetch('/reports', { method: 'POST', body: JSON.stringify(data) }),
 }
 
+// ─── Marketplace API ───
+
+export const marketplaceApi = {
+  list: (params?: Record<string, string>) => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : ''
+    return safeFetch(`/marketplace/skills${qs}`, { skills: [], total: 0 })
+  },
+  get: (id: string) =>
+    safeFetch(`/marketplace/skills/${id}`, null),
+  trending: (limit = 5) =>
+    safeFetch(`/marketplace/trending?limit=${limit}`, { skills: [] }),
+}
+
 // ─── Environment API ───
 
 export const environmentApi = {
@@ -164,4 +177,4 @@ export const environmentApi = {
     safeFetch('/environment/forecast', []),
 }
 
-export default { enforcementApi, approvalApi, complianceApi, reportsApi, environmentApi }
+export default { enforcementApi, approvalApi, complianceApi, reportsApi, marketplaceApi, environmentApi }
