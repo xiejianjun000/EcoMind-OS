@@ -5,6 +5,13 @@
 ---
 
 ## 2026-05-27 — SpecCoding 体系初始化
+
+## 2026-05-27（傍晚）— OpenSpec 文档补全
+
+- 为 approval/compliance/reports 三个模块补全 OpenSpec 文档（proposal + design）
+- 归档至 openspec/archive/
+- 全流程符合 SpecCoding 七阶段标准
+
 ## 2026-05-27（下午）— P1 业务模块批量推进
 
 - task-017-approval ✅ 环评审批模块（三级审批 L1→L2→L3 状态机）
