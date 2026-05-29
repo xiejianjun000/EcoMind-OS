@@ -375,6 +375,22 @@ See [LICENSE](./LICENSE) for details.
 
 ---
 
+## 🚀 五道门禁管理
+
+本项目严格遵循**五道门禁**管理机制，确保代码质量、安全性和可维护性：
+
+| 门禁 | 名称 | 检查内容 | 工具 |
+|------|------|----------|------|
+| 1 | 代码规范检查 | ESLint/Prettier/Ruff | CI自动检查 |
+| 2 | 单元测试 | 构建测试 | pnpm build / pytest |
+| 3 | 类型检查 | TypeScript 严格模式 | tsc --noEmit |
+| 4 | 安全扫描 | 依赖漏洞检查 | npm audit / pip-audit |
+| 5 | 代码质量 | 格式检查 | Prettier / Ruff |
+
+详细信息请查看 [CONTRIBUTING.md](./CONTRIBUTING.md)。
+
+---
+
 <p align="center">
   <em>🌱 EcoMind OS — 生态，自此思考。</em><br/>
   <em>🌍 Intelligence that Nurtures the Planet.</em>

@@ -2,23 +2,137 @@
 node_modules/
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+*.egg
 
 # Build outputs
 dist/
 build/
-*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.hypothesis/
 
 # IDE
 .vscode/
 .idea/
 *.swp
+*.swo
+*~
+*.vscode/
 
 # OS
 Thumbs.db
 Desktop.ini
 .DS_Store
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 
 # Env
 .env
 .env.local
+.env.*.local
 *.log
+*.log.*
+
+# WorkBuddy (project-specific tool)
+.workbuddy/
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# OS-specific temporary files
+*.bak
+*.tmp
+.tmp/
+.temp/
+
+# VI and deliverables (removed from project)
+VI/
+deliverables/
+
+# Backup files
+*.bak
+*~
+
+# Python virtual environment
+venv/
+env/
+ENV/
+*.venv/
+.env/
+.env*/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+*.ipynb
+
+# Coverage reports
+.coverage
+htmlcov/
+pytest-coverage-report/
+*.coverage.*
+
+# TypeScript
+*.tsbuildinfo
+
+# Vite
+.vite/
+
+# Tailwind
+.tailwindcss/
+
+# CI/CD
+.github/workflows/*.yml.bak
+.gitlab-ci.yml.bak
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# Documentation (keep only necessary docs)
+# docs/ - keep as it contains important project docs
+
+# Sensitive data
+*.key
+*.pem
+*.crt
+*.p12
+*.pfx
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+server.log
+access.log
+error.log
+
+# Temporary data
+data/
+tmp/
+temp/
+upload/
+download/
+
+# Testing
+coverage/
+.nyc_output/
+*.lcov
+
+# Misc
+*.pid
+*.seed
+*.pid.lock
+*.pid.old

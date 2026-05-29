@@ -1,0 +1,147 @@
+# 五道门禁 CI 流程
+name: Five Gates CI
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  push:
+    branches: [ main, develop ]
+
+jobs:
+  # 第一道门禁：代码规范检查
+  gate1-lint:
+    name: Gate 1 - Code Linting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install pnpm
+        run: npm install -g pnpm
+      
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          pnpm install
+      
+      - name: Frontend ESLint Check
+        run: |
+          cd frontend
+          pnpm lint
+      
+      - name: Setup Python linting tools
+        run: |
+          pip install ruff==0.6.0
+
+  # 第二道门禁：单元测试
+  gate2-test:
+    name: Gate 2 - Unit Tests
+    runs-on: ubuntu-latest
+    needs: [gate1-lint]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      
+      - name: Install pnpm
+        run: npm install -g pnpm
+      
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          pnpm install
+      
+      - name: Frontend Build Test
+        run: |
+          cd frontend
+          pnpm build
+
+  # 第三道门禁：类型检查
+  gate3-typecheck:
+    name: Gate 3 - Type Checking
+    runs-on: ubuntu-latest
+    needs: [gate2-test]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      
+      - name: Install pnpm
+        run: npm install -g pnpm
+      
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          pnpm install
+      
+      - name: TypeScript Type Check
+        run: |
+          cd frontend
+          npx tsc --noEmit
+
+  # 第四道门禁：安全扫描
+  gate4-security:
+    name: Gate 4 - Security Scan
+    runs-on: ubuntu-latest
+    needs: [gate3-typecheck]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      
+      - name: Audit Dependencies
+        run: |
+          cd frontend
+          npm audit --audit-level=moderate
+
+  # 第五道门禁：代码质量评估
+  gate5-quality:
+    name: Gate 5 - Code Quality
+    runs-on: ubuntu-latest
+    needs: [gate4-security]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      
+      - name: Install pnpm
+        run: npm install -g pnpm
+      
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          pnpm install
+      
+      - name: Code Format Check
+        run: |
+          cd frontend
+          pnpm format --check
