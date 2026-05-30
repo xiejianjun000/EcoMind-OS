@@ -1,45 +1,22 @@
-"use client"
+import React from 'react';
+import { Outlet } from 'react-router-dom';
+import Sidebar from '@/components/Sidebar';
+import ArtifactPanel from '@/components/ArtifactPanel';
 
-import { useState } from "react"
-import { Outlet } from "react-router-dom"
-import { cn } from "@/lib/utils"
-import { Sidebar } from "@/components/sidebar/sidebar"
-import { ArtifactPanel } from "@/components/artifact-panel/artifact-panel"
-
-interface ChatLayoutProps {
-  className?: string
-}
-
-export function ChatLayout({ className }: ChatLayoutProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [artifactPanelOpen, setArtifactPanelOpen] = useState(true)
-
+/**
+ * ChatLayout - Main three-panel layout for chat interface
+ * Left: Sidebar | Center: Chat | Right: Artifact Panel
+ */
+const ChatLayout: React.FC = () => {
   return (
-    <div className={cn("flex h-screen bg-background", className)}>
-      {/* Left Sidebar */}
-      <Sidebar
-        open={sidebarOpen}
-        onOpenChange={setSidebarOpen}
-        className={cn(
-          "transition-all duration-300 ease-in-out",
-          sidebarOpen ? "w-[280px]" : "w-[60px]"
-        )}
-      />
-
-      {/* Main Chat Area */}
-      <main className="flex-1 flex flex-col min-w-0">
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+      <Sidebar />
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <Outlet />
       </main>
-
-      {/* Right Artifact Panel */}
-      <ArtifactPanel
-        open={artifactPanelOpen}
-        onOpenChange={setArtifactPanelOpen}
-        className={cn(
-          "transition-all duration-300 ease-in-out",
-          artifactPanelOpen ? "w-[320px]" : "w-[0px] overflow-hidden"
-        )}
-      />
+      <ArtifactPanel />
     </div>
-  )
-}
+  );
+};
+
+export default ChatLayout;
