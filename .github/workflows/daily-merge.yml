@@ -1,0 +1,61 @@
+name: Daily Merge
+
+on:
+  schedule:
+    - cron: '0 18 * * *'  # 每天 02:00 CST (18:00 UTC)
+  workflow_dispatch:       # 手动触发
+
+jobs:
+  daily-merge:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check for open PRs
+        id: check-pr
+        run: |
+          PR_COUNT=$(gh pr list --state open --json number --jq length)
+          echo "open_prs=$PR_COUNT" >> $GITHUB_OUTPUT
+          echo "Found $PR_COUNT open PRs"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create daily changelog PR
+        if: steps.check-pr.outputs.open_prs == '0'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          BRANCH="daily-changelog-$(date +%Y%m%d)"
+          git checkout -b "$BRANCH"
+
+          echo "# 每日变更日志 ($(date +%Y-%m-%d))" > DAILY_CHANGELOG.md
+          echo "" >> DAILY_CHANGELOG.md
+          echo "## 自动生成的变更" >> DAILY_CHANGELOG.md
+          echo "" >> DAILY_CHANGELOG.md
+          git log --since="24 hours ago" --oneline --no-merges >> DAILY_CHANGELOG.md 2>/dev/null || echo "过去 24 小时无新提交" >> DAILY_CHANGELOG.md
+
+          if [ ! -s DAILY_CHANGELOG.md ] || grep -q "无新提交" DAILY_CHANGELOG.md; then
+            echo "# 每日健康检查 ($(date +%Y-%m-%d))" > DAILY_CHANGELOG.md
+            echo "" >> DAILY_CHANGELOG.md
+            echo "✅ 项目运行正常，无待合并 PR" >> DAILY_CHANGELOG.md
+            echo "📅 检查时间: $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> DAILY_CHANGELOG.md
+          fi
+
+          git add DAILY_CHANGELOG.md
+          git commit -m "chore: daily changelog $(date +%Y-%m-%d) [skip ci]"
+          git push origin "$BRANCH"
+
+          gh pr create \
+            --title "📋 每日变更日志 $(date +%Y-%m-%d)" \
+            --body "自动生成的每日变更日志，确保项目保持活跃。" \
+            --base main \
+            --head "$BRANCH"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
