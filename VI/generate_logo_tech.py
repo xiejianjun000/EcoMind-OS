@@ -126,12 +126,12 @@ def create_tech_logo():
     
     # Text: EcoMind OS
     try:
-        # Try modern bold sans-serif fonts
+        # Try modern bold sans-serif fonts with Chinese support
         font_eco = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 120)
         font_mind = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 120)
         font_os = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 60)
         font_tag_en = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 32)
-        font_tag_zh = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 36)
+        font_tag_zh = ImageFont.truetype("/usr/share/fonts/truetype/wqy/wqy-microhei.ttc", 36)
     except:
         font_eco = font_mind = font_os = font_tag_en = font_tag_zh = ImageFont.load_default()
     
@@ -192,7 +192,7 @@ def create_simple_text_logo():
     try:
         font_main = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 100)
         font_tag_en = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 32)
-        font_tag_zh = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 36)
+        font_tag_zh = ImageFont.truetype("/usr/share/fonts/truetype/wqy/wqy-microhei.ttc", 36)
     except:
         font_main = font_tag_en = font_tag_zh = ImageFont.load_default()
     
