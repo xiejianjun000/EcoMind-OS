@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 120" width="800" height="120">
+  <defs>
+    <filter id="badgeGlow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="120" fill="#050A0E"/>
+
+  <!-- Badge 1: 等保三级 -->
+  <rect x="20" y="20" width="160" height="80" rx="10" ry="10" fill="none" stroke="#00C9A7" stroke-width="1.5" filter="url(#badgeGlow)" opacity="0.9"/>
+  <rect x="20" y="20" width="160" height="80" rx="10" ry="10" fill="#00C9A7" opacity="0.06"/>
+  <text x="100" y="52" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="300" fill="#FFFFFF" letter-spacing="1">等保三级</text>
+  <text x="100" y="76" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" font-weight="300" fill="#00C9A7" letter-spacing="0.5" opacity="0.8">MLPS Level 3</text>
+
+  <!-- Badge 2: SM2 -->
+  <rect x="220" y="20" width="160" height="80" rx="10" ry="10" fill="none" stroke="#00C9A7" stroke-width="1.5" filter="url(#badgeGlow)" opacity="0.9"/>
+  <rect x="220" y="20" width="160" height="80" rx="10" ry="10" fill="#00C9A7" opacity="0.06"/>
+  <text x="300" y="52" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="300" fill="#FFFFFF" letter-spacing="1">SM2</text>
+  <text x="300" y="76" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" font-weight="300" fill="#00C9A7" letter-spacing="0.5" opacity="0.8">数字签名</text>
+
+  <!-- Badge 3: SM3 -->
+  <rect x="420" y="20" width="160" height="80" rx="10" ry="10" fill="none" stroke="#00C9A7" stroke-width="1.5" filter="url(#badgeGlow)" opacity="0.9"/>
+  <rect x="420" y="20" width="160" height="80" rx="10" ry="10" fill="#00C9A7" opacity="0.06"/>
+  <text x="500" y="52" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="300" fill="#FFFFFF" letter-spacing="1">SM3</text>
+  <text x="500" y="76" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" font-weight="300" fill="#00C9A7" letter-spacing="0.5" opacity="0.8">哈希摘要</text>
+
+  <!-- Badge 4: SM4 -->
+  <rect x="620" y="20" width="160" height="80" rx="10" ry="10" fill="none" stroke="#00C9A7" stroke-width="1.5" filter="url(#badgeGlow)" opacity="0.9"/>
+  <rect x="620" y="20" width="160" height="80" rx="10" ry="10" fill="#00C9A7" opacity="0.06"/>
+  <text x="700" y="52" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="300" fill="#FFFFFF" letter-spacing="1">SM4</text>
+  <text x="700" y="76" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" font-weight="300" fill="#00C9A7" letter-spacing="0.5" opacity="0.8">分组加密</text>
+</svg>

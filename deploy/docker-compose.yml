@@ -1,0 +1,160 @@
+# ============================================
+# EcoMind OS Staging 部署 - Docker Compose
+# ============================================
+# 使用方法:
+#   docker compose up -d          # 启动服务
+#   docker compose down            # 停止服务
+#   docker compose logs -f         # 查看日志
+#   docker compose restart api     # 重启 API 服务
+# ============================================
+
+version: '3.8'
+
+services:
+  # ─── EcoMind OS 后端 API ───
+  api:
+    build:
+      context: ../backend
+      dockerfile: ../deploy/Dockerfile
+      target: runtime
+    container_name: ecomind-api-staging
+    image: ecomind-os/api:staging
+    restart: unless-stopped
+
+    # 环境变量 — 从 .env 文件加载
+    env_file:
+      - .env.staging
+
+    # 端口映射 — 仅在开发环境暴露，生产环境通过 nginx 访问
+    ports:
+      - "${PORT:-8000}:8000"
+
+    # 卷挂载 — 持久化数据和上传文件
+    volumes:
+      - ./data:/app/data              # 数据库和缓存
+      - ./uploads:/app/data/uploads   # 上传文件
+      - ./logs:/app/logs              # 日志目录
+
+    # 资源限制 (Staging 环境)
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    # 日志配置
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "5"
+
+    # 网络
+    networks:
+      - ecomind-network
+
+  # ─── Nginx 反向代理 ───
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: ecomind-nginx-staging
+    restart: unless-stopped
+
+    # 端口映射
+    ports:
+      - "80:80"
+      # - "443:443"  # 生产环境启用 HTTPS
+
+    # 配置文件挂载
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ../frontend/dist:/usr/share/nginx/html:ro  # 前端构建产物
+      - ./ssl:/etc/nginx/ssl:ro                       # SSL 证书 (可选)
+      - ./logs/nginx:/var/log/nginx                   # Nginx 日志
+
+    # 依赖 API 服务
+    depends_on:
+      api:
+        condition: service_healthy
+
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+    # 日志配置
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+    # 网络
+    networks:
+      - ecomind-network
+
+  # ─── 可选: Redis 缓存 (取消注释以启用) ───
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: ecomind-redis-staging
+  #   restart: unless-stopped
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis-data:/data
+  #   command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 3
+  #   networks:
+  #     - ecomind-network
+
+  # ─── 可选: PostgreSQL 数据库 (取消注释以启用) ───
+  # db:
+  #   image: postgres:16-alpine
+  #   container_name: ecomind-db-staging
+  #   restart: unless-stopped
+  #   environment:
+  #     POSTGRES_DB: ecomind_staging
+  #     POSTGRES_USER: ecomind
+  #     POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres-data:/var/lib/postgresql/data
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U ecomind -d ecomind_staging"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 3
+  #   networks:
+  #     - ecomind-network
+
+# ─── 网络定义 ───
+networks:
+  ecomind-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+# ─── 持久化卷 ───
+volumes:
+  redis-data:
+    driver: local
+  postgres-data:
+    driver: local

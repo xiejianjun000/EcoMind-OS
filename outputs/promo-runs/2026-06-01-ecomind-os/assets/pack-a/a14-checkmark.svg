@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" width="50" height="50">
+  <defs>
+    <filter id="checkGlow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background transparent -->
+  <rect width="50" height="50" fill="none"/>
+
+  <!-- Checkmark circle background -->
+  <circle cx="25" cy="25" r="22" fill="#00C9A7" opacity="0.12"/>
+
+  <!-- Checkmark -->
+  <polyline points="14,25 22,33 36,17"
+            stroke="#00C9A7" stroke-width="3.5" fill="none"
+            stroke-linecap="round" stroke-linejoin="round"
+            filter="url(#checkGlow)"/>
+</svg>

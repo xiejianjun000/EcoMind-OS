@@ -1,0 +1,69 @@
+{
+  "name": "ecomind-os",
+  "version": "1.0.0",
+  "description": "EcoMind OS 桌面应用 — 湖南省生态环境系统 AI 智能体协作平台",
+  "main": "main.js",
+  "author": "EcoMind Team",
+  "license": "MIT",
+  "scripts": {
+    "dev": "node scripts/dev.js",
+    "build:frontend": "cd ../frontend && npm run build",
+    "build:backend": "bash scripts/build-backend.sh",
+    "build": "npm run build:frontend && npm run build:backend && electron-builder",
+    "build:mac": "npm run build:frontend && npm run build:backend && electron-builder --mac",
+    "build:win": "npm run build:frontend && npm run build:backend && electron-builder --win",
+    "build:linux": "npm run build:frontend && npm run build:backend && electron-builder --linux",
+    "start": "electron .",
+    "pack": "electron-builder --dir"
+  },
+  "devDependencies": {
+    "electron": "^29.0.0",
+    "electron-builder": "^24.13.3",
+    "concurrently": "^8.2.0",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "cn.gov.hunan.ecomind",
+    "productName": "EcoMind OS",
+    "directories": {
+      "output": "../dist-electron"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "../frontend/dist/**/*",
+      "../backend-dist/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "../backend-dist",
+        "to": "backend"
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.business",
+      "target": [{ "target": "dmg", "arch": ["arm64", "x64"] }],
+      "icon": "../frontend/public/vite.svg",
+      "hardenedRuntime": true,
+      "entitlements": "entitlements.mac.plist"
+    },
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon": "../frontend/public/vite.svg"
+    },
+    "linux": {
+      "target": [
+        { "target": "AppImage", "arch": ["x64"] },
+        { "target": "deb", "arch": ["x64"] }
+      ],
+      "category": "Office",
+      "icon": "../frontend/public/vite.svg"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "EcoMind OS"
+    }
+  }
+}
