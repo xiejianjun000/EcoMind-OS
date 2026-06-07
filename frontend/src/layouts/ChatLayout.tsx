@@ -4,46 +4,79 @@ import { useState, useCallback, lazy, Suspense } from "react"
 import { Outlet, useLocation } from "react-router-dom"
 import { cn } from "@/lib/utils"
 import { Sidebar } from "@/components/Sidebar/sidebar"
-import { ArtifactPanel } from "@/components/artifact-panel/artifact-panel"
+import { ContextPanel, type ContextPanelView } from "@/components/right-panel/context-panel"
 import { FilePreviewModal } from "@/components/FilePreview/FilePreviewModal"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import type { KnowledgeFile } from "@/services/knowledgeService"
 
 const SettingsSheetContent = lazy(() => import("@/components/Settings/SettingsSheetContent"))
 
+/** Shared context for child routes (Chat page) */
+export interface ChatLayoutContext {
+  sidebarOpen: boolean
+  toggleSidebar: () => void
+  contextPanelOpen: boolean
+  contextPanelView: ContextPanelView
+  setContextPanelView: (view: ContextPanelView) => void
+  toggleContextPanel: () => void
+  settingsOpen: boolean
+  onOpenSettings: () => void
+}
+
 export function ChatLayout({ className }: { className?: string }) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [artifactPanelOpen, setArtifactPanelOpen] = useState(false)
+  const [contextPanelOpen, setContextPanelOpen] = useState(false)
+  const [contextPanelView, setContextPanelView] = useState<ContextPanelView>("case")
   const [previewFile, setPreviewFile] = useState<KnowledgeFile | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const location = useLocation()
 
-  const isChatRoute = location.pathname.startsWith("/chat/") || location.pathname === "/chat"
-  const showArtifactPanel = artifactPanelOpen && isChatRoute
-
-  const toggleSidebar = useCallback(() => setSidebarOpen((prev) => !prev), [])
-  const toggleArtifactPanel = useCallback(() => setArtifactPanelOpen((prev) => !prev), [])
+  const toggleSidebar = useCallback(() => setSidebarOpen((p) => !p), [])
+  const toggleContextPanel = useCallback(() => setContextPanelOpen((p) => !p), [])
   const openSettings = useCallback(() => setSettingsOpen(true), [])
 
-  const ctx = { sidebarOpen, toggleSidebar, artifactPanelOpen, toggleArtifactPanel, isChatRoute, settingsOpen, onOpenSettings: openSettings }
+  const ctx: ChatLayoutContext = {
+    sidebarOpen, toggleSidebar,
+    contextPanelOpen, contextPanelView, setContextPanelView, toggleContextPanel,
+    settingsOpen, onOpenSettings: openSettings,
+  }
 
   return (
-    <div className={cn("flex h-screen bg-background", className)}>
+    <div className={cn("flex h-screen bg-background overflow-hidden", className)}>
+      {/* ── LEFT: Navigation Sidebar ── */}
       <Sidebar
         open={sidebarOpen}
         onOpenChange={setSidebarOpen}
         onFileClick={setPreviewFile}
         onOpenSettings={openSettings}
-        className={cn("transition-all duration-300 ease-in-out", sidebarOpen ? "w-[280px]" : "w-[60px]")}
+        onContextPanelOpen={(view) => {
+          setContextPanelView(view as ContextPanelView)
+          setContextPanelOpen(true)
+        }}
+        contextPanelOpen={contextPanelOpen}
+        className={cn(
+          "h-full flex-shrink-0 transition-all duration-300 ease-in-out border-r",
+          sidebarOpen ? "w-[280px]" : "w-[56px]"
+        )}
       />
-      <main className="flex-1 flex flex-col min-w-0">
+
+      {/* ── CENTER: Chat Flow ── */}
+      <main className="flex-1 flex flex-col min-w-0 h-full">
         <Outlet context={ctx} />
       </main>
-      <ArtifactPanel
-        open={showArtifactPanel}
-        onOpenChange={setArtifactPanelOpen}
-        className={cn("transition-all duration-300 ease-in-out", showArtifactPanel ? "w-[380px]" : "w-[0px] overflow-hidden")}
+
+      {/* ── RIGHT: Context Panel ── */}
+      <ContextPanel
+        open={contextPanelOpen}
+        view={contextPanelView}
+        onViewChange={setContextPanelView}
+        onOpenChange={setContextPanelOpen}
+        className={cn(
+          "h-full flex-shrink-0 transition-all duration-300 ease-in-out border-l",
+          contextPanelOpen ? "w-[360px]" : "w-0 overflow-hidden border-l-0"
+        )}
       />
+
+      {/* ── Modals ── */}
       <FilePreviewModal file={previewFile} onClose={() => setPreviewFile(null)} />
       <Sheet open={settingsOpen} onOpenChange={setSettingsOpen}>
         <SheetContent side="right" className="w-[700px] max-w-[95vw] p-0">

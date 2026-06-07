@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react"
 import { useParams, useNavigate, useOutletContext } from "react-router-dom"
+import type { ChatLayoutContext } from "@/layouts/ChatLayout"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -87,8 +88,8 @@ export default function ChatPage() {
   const chatStore = useChatStore()
   const { addArtifact, addTask, updateTaskProgress, completeTask, addNotification } = useArtifactStore()
   const { experts } = useExpertStore()
-  // ChatLayout Outlet context — sidebar/panel state from WorkBuddy layout
-  const outletCtx = useOutletContext<{ sidebarOpen: boolean; toggleSidebar: () => void; artifactPanelOpen: boolean; toggleArtifactPanel: () => void; isChatRoute: boolean; onOpenSettings: () => void }>()
+  // ChatLayout Outlet context — 3-panel layout state
+  const outletCtx = useOutletContext<ChatLayoutContext>()
   const [messages, setMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState("")
   const [selectedExpert, setSelectedExpert] = useState("ecomind")
@@ -758,8 +759,8 @@ export default function ChatPage() {
             const text = messages.map(m => `[${m.role === "user" ? "我" : m.expert?.name || "AI"}] ${m.content}`).join("\n\n")
             navigator.clipboard.writeText(text).then(() => alert("对话已复制到剪贴板"))
           }}
-          panelVisible={outletCtx.artifactPanelOpen}
-          onTogglePanel={outletCtx.toggleArtifactPanel}
+          panelVisible={outletCtx.contextPanelOpen}
+          onTogglePanel={outletCtx.toggleContextPanel}
           messages={messages.map(m => ({ id: m.id, content: m.content, role: m.role as "user" | "assistant" }))}
           onScrollToMessage={(messageId) => {
             const el = document.getElementById(`msg-${messageId}`)

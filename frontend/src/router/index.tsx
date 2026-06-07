@@ -1,77 +1,32 @@
 import React, { Suspense, lazy } from 'react';
 import { createBrowserRouter, Navigate, useParams } from 'react-router-dom';
 import { Spin } from 'antd';
-import MainLayout from '@/layouts/MainLayout';
 import { ChatLayout } from '@/layouts/ChatLayout';
-import AdminLayout from '@/layouts/AdminLayout';
 import AuthGuard from '@/components/AuthGuard';
 
-/** Lazy-loaded page components */
-const ChatPage = lazy(() => import('@/pages/Chat'));
-
-/** ChatRoute — forces full remount on sessionId change via React key */
-function ChatRoute() {
-  const { sessionId } = useParams()
-  return (
-    <Suspense fallback={<PageLoading />}>
-      <ChatPage />
-    </Suspense>
-  )
-}
-const ExpertsPage = lazy(() => import('@/pages/Experts'));
-const SkillsPage = lazy(() => import('@/pages/Skills'));
-const ConnectorsPage = lazy(() => import('@/pages/Connectors'));
-const AutomationPage = lazy(() => import('@/pages/Automation'));
-const MemoryDebugPage = lazy(() => import('@/pages/MemoryDebug'));
-const DashboardPage = lazy(() => import('@/pages/Dashboard'));
-const AgentsPage = lazy(() => import('@/pages/Agents'));
-const WorkflowsPage = lazy(() => import('@/pages/Workflows'));
-const SecurityPage = lazy(() => import('@/pages/Security'));
-const ModelsPage = lazy(() => import('@/pages/Models'));
-const DomainsPage = lazy(() => import('@/pages/Domains'));
-const ConversationsPage = lazy(() => import('@/pages/Conversations'));
-const MonitorPage = lazy(() => import('@/pages/Monitor'));
-const EnforcementPage = lazy(() => import('@/pages/Enforcement'));
-const ApprovalPage = lazy(() => import('@/pages/Approval'));
-const CompliancePage = lazy(() => import('@/pages/Compliance'));
-const ReportsPage = lazy(() => import('@/pages/Reports'));
-const KnowledgeGraphPage = lazy(() => import('@/pages/KnowledgeGraph'));
-const CesiumPage = lazy(() => import('@/pages/Cesium'));
-const CommandCockpitPage = lazy(() => import('@/pages/CommandCockpit'));
-const SettingsPage = lazy(() => import('@/pages/Settings'));
-const AdminPage = lazy(() => import('@/pages/Admin'));
+/** Only lazy-load what we actually navigate to */
 const LoginPage = lazy(() => import('@/pages/Login'));
-const ChiefDashboardPage = lazy(() => import('@/pages/ChiefDashboard'));
-const CityDashboardPage = lazy(() => import('@/pages/CityDashboard'));
-const CalendarPage = lazy(() => import('@/pages/Calendar'));
-const MailPage = lazy(() => import('@/pages/Mail'));
+const CesiumPage = lazy(() => import('@/pages/Cesium'));
 
-/** Loading fallback for lazy-loaded routes */
 const PageLoading: React.FC = () => (
   <div className="flex items-center justify-center h-full min-h-[400px]">
-    <Spin size="large" tip="Loading..." />
+    <Spin size="large" />
   </div>
 );
 
-/** Suspense wrapper for lazy components */
 const LazyPage: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <Suspense fallback={<PageLoading />}>{children}</Suspense>
 );
 
-/** Application router configuration — v6.5: RBAC + Agent Portal */
+/** Application router — unified 3-panel layout, single-page app */
 export const router = createBrowserRouter([
-  // ============================================================
-  // Login (no auth required)
-  // ============================================================
+  // ── Login (no auth) ──
   {
     path: '/login',
     element: <LazyPage><LoginPage /></LazyPage>,
   },
 
-  // ============================================================
-  // Main Chat Interface (WorkBuddy-style three-panel layout)
-  // Requires authentication
-  // ============================================================
+  // ── Main 3-panel interface (auth required) ──
   {
     path: '/',
     element: (
@@ -86,232 +41,31 @@ export const router = createBrowserRouter([
       },
       {
         path: 'chat/:sessionId?',
-        element: <ChatRoute />,
-      },
-      {
-        path: 'experts',
-        element: <LazyPage><ExpertsPage /></LazyPage>,
-      },
-      {
-        path: 'skills',
-        element: <LazyPage><SkillsPage /></LazyPage>,
-      },
-      {
-        path: 'connectors',
-        element: <LazyPage><ConnectorsPage /></LazyPage>,
-      },
-      {
-        path: 'automation',
-        element: <LazyPage><AutomationPage /></LazyPage>,
-      },
-      {
-        path: 'memory-debug',
-        element: <LazyPage><MemoryDebugPage /></LazyPage>,
-      },
-      {
-        path: 'calendar',
-        element: <LazyPage><CalendarPage /></LazyPage>,
-      },
-      {
-        path: 'mail',
-        element: <LazyPage><MailPage /></LazyPage>,
-      },
-      {
-        path: 'command-cockpit',
-        element: <LazyPage><CommandCockpitPage /></LazyPage>,
+        element: <ChatPageWrapper />,
       },
     ],
   },
 
-  // ============================================================
-  // Role-based Dashboards
-  // ============================================================
-  {
-    path: '/chief-dashboard',
-    element: (
-      <AuthGuard allowedRoles={['chief']}>
-        <MainLayout />
-      </AuthGuard>
-    ),
-    children: [
-      {
-        index: true,
-        element: <LazyPage><ChiefDashboardPage /></LazyPage>,
-      },
-    ],
-  },
-  {
-    path: '/city-dashboard',
-    element: (
-      <AuthGuard allowedRoles={['city']}>
-        <MainLayout />
-      </AuthGuard>
-    ),
-    children: [
-      {
-        index: true,
-        element: <LazyPage><CityDashboardPage /></LazyPage>,
-      },
-    ],
-  },
-
-  // ============================================================
-  // Full-screen Map Mode
-  // ============================================================
+  // ── Full-screen Map ──
   {
     path: '/map',
     element: <LazyPage><CesiumPage /></LazyPage>,
   },
 
-  // ============================================================
-  // Settings (standalone, auth required)
-  // ============================================================
-  {
-    path: '/settings',
-    element: (
-      <AuthGuard>
-        <MainLayout />
-      </AuthGuard>
-    ),
-    children: [
-      {
-        index: true,
-        element: <LazyPage><SettingsPage /></LazyPage>,
-      },
-    ],
-  },
-
-  // ============================================================
-  // Admin / Operations Panel (management pages)
-  // ============================================================
-  {
-    path: '/admin',
-    element: (
-      <AuthGuard>
-        <AdminLayout />
-      </AuthGuard>
-    ),
-    children: [
-      {
-        index: true,
-        element: <LazyPage><AdminPage /></LazyPage>,
-      },
-      {
-        path: 'dashboard',
-        element: <LazyPage><DashboardPage /></LazyPage>,
-      },
-      {
-        path: 'agents',
-        element: <LazyPage><AgentsPage /></LazyPage>,
-      },
-      {
-        path: 'workflows',
-        element: <LazyPage><WorkflowsPage /></LazyPage>,
-      },
-      {
-        path: 'security',
-        element: <LazyPage><SecurityPage /></LazyPage>,
-      },
-      {
-        path: 'models',
-        element: <LazyPage><ModelsPage /></LazyPage>,
-      },
-      {
-        path: 'domains',
-        element: <LazyPage><DomainsPage /></LazyPage>,
-      },
-      {
-        path: 'audit',
-        element: <LazyPage><ConversationsPage /></LazyPage>,
-      },
-      {
-        path: 'cesium',
-        element: <LazyPage><CesiumPage /></LazyPage>,
-      },
-      {
-        path: 'monitor',
-        element: <LazyPage><MonitorPage /></LazyPage>,
-      },
-      {
-        path: 'enforcement',
-        element: <LazyPage><EnforcementPage /></LazyPage>,
-      },
-      {
-        path: 'approval',
-        element: <LazyPage><ApprovalPage /></LazyPage>,
-      },
-      {
-        path: 'compliance',
-        element: <LazyPage><CompliancePage /></LazyPage>,
-      },
-      {
-        path: 'reports',
-        element: <LazyPage><ReportsPage /></LazyPage>,
-      },
-      {
-        path: 'knowledge-graph',
-        element: <LazyPage><KnowledgeGraphPage /></LazyPage>,
-      },
-    ],
-  },
-
-  // ============================================================
-  // Monitor (standalone, auth required)
-  // ============================================================
-  {
-    path: '/monitor',
-    element: (
-      <AuthGuard>
-        <MainLayout />
-      </AuthGuard>
-    ),
-    children: [
-      {
-        index: true,
-        element: <LazyPage><MonitorPage /></LazyPage>,
-      },
-    ],
-  },
-
-  // ============================================================
-  // Legacy routes — redirect to new locations
-  // ============================================================
-  {
-    path: '/dashboard',
-    element: <Navigate to="/admin/dashboard" replace />,
-  },
-  {
-    path: '/agents',
-    element: <Navigate to="/admin/agents" replace />,
-  },
-  {
-    path: '/workflows',
-    element: <Navigate to="/admin/workflows" replace />,
-  },
-  {
-    path: '/security',
-    element: <Navigate to="/admin/security" replace />,
-  },
-  {
-    path: '/models',
-    element: <Navigate to="/admin/models" replace />,
-  },
-  {
-    path: '/domains',
-    element: <Navigate to="/admin/domains" replace />,
-  },
-  {
-    path: '/conversations',
-    element: <Navigate to="/admin/audit" replace />,
-  },
-  {
-    path: '/cesium',
-    element: <Navigate to="/map" replace />,
-  },
-
-  // 404 fallback → redirect to login or chat
+  // ── Catch-all → Chat ──
   {
     path: '*',
     element: <Navigate to="/chat" replace />,
   },
 ]);
+
+/** Wrapper to force remount on sessionId change */
+function ChatPageWrapper() {
+  const { sessionId } = useParams();
+  const ChatPage = lazy(() => import('@/pages/Chat'));
+  return (
+    <Suspense fallback={<PageLoading />} key={sessionId}>
+      <ChatPage />
+    </Suspense>
+  );
+}

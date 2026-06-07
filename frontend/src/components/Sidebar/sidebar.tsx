@@ -22,17 +22,13 @@ import {
   Wrench,
   Plug,
   BookOpen,
-  Zap,
-  Users,
   MessageSquare,
   Brain,
   FolderOpen,
   Folder,
   FileText,
-  Calendar,
-  Mail,
 } from "lucide-react"
-import { LogOut, Shield } from "lucide-react"
+import { LogOut, Shield, BarChart3, Scale } from "lucide-react"
 import { useTheme } from "@/providers/ThemeProvider"
 import { useExpertStore } from "@/store/expertStore"
 import { useChatStore } from "@/store/chatStore"
@@ -48,19 +44,28 @@ interface SidebarProps {
   className?: string
   onFileClick?: (file: KnowledgeFile) => void
   onOpenSettings?: () => void
+  onContextPanelOpen?: (view: string) => void
+  contextPanelOpen?: boolean
 }
 
-export function Sidebar({ open, className, onFileClick, onOpenSettings }: SidebarProps) {
+export function Sidebar({ open, className, onFileClick, onOpenSettings, onContextPanelOpen, contextPanelOpen }: SidebarProps) {
   const navigate = useNavigate()
   const location = useLocation()
   const { theme, setTheme } = useTheme()
   const { experts } = useExpertStore()
   const { createSession } = useChatStore()
   const [knowledgeExpanded, setKnowledgeExpanded] = useState(false)
+  const [activeView, setActiveView] = useState<string>("chat")
 
   const handleNewSession = () => {
     const sessionId = createSession({ title: '新会话', expertId: 'ecomind', expertName: '助手' })
     navigate(`/chat/${sessionId}`)
+  }
+
+  /** Open right context panel with a specific view */
+  const openContext = (view: string) => {
+    setActiveView(view)
+    onContextPanelOpen?.(view)
   }
 
   if (!open) {
@@ -81,42 +86,54 @@ export function Sidebar({ open, className, onFileClick, onOpenSettings }: Sideba
     )
   }
 
-  // ── Nav items definition ──
+  // ── Nav items — main navigation: click → switch right context panel ──
   const mainNavItems = [
-    { icon: <MessageSquare className="h-4 w-4" />, label: "助理", path: "/chat",
-      active: location.pathname.startsWith("/chat"),
-      onClick: () => { const s = createSession({ title: '新会话', expertId: 'ecomind', expertName: '助手' }); navigate(`/chat/${s}`) }
+    { icon: <MessageSquare className="h-4 w-4" />, label: "助理", view: "chat",
+      active: activeView === "chat" || location.pathname === "/chat",
+      onClick: () => {
+        setActiveView("chat")
+        const s = createSession({ title: '新会话', expertId: 'ecomind', expertName: '助手' })
+        navigate(`/chat/${s}`)
+      }
     },
-    { icon: <Calendar className="h-4 w-4" />, label: "日历", path: "/calendar",
-      active: location.pathname === "/calendar",
-      onClick: () => navigate("/calendar")
+    { icon: <Sparkles className="h-4 w-4" />, label: "专家", view: "expert",
+      active: activeView === "expert",
+      onClick: () => openContext("case")
     },
-    { icon: <Mail className="h-4 w-4" />, label: "邮箱", path: "/mail",
-      active: location.pathname === "/mail",
-      onClick: () => navigate("/mail")
+    { icon: <Wrench className="h-4 w-4" />, label: "技能", view: "skill",
+      active: activeView === "skill",
+      onClick: () => openContext("insight")
     },
-    { icon: <Sparkles className="h-4 w-4" />, label: "专家", path: "/experts",
-      active: location.pathname === "/experts",
-      onClick: () => navigate("/experts")
+    { icon: <Shield className="h-4 w-4" />, label: "安全", view: "security",
+      active: activeView === "security",
+      onClick: () => openContext("case")
     },
-    { icon: <Wrench className="h-4 w-4" />, label: "技能", path: "/skills",
-      active: location.pathname === "/skills",
-      onClick: () => navigate("/skills")
+    { icon: <BarChart3 className="h-4 w-4" />, label: "监测", view: "monitor",
+      active: activeView === "monitor",
+      onClick: () => openContext("monitor")
     },
-    { icon: <Brain className="h-4 w-4" />, label: "记忆", path: "/memory-debug",
-      active: location.pathname === "/memory-debug",
-      onClick: () => navigate("/memory-debug")
-    },
-    { icon: <Plug className="h-4 w-4" />, label: "连接器", path: "/connectors",
-      active: location.pathname === "/connectors",
-      onClick: () => navigate("/connectors")
+    { icon: <Scale className="h-4 w-4" />, label: "法规", view: "regulation",
+      active: activeView === "regulation",
+      onClick: () => openContext("regulation")
     },
   ]
 
   const secondaryNavItems = [
-    { icon: <Zap className="h-4 w-4" />, label: "自动化", path: "/automation",
-      active: location.pathname === "/automation",
-      onClick: () => navigate("/automation")
+    { icon: <Brain className="h-4 w-4" />, label: "记忆", view: "memory",
+      active: activeView === "memory",
+      onClick: () => openContext("insight")
+    },
+    { icon: <Plug className="h-4 w-4" />, label: "网关", view: "gateway",
+      active: activeView === "gateway",
+      onClick: () => openContext("history")
+    },
+    { icon: <BookOpen className="h-4 w-4" />, label: "资料", view: "knowledge",
+      active: activeView === "knowledge",
+      onClick: () => {
+        setKnowledgeExpanded(!knowledgeExpanded)
+        setActiveView("knowledge")
+        openContext("history")
+      }
     },
   ]
 
