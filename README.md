@@ -7,7 +7,7 @@
 
 <p align="center">
   <a href="./backend"><img src="https://img.shields.io/badge/Backend-FastAPI-009688?style=flat-square"/></a>
-  <a href="./.github-clone/frontend"><img src="https://img.shields.io/badge/Frontend-React%2018-61DAFB?style=flat-square"/></a>
+  <a href="./frontend"><img src="https://img.shields.io/badge/Frontend-React%2018-61DAFB?style=flat-square"/></a>
   <a href="./backend/engine"><img src="https://img.shields.io/badge/Engine-EcoMind%20自建-success?style=flat-square"/></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-Apache--2.0-blue?style=flat-square"/></a>
   <img src="https://img.shields.io/badge/Version-2.0.0-green?style=flat-square"/>
@@ -188,46 +188,195 @@ GET /api/upload/resolve?virtual_path=/files/f-a1b2c3d4e5f6g7h8
 EcoMind-OS/
 ├── backend/                          # FastAPI 后端
 │   ├── api/
-│   │   ├── main.py                   # ⭐ FastAPI 入口 + 全局异常处理器 (C1)
-│   │   ├── routers/
-│   │   │   ├── chat.py               # ⭐ 聊天接口 + 三层防御 Layer 3
-│   │   │   ├── upload.py             # ⭐ 文件上传 + 虚拟路径映射 (H1)
-│   │   │   ├── tools.py              # 25 个 AI 工具注册与执行
-│   │   │   ├── media.py              # Edge TTS Neural + SSML
-│   │   │   └── *.py                  # agents/workflows/security/knowledge...
-│   │   ├── services/                 # 业务逻辑层（自建引擎）
-│   │   └── schemas/                  # Pydantic 数据模型
-│   ├── engine/                       # ⭐ 自建 Agent 引擎（零外部框架依赖）
-│   │   ├── loop.py                   # Agent 对话循环 + SSE 流式
-│   │   ├── tool_registry.py          # 工具注册与执行 + OpenAI/MCP Schema
+│   │   ├── main.py                   # FastAPI 入口 + 全局异常处理 + 安全中间件
+│   │   ├── guardrails.py             # 专家工具权限矩阵 + 安全白名单
+│   │   ├── agent_heartbeat.py        # Agent 心跳与健康检查
+│   │   ├── routers/                  # 21 个 API 路由模块
+│   │   │   ├── chat.py               # 聊天对话 + 12 专家系统提示词
+│   │   │   ├── agents.py             # Agent 全生命周期管理
+│   │   │   ├── team.py               # 专家团队调度 (dispatch/parallel)
+│   │   │   ├── tools.py              # 45 个 AI 工具注册与执行
+│   │   │   ├── upload.py             # 文件上传 + 虚拟路径映射
+│   │   │   ├── media.py              # Edge TTS Neural + SSML 语音合成
+│   │   │   ├── skills.py             # 技能安装/卸载/执行
+│   │   │   ├── marketplace.py        # 技能市场 + 热门排行
+│   │   │   ├── environment.py        # 实时环境监测数据 (14 城市)
+│   │   │   ├── hunan_policy.py       # 湖南省生态环境厅政策抓取与检索
+│   │   │   ├── knowledge.py          # 本地资料库扫描/分类/搜索 + 路径安全
+│   │   │   ├── knowledge_graph.py    # 知识图谱 (法规→Agent→工具)
+│   │   │   ├── enforcement.py        # 环境执法案件管理
+│   │   │   ├── compliance.py         # 合规检查
+│   │   │   ├── reports.py            # 环境报告自动生成
+│   │   │   ├── approval.py           # 政务审批流
+│   │   │   ├── workflows.py          # 有向图工作流编排
+│   │   │   ├── safety_chain.py       # 六层安全链 (注入检测→审计追踪)
+│   │   │   ├── security.py           # 安全事件 + 审计链路
+│   │   │   ├── models.py             # 模型管理与智能路由
+│   │   │   ├── departments.py        # 部门智能体 (19 个部门)
+│   │   │   └── __init__.py
+│   │   ├── schemas/                  # Pydantic 请求/响应数据模型
+│   │   ├── services/                 # 业务逻辑层 (11 个核心服务)
+│   │   │   ├── model_service.py      # 模型注册/健康检查/路由
+│   │   │   ├── knowledge_service.py  # 文件扫描与自动分类
+│   │   │   ├── environment_service.py
+│   │   │   ├── enforcement_service.py
+│   │   │   ├── compliance_service.py
+│   │   │   ├── report_service.py
+│   │   │   ├── approval_service.py
+│   │   │   ├── security_service.py
+│   │   │   ├── workflow_service.py
+│   │   │   └── agent_service.py
+│   │   └── websocket/                # WebSocket 实时通信
+│   ├── engine/                       # 自建 Agent 引擎 (零外部框架依赖)
+│   │   ├── loop.py                   # Agent 对话循环 + SSE 流式输出
+│   │   ├── tool_registry.py          # 工具注册/执行 + OpenAI/MCP Schema
+│   │   ├── team_engine.py            # 多专家并行调度引擎
+│   │   ├── auto_skill.py             # 自动技能提取与沉淀
+│   │   ├── hermes_memory.py          # 持久化记忆系统
+│   │   ├── hermes_tools.py           # 文件/代码/Shell 工具集
 │   │   ├── verify.py                 # EcoVerifier 输出验证
-│   │   └── memory.py                 # SQLite 三层持久化记忆
-│   ├── skills/                       # ECC 技能系统 (193K ⭐)
-│   ├── govmcp/                       # GOVMCP 政务协议适配
-│   └── inference/                     # 推理引擎配置
-├── .github-clone/frontend/        # React 前端（完整代码）
-│   └── src/
-│       ├── pages/
-│       │   └── Chat/index.tsx        # ⭐ 聊天页面 + 三层防御 Layer 2
-│       ├── services/
-│       │   └── deepseek.ts           # ⭐ System Prompt + Agentic Loop (L1+L3)
-│       └── components/               # UI 组件库
-├── deploy/                           # 🆕 Staging 部署配置
-│   ├── nginx.conf                    # Nginx 反向代理 (WS/SSE/Gzip/安全头)
-│   ├── docker-compose.yml            # Docker Compose 编排 (api + nginx)
+│   │   └── memory.py                 # SQLite 三层记忆
+│   ├── memory/                       # 记忆系统接口
+│   ├── skills/                       # ECC 技能系统
+│   │   ├── ecc/                      # 核心技能定义
+│   │   │   └── hunan-agents/         # 湖南生态环境专家技能
+│   │   ├── auto/                     # 自动生成的技能
+│   │   ├── css/                      # CSS 辅助工具
+│   │   └── knowledge-work/           # 知识工作流技能
+│   ├── inference/                    # LiteLLM 推理引擎配置与路由
+│   ├── govmcp/                       # GOVMCP 政务协议 (国密签名/区块链)
+│   ├── graph/                        # 知识图谱引擎
+│   ├── litellm-proxy/                # LiteLLM 代理配置
+│   ├── taiji-agent/                  # 太极 Agent 集成
+│   ├── vllm/                         # vLLM 本地推理
+│   ├── tests/                        # 后端测试套件
+│   │   ├── unit/                     # 单元测试
+│   │   ├── integration/              # 集成测试
+│   │   ├── contract/                 # 契约测试
+│   │   ├── security/                 # 安全测试
+│   │   ├── chaos/                    # 混沌工程测试
+│   │   ├── e2e/                      # 端到端测试
+│   │   └── stress/                   # 压力测试
+│   ├── data/                         # 数据库文件
+│   └── requirements.txt
+├── frontend/                         # React 18 + TypeScript 前端
+│   ├── src/
+│   │   ├── pages/                    # 30+ 个页面模块
+│   │   │   ├── Chat/                 # 聊天对话 (核心页面)
+│   │   │   ├── Experts/              # 专家管理
+│   │   │   ├── Agents/               # Agent 状态监控
+│   │   │   ├── Dashboard/            # 仪表盘
+│   │   │   ├── CityDashboard/        # 城市环境数据看板
+│   │   │   ├── ChiefDashboard/       # 厅长决策指挥舱
+│   │   │   ├── CommandCockpit/       # 指挥驾驶舱
+│   │   │   ├── Cesium/               # 3D 地球可视化 (Cesium)
+│   │   │   ├── Monitor/              # 环境监测站 IoT
+│   │   │   ├── Enforcement/          # 执法案件管理
+│   │   │   ├── Compliance/           # 合规审查
+│   │   │   ├── Reports/              # 报告管理
+│   │   │   ├── KnowledgeGraph/       # 知识图谱可视化
+│   │   │   ├── MemoryKnowledge/      # 记忆与知识管理
+│   │   │   ├── Skills/               # 技能管理
+│   │   │   ├── Workflows/            # 工作流编辑
+│   │   │   ├── Security/             # 安全监控
+│   │   │   ├── Settings/             # 系统设置
+│   │   │   ├── Login/                # 登录认证
+│   │   │   ├── Conversations/        # 会话历史
+│   │   │   ├── Automation/           # 自动化规则
+│   │   │   ├── Connectors/           # 数据连接器
+│   │   │   ├── Mail/                 # 邮件集成
+│   │   │   ├── Calendar/             # 日历
+│   │   │   ├── Departments/          # 部门管理
+│   │   │   ├── Domains/              # 领域管理
+│   │   │   ├── Models/               # 模型配置
+│   │   │   ├── Admin/                # 后台管理
+│   │   │   └── Users/                # 用户管理
+│   │   ├── components/               # 35+ 个可复用组件
+│   │   │   ├── Sidebar/              # 侧边栏导航
+│   │   │   ├── Chat/                 # 聊天 UI 组件
+│   │   │   ├── ChatMap/              # 聊天地图嵌入
+│   │   │   ├── ChatTopBar/           # 聊天顶栏 (模型选择/状态)
+│   │   │   ├── ArtifactPanel/        # 产出物面板
+│   │   │   ├── SplitView/            # 分屏视图
+│   │   │   ├── FilePreview/          # 文件预览
+│   │   │   ├── AgentStatus/          # Agent 状态指示器
+│   │   │   ├── Settings/             # 设置组件
+│   │   │   ├── Inspiration/          # 灵感提示
+│   │   │   ├── right-panel/          # 右侧信息面板
+│   │   │   ├── Canvas/               # 画布组件
+│   │   │   └── ui/                   # shadcn/ui 基础组件
+│   │   ├── services/                 # API 调用 + 业务逻辑
+│   │   │   ├── chatApi.ts            # 聊天 SSE 流式 API
+│   │   │   ├── deepseek.ts           # DeepSeek 桥接
+│   │   │   ├── businessApi.ts        # 业务 API
+│   │   │   ├── envDataService.ts     # 环境数据服务
+│   │   │   ├── knowledgeService.ts   # 知识库服务
+│   │   │   ├── toolService.ts        # 工具调用服务
+│   │   │   ├── agentStatusService.ts # Agent 状态服务
+│   │   │   ├── modelConfig.ts        # 模型配置
+│   │   │   ├── database/             # 数据库适配层
+│   │   │   ├── api.ts                # HTTP 客户端
+│   │   │   └── types.ts              # 类型定义
+│   │   ├── store/                    # Zustand 状态管理
+│   │   │   ├── chatStore.ts          # 对话状态
+│   │   │   ├── expertStore.ts        # 专家状态
+│   │   │   ├── agentStore.ts         # Agent 状态
+│   │   │   ├── artifactStore.ts      # 产出物状态
+│   │   │   ├── authStore.ts          # 认证状态
+│   │   │   ├── deptStore.ts          # 部门状态
+│   │   │   ├── automationStore.ts    # 自动化状态
+│   │   │   ├── securityStore.ts      # 安全状态
+│   │   │   ├── emailConnectorStore.ts
+│   │   │   └── memoryStore.ts
+│   │   ├── layouts/                  # 布局组件
+│   │   ├── router/                   # React Router 路由
+│   │   ├── hooks/                    # 自定义 Hooks
+│   │   ├── lib/                      # 工具函数
+│   │   ├── locales/                  # i18next 国际化
+│   │   ├── providers/                # Context Provider
+│   │   ├── theme/                    # 主题配置
+│   │   └── types/                    # TypeScript 类型
+│   ├── public/                       # 静态资源
+│   ├── dist/                         # 构建产物
+│   ├── tailwind.config.js
+│   ├── vite.config.ts
+│   └── package.json
+├── spec/                             # 规格与架构文档
+│   ├── SOUL-EcoMind.md               # EcoMind 主智能体人格定义
+│   ├── SOUL-EcoMind-Audit.md         # 执行审计标准
+│   ├── agent-patterns.md             # Agent 设计模式
+│   ├── requirements.md               # 平台需求
+│   ├── design.md                     # 架构决策
+│   ├── tasks.md                      # 里程碑任务
+│   ├── devlog.md                     # 开发日志
+│   └── structure.md                  # 结构规划
+├── deploy/                           # 部署配置
 │   ├── Dockerfile                    # 多阶段构建 (~200MB 镜像)
-│   ├── .env.staging                  # 环境变量模板
+│   ├── docker-compose.yml            # Docker Compose 编排 (api + nginx)
+│   ├── nginx.conf                    # Nginx 反向代理 (WS/SSE/Gzip/安全头)
 │   └── start.sh                      # 一键部署脚本
-├── tests/                            # 🆕 测试框架
-│   ├── stress_test_engine.py         # 2600+ 行生产级压力测试引擎
-│   ├── stress_test_report.md         # 初始测试报告 (83% 就绪度)
+├── tests/                            # 测试框架
+│   ├── stress_test_engine.py         # 2600+ 行压力测试引擎
+│   ├── stress_test_report.md         # 压力测试报告
 │   ├── stress_test_results.json      # 结构化测试数据
 │   └── e2e_file_upload_test.py       # 浏览器 E2E 文件上传验证
-├── docs/                             # 文档
+├── electron/                         # Electron 桌面客户端
+├── docs/                             # 技术文档
 │   ├── ECOMIND_DEPLOYMENT_ARCHITECTURE.md
-│   └── ECOMIND_STRATEGIC_ANALYSIS.md
-├── VI/                               # 品牌视觉识别系统
-└── README.md                         # 本文档
+│   ├── ECOMIND_STRATEGIC_ANALYSIS.md
+│   ├── TECHNICAL_PLAN_V6.5.md
+│   ├── class-diagram.mermaid
+│   └── sequence-diagram.mermaid
+├── openspec/                         # SpecCoding 变更管理
+├── deliverables/                     # 交付物
+├── data/                             # 共享数据
+├── vendor/                           # 第三方依赖
+├── docker-compose.yml                # 根级一键部署
+├── README.md                         # 本文档
+├── CLAUDE.md                         # Claude Code 项目规则
+├── CODE_WIKI.md                      # 代码百科
+├── CONTRIBUTING.md                   # 贡献指南
+└── TEST_PLAN.md                      # 测试计划
 ```
 
 ---
@@ -257,7 +406,7 @@ export DEEPSEEK_API_KEY="sk-your-key"
 python -m uvicorn api.main:app --reload --port 8000
 
 # 3. 启动前端（新终端）
-cd ../.github-clone/frontend
+cd ../frontend
 pnpm install
 pnpm dev  # http://localhost:5173
 ```
@@ -427,7 +576,7 @@ EcoMind OS v2.0 独立架构受以下开源项目启发：
 - 🎨 **色彩**：生态绿 #00C9A7 → 智慧青 #0E7490
 - 🌐 **口号**：*以智慧，哺育星球。*
 
-> 📖 完整 VI 手册：[.github-clone/VI/EcoMind_OS_VI_Brand_Manual.md](./.github-clone/VI/EcoMind_OS_VI_Brand_Manual.md)
+> 📖 完整 VI 手册：[VI/EcoMind_OS_VI_Brand_Manual.md](./VI/EcoMind_OS_VI_Brand_Manual.md)
 
 ---
 
