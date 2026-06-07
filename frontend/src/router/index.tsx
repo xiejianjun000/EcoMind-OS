@@ -43,6 +43,14 @@ export const router = createBrowserRouter([
         path: 'chat/:sessionId?',
         element: <ChatPageWrapper />,
       },
+      {
+        path: 'experts',
+        element: <ExpertsPageWrapper />,
+      },
+      {
+        path: 'skills',
+        element: <SkillsPageWrapper />,
+      },
     ],
   },
 
@@ -66,6 +74,24 @@ function ChatPageWrapper() {
   return (
     <Suspense fallback={<PageLoading />} key={sessionId}>
       <ChatPage />
+    </Suspense>
+  );
+}
+
+function ExpertsPageWrapper() {
+  const ExpertsPage = lazy(() => import('@/pages/Experts'));
+  return (
+    <Suspense fallback={<PageLoading />}>
+      <ExpertsPage />
+    </Suspense>
+  );
+}
+
+function SkillsPageWrapper() {
+  const SkillsPage = lazy(() => import('@/pages/Skills'));
+  return (
+    <Suspense fallback={<PageLoading />}>
+      <SkillsPage />
     </Suspense>
   );
 }
