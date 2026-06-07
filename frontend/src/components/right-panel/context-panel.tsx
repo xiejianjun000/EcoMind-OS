@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -10,68 +10,152 @@ import type { ContextData } from "@/layouts/ChatLayout"
 import {
   X, Scale, Gavel, AlertTriangle, FileText,
   Activity, Sparkles, Search, ExternalLink,
-  Globe, Eye, Braces, PanelRight, ImageIcon, Download, ZoomIn, ZoomOut,
+  Globe, Eye, Braces, ImageIcon, Download, ZoomIn, ZoomOut,
+  GitCompare, Terminal, Network, Settings, MoreHorizontal, Check, Copy,
 } from "lucide-react"
 
-type PanelView = "context" | "browser" | "markdown" | "image"
+/**
+ * PanelView — 对标 Trae Solo 全部右侧视图类型
+ *
+ * Trae 原始视图: solo_chat / solo_browser / solo_terminal / solo_editor_panel /
+ *   solo_diff_view / solo_deepwiki / solo_lark_doc / solo_supabase / solo_settings
+ *
+ * EcoMind 映射（保留6个高频 + "更多"下拉收折4个低频）:
+ */
+type PanelView = "context" | "browser" | "image" | "markdown" | "diff" | "terminal" | "knowledge" | "settings"
 
 interface Props {
   open: boolean
   data: ContextData
   onOpenChange: (open: boolean) => void
   className?: string
-  /** URL to load in the embedded browser view */
   browserUrl?: string
   onBrowserUrlChange?: (url: string) => void
-  /** Markdown content to preview */
   markdownContent?: string
-  onMarkdownContentChange?: (content: string) => void
+  imageUrls?: string[]
+  onImageClick?: (url: string) => void
+  diffContent?: { oldText: string; newText: string; title?: string }
+  terminalOutput?: string
+  knowledgeGraphData?: { nodes: Array<{ id: string; label: string }>; edges: Array<{ source: string; target: string }> }
 }
 
-export function ContextPanel({ open, data, onOpenChange, className, browserUrl, onBrowserUrlChange, markdownContent, onMarkdownContentChange, imageUrls, onImageClick }: Props & { imageUrls?: string[]; onImageClick?: (url: string) => void }) {
+/** Tab definitions — 6 主 tab + 2 折叠 tab（对标 Trae 的视图容器注册机制） */
+const MAIN_TABS: { key: PanelView; icon: React.ReactNode; label: string }[] = [
+  { key: "context", icon: <Eye className="h-3.5 w-3.5" />, label: "上下文" },
+  { key: "browser", icon: <Globe className="h-3.5 w-3.5" />, label: "浏览器" },
+  { key: "image", icon: <ImageIcon className="h-3.5 w-3.5" />, label: "图片" },
+  { key: "markdown", icon: <Braces className="h-3.5 w-3.5" />, label: "预览" },
+  { key: "diff", icon: <GitCompare className="h-3.5 w-3.5" />, label: "对比" },
+  { key: "terminal", icon: <Terminal className="h-3.5 w-3.5" />, label: "终端" },
+]
+
+const MORE_TABS: { key: PanelView; icon: React.ReactNode; label: string }[] = [
+  { key: "knowledge", icon: <Network className="h-3.5 w-3.5" />, label: "图谱" },
+  { key: "settings", icon: <Settings className="h-3.5 w-3.5" />, label: "设置" },
+]
+
+export function ContextPanel({
+  open, data, onOpenChange, className,
+  browserUrl, onBrowserUrlChange, markdownContent,
+  imageUrls, onImageClick, diffContent,
+  terminalOutput, knowledgeGraphData,
+}: Props) {
   const [view, setView] = useState<PanelView>("context")
 
   if (!open) return <div className={cn(className)} />
 
   return (
     <div className={cn("flex flex-col", className)}>
-      {/* View switcher — 对标 Trae tab bar */}
+      {/* Tab bar — 对标 Trae: main tabs + overflow 下拉 */}
       <div className="flex items-center border-b bg-background/50">
-        <ViewTab active={view === "context"} onClick={() => setView("context")} label="上下文" icon={<Eye className="h-3.5 w-3.5" />} />
-        <ViewTab active={view === "browser"} onClick={() => setView("browser")} label="浏览器" icon={<Globe className="h-3.5 w-3.5" />} />
-        <ViewTab active={view === "markdown"} onClick={() => setView("markdown")} label="预览" icon={<Braces className="h-3.5 w-3.5" />} />
-        <ViewTab active={view === "image"} onClick={() => setView("image")} label="图片" icon={<ImageIcon className="h-3.5 w-3.5" />} />
+        {MAIN_TABS.map(tab => (
+          <ViewTab key={tab.key} active={view === tab.key} onClick={() => setView(tab.key)} label={tab.label} icon={tab.icon} />
+        ))}
+        {/* Overflow dropdown for less-frequent tabs */}
+        <OverflowMenu tabs={MORE_TABS} active={view} onSelect={setView} />
         <div className="flex-1" />
         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none" onClick={() => onOpenChange(false)}>
           <X className="h-3.5 w-3.5" />
         </Button>
       </div>
 
-      {/* View content */}
-      {view === "context" && <ContextView data={data} />}
-      {view === "browser" && <BrowserView url={browserUrl} onUrlChange={onBrowserUrlChange} />}
-      {view === "markdown" && <MarkdownView content={markdownContent} />}
-      {view === "image" && <ImageView urls={imageUrls} onImageClick={onImageClick} />}
+      {/* Content */}
+      <ViewContent view={view} data={data}
+        browserUrl={browserUrl} onBrowserUrlChange={onBrowserUrlChange}
+        markdownContent={markdownContent} imageUrls={imageUrls}
+        onImageClick={onImageClick} diffContent={diffContent}
+        terminalOutput={terminalOutput} knowledgeGraphData={knowledgeGraphData}
+      />
     </div>
   )
 }
 
+// ─── View Tab ──────────────────────────────────────────
+
 function ViewTab({ active, onClick, label, icon }: { active: boolean; onClick: () => void; label: string; icon: React.ReactNode }) {
   return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "flex items-center gap-1.5 px-3 py-2 text-xs font-medium border-b-2 transition-colors",
-        active ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
-      )}
-    >
+    <button onClick={onClick} className={cn(
+      "flex items-center gap-1 px-2.5 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap",
+      active ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+    )}>
       {icon}
       <span className="hidden xl:inline">{label}</span>
     </button>
   )
 }
 
-// ─── Context View ─────────────────────────────────────
+function OverflowMenu({ tabs, active, onSelect }: { tabs: typeof MORE_TABS; active: PanelView; onSelect: (v: PanelView) => void }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as any)) setOpen(false) }
+    if (open) document.addEventListener("mousedown", h)
+    return () => document.removeEventListener("mousedown", h)
+  }, [open])
+
+  const isActive = tabs.some(t => t.key === active)
+  return (
+    <div className="relative" ref={ref}>
+      <button onClick={() => setOpen(!open)} className={cn(
+        "flex items-center gap-1 px-2 py-2 text-xs font-medium border-b-2 transition-colors",
+        isActive ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+      )}>
+        <MoreHorizontal className="h-3.5 w-3.5" />
+      </button>
+      {open && (
+        <div className="absolute top-full left-0 mt-1 bg-popover border rounded-md shadow-lg z-50 py-1 min-w-[100px]">
+          {tabs.map(tab => (
+            <button key={tab.key} onClick={() => { onSelect(tab.key); setOpen(false) }} className={cn(
+              "flex items-center gap-2 w-full px-3 py-1.5 text-xs hover:bg-accent transition-colors",
+              active === tab.key ? "text-primary font-medium" : "text-muted-foreground"
+            )}>
+              {tab.icon}<span>{tab.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── View Router ───────────────────────────────────────
+
+function ViewContent(props: { view: PanelView } & Props) {
+  switch (props.view) {
+    case "context":   return <ContextView data={props.data} />
+    case "browser":   return <BrowserView url={props.browserUrl} onUrlChange={props.onBrowserUrlChange} />
+    case "image":     return <ImageView urls={props.imageUrls} onImageClick={props.onImageClick} />
+    case "markdown":  return <MarkdownView content={props.markdownContent} />
+    case "diff":      return <DiffView content={props.diffContent} />
+    case "terminal":  return <TerminalView output={props.terminalOutput} />
+    case "knowledge": return <KnowledgeView data={props.knowledgeGraphData} />
+    case "settings":  return <SettingsView />
+    default:          return <EmptyState />
+  }
+}
+
+// ─── Context ────────────────────────────────────────────
+
 function ContextView({ data }: { data: ContextData }) {
   if (data.type === "empty") return <EmptyState />
   return (
@@ -85,45 +169,29 @@ function ContextView({ data }: { data: ContextData }) {
   )
 }
 
-// ─── Browser View ─────────────────────────────────────
+// ─── Browser ────────────────────────────────────────────
+
 function BrowserView({ url, onUrlChange }: { url?: string; onUrlChange?: (url: string) => void }) {
   const [inputUrl, setInputUrl] = useState(url || "https://sthjt.hunan.gov.cn/")
-
   return (
     <div className="flex flex-col flex-1">
       <div className="flex items-center gap-1 p-2 border-b">
         <Globe className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-        <input
-          value={inputUrl}
-          onChange={e => setInputUrl(e.target.value)}
+        <input value={inputUrl} onChange={e => setInputUrl(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter") onUrlChange?.(inputUrl) }}
-          placeholder="输入网址..."
-          className="flex-1 text-xs px-2 py-1 rounded border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-        />
+          placeholder="输入网址..." className="flex-1 text-xs px-2 py-1 rounded border bg-background focus:outline-none focus:ring-1 focus:ring-primary" />
         <Button size="sm" className="h-6 text-[10px] px-2" onClick={() => onUrlChange?.(inputUrl)}>Go</Button>
       </div>
-      <iframe
-        src={url || "about:blank"}
-        className="flex-1 w-full border-0"
-        sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-        title="内置浏览器"
-      />
+      <iframe src={url || "about:blank"} className="flex-1 w-full border-0"
+        sandbox="allow-scripts allow-same-origin allow-forms allow-popups" title="内置浏览器" />
     </div>
   )
 }
 
-// ─── Markdown Preview ─────────────────────────────────
+// ─── Markdown ───────────────────────────────────────────
+
 function MarkdownView({ content }: { content?: string }) {
-  if (!content) {
-    return (
-      <div className="flex-1 flex items-center justify-center p-6">
-        <div className="text-center">
-          <Braces className="h-8 w-8 mx-auto mb-2 text-muted-foreground/30" />
-          <p className="text-xs text-muted-foreground">Agent 生成文档后将在此预览</p>
-        </div>
-      </div>
-    )
-  }
+  if (!content) return <EmptyHint icon={<Braces />} text="Agent 生成文档后将在此预览" />
   return (
     <ScrollArea className="flex-1">
       <div className="p-4 prose prose-sm dark:prose-invert max-w-none">
@@ -133,28 +201,253 @@ function MarkdownView({ content }: { content?: string }) {
   )
 }
 
-// ─── Shared view components ───────────────────────────
-function EmptyState() {
+// ─── Image ──────────────────────────────────────────────
+
+function ImageView({ urls, onImageClick }: { urls?: string[]; onImageClick?: (url: string) => void }) {
+  const [selectedIdx, setSelectedIdx] = useState(0)
+  if (!urls || urls.length === 0) return <EmptyHint icon={<ImageIcon />} text="对话中的图片将在此显示" sub="支持点击查看、缩放、分享" />
+
   return (
-    <div className="flex-1 flex items-center justify-center p-6">
-      <div className="text-center">
-        <Sparkles className="h-8 w-8 mx-auto mb-2 text-muted-foreground/30" />
-        <p className="text-xs text-muted-foreground">相关上下文将自动出现在这里</p>
+    <div className="flex flex-col flex-1">
+      <div className="flex-1 flex items-center justify-center bg-black/5 dark:bg-white/5 p-4">
+        <img src={urls[selectedIdx]} alt={`图片 ${selectedIdx + 1}`}
+          className="max-w-full max-h-full object-contain rounded cursor-pointer hover:opacity-90 transition-opacity"
+          onClick={() => onImageClick?.(urls[selectedIdx])} />
+      </div>
+      {urls.length > 1 && (
+        <div className="flex gap-1.5 p-2 border-t overflow-x-auto">
+          {urls.map((url, i) => (
+            <img key={i} src={url} alt={`缩略图 ${i + 1}`} onClick={() => setSelectedIdx(i)}
+              className={cn("w-12 h-12 object-cover rounded cursor-pointer border-2 flex-shrink-0 transition-all",
+                i === selectedIdx ? "border-primary" : "border-transparent hover:border-muted-foreground")} />
+          ))}
+        </div>
+      )}
+      <div className="flex items-center justify-between px-3 py-2 border-t bg-background/50">
+        <span className="text-[10px] text-muted-foreground">{selectedIdx + 1} / {urls.length}</span>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setSelectedIdx(Math.max(0, selectedIdx - 1))} disabled={selectedIdx === 0}><ZoomOut className="h-3 w-3" /></Button>
+          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setSelectedIdx(Math.min(urls.length - 1, selectedIdx + 1))} disabled={selectedIdx === urls.length - 1}><ZoomIn className="h-3 w-3" /></Button>
+          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => window.open(urls[selectedIdx], "_blank")}><Download className="h-3 w-3" /></Button>
+        </div>
       </div>
     </div>
   )
 }
 
-function CaseView({ data: _data }: { data?: any }) { return <p className="text-xs text-muted-foreground py-8 text-center">案件信息</p> }
+// ─── Diff View — 对标 Trae solo_diff_view ──────────────
 
-function RegulationView({ data: _data }: { data?: any }) {
+function DiffView({ content }: { content?: { oldText: string; newText: string; title?: string } }) {
+  if (!content) return <EmptyHint icon={<GitCompare />} text="Agent 编辑文档后可在此查看变更对比" sub="支持前后版本逐行对比" />
+
+  return (
+    <div className="flex flex-col flex-1">
+      <div className="px-3 py-2 border-b bg-background/50 flex items-center gap-2">
+        <GitCompare className="h-3.5 w-3.5 text-primary" />
+        <span className="text-xs font-medium">{content.title || "文档对比"}</span>
+      </div>
+      <div className="flex-1 flex">
+        {/* Old (left) */}
+        <div className="flex-1 border-r">
+          <div className="px-2 py-1 border-b bg-red-50/50 dark:bg-red-950/20">
+            <span className="text-[10px] font-medium text-red-600 dark:text-red-400">修改前</span>
+          </div>
+          <ScrollArea className="h-[calc(100%-28px)]">
+            <pre className="p-2 text-[11px] font-mono whitespace-pre-wrap text-muted-foreground">{content.oldText}</pre>
+          </ScrollArea>
+        </div>
+        {/* New (right) */}
+        <div className="flex-1">
+          <div className="px-2 py-1 border-b bg-green-50/50 dark:bg-green-950/20">
+            <span className="text-[10px] font-medium text-green-600 dark:text-green-400">修改后</span>
+          </div>
+          <ScrollArea className="h-[calc(100%-28px)]">
+            <pre className="p-2 text-[11px] font-mono whitespace-pre-wrap">{content.newText}</pre>
+          </ScrollArea>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Terminal View — 对标 Trae solo_terminal ───────────
+
+function TerminalView({ output }: { output?: string }) {
+  const [logs, setLogs] = useState<string[]>(output ? output.split("\n") : [])
+  const bottomRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }) }, [logs])
+
+  // Accept new output via prop changes
+  useEffect(() => { if (output) setLogs(output.split("\n")) }, [output])
+
+  return (
+    <div className="flex flex-col flex-1">
+      <div className="flex items-center justify-between px-3 py-1.5 border-b bg-background/50">
+        <div className="flex items-center gap-2">
+          <Terminal className="h-3.5 w-3.5 text-primary" />
+          <span className="text-xs font-medium">沙箱输出</span>
+          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">{logs.length} 行</Badge>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => navigator.clipboard.writeText(logs.join("\n"))}><Copy className="h-3 w-3" /></Button>
+        </div>
+      </div>
+      <ScrollArea className="flex-1 bg-black dark:bg-zinc-950 rounded-none">
+        <div className="p-3 font-mono text-[11px] text-green-400 min-h-full">
+          {logs.length === 0 ? (
+            <span className="text-muted-foreground">$ 等待 Agent 执行代码...</span>
+          ) : (
+            logs.map((line, i) => (
+              <div key={i} className="leading-relaxed">
+                <span className="text-zinc-500 mr-2 select-none">{String(i + 1).padStart(3)}</span>
+                <span className={line.startsWith("Error") || line.includes("Traceback") ? "text-red-400" : "text-green-400"}>{line}</span>
+              </div>
+            ))
+          )}
+          <div ref={bottomRef} />
+        </div>
+      </ScrollArea>
+    </div>
+  )
+}
+
+// ─── Knowledge Graph — 对标 Trae solo_deepwiki ─────────
+
+function KnowledgeView({ data }: { data?: { nodes: Array<{ id: string; label: string }>; edges: Array<{ source: string; target: string }> } }) {
+  if (!data) return <EmptyHint icon={<Network />} text="知识图谱将在对话中自动构建" sub="法规-案例-处罚三者关联网络" />
+
+  return (
+    <div className="flex flex-col flex-1">
+      <div className="flex items-center gap-2 px-3 py-2 border-b bg-background/50">
+        <Network className="h-3.5 w-3.5 text-primary" />
+        <span className="text-xs font-medium">知识图谱</span>
+        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">{data.nodes.length} 节点</Badge>
+        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">{data.edges.length} 边</Badge>
+      </div>
+      <ScrollArea className="flex-1 p-3">
+        <div className="space-y-3">
+          {/* Nodes */}
+          <div>
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase mb-1.5">实体节点</p>
+            <div className="flex flex-wrap gap-1.5">
+              {data.nodes.map(n => (
+                <Badge key={n.id} variant="secondary" className="text-[10px]">{n.label}</Badge>
+              ))}
+            </div>
+          </div>
+          <Separator />
+          {/* Edges */}
+          <div>
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase mb-1.5">关联关系</p>
+            <div className="space-y-1">
+              {data.edges.map((e, i) => {
+                const srcN = data.nodes.find(n => n.id === e.source)
+                const tgtN = data.nodes.find(n => n.id === e.target)
+                return (
+                  <div key={i} className="flex items-center gap-1.5 text-[10px]">
+                    <span className="text-primary font-medium">{srcN?.label || e.source}</span>
+                    <span className="text-muted-foreground">→</span>
+                    <span className="font-medium">{tgtN?.label || e.target}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      </ScrollArea>
+    </div>
+  )
+}
+
+// ─── Settings — 对标 Trae solo_settings ────────────────
+
+function SettingsView() {
+  return (
+    <ScrollArea className="flex-1">
+      <div className="p-3 space-y-4">
+        <SectionTitle icon={<Globe className="h-4 w-4" />} title="连接状态" />
+        <div className="space-y-1.5">
+          <StatusRow name="DeepSeek API" status="connected" detail="deepseek-chat" />
+          <StatusRow name="HN.Leite 环境数据" status="connected" detail="14 市州实时监测" />
+          <StatusRow name="WebSocket 推送" status="pending" detail="ws://localhost:8000" />
+          <StatusRow name="飞书消息网关" status="disabled" detail="未配置 App ID" />
+          <StatusRow name="企业微信网关" status="disabled" detail="未配置 Corp ID" />
+          <StatusRow name="钉钉消息网关" status="disabled" detail="未配置 App Key" />
+          <StatusRow name="微信公众号网关" status="disabled" detail="未配置 App ID" />
+        </div>
+
+        <Separator />
+        <SectionTitle icon={<FileText className="h-4 w-4" />} title="系统信息" />
+        <div className="text-xs text-muted-foreground space-y-1">
+          <div className="flex justify-between"><span>版本</span><span>EcoMind OS v2.2</span></div>
+          <div className="flex justify-between"><span>Agent 引擎</span><span>EcoAgentEngine (自建)</span></div>
+          <div className="flex justify-between"><span>向量后端</span><span>SQLite + numpy</span></div>
+          <div className="flex justify-between"><span>国密算法</span><span>SM2/SM3/SM4 (govmcp)</span></div>
+          <div className="flex justify-between"><span>数据库</span><span>SQLite (hermes_memory.db)</span></div>
+        </div>
+      </div>
+    </ScrollArea>
+  )
+}
+
+function SectionTitle({ icon, title }: { icon: React.ReactNode; title: string }) {
+  return <div className="flex items-center gap-2"><span className="text-primary">{icon}</span><h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</h4></div>
+}
+
+function StatusRow({ name, status, detail }: { name: string; status: "connected" | "pending" | "disabled"; detail: string }) {
+  const color = status === "connected" ? "bg-green-500" : status === "pending" ? "bg-amber-500" : "bg-zinc-400"
+  return (
+    <div className="flex items-center justify-between bg-background rounded-lg border p-2">
+      <div className="flex items-center gap-2">
+        <div className={cn("w-2 h-2 rounded-full", color)} />
+        <span className="text-xs">{name}</span>
+      </div>
+      <span className="text-[10px] text-muted-foreground">{detail}</span>
+    </div>
+  )
+}
+
+// ─── Shared ────────────────────────────────────────────
+
+function EmptyState() {
+  return (
+    <div className="flex-1 flex items-center justify-center p-6">
+      <div className="text-center">
+        <Sparkles className="h-8 w-8 mx-auto mb-2 text-muted-foreground/30" />
+        <p className="text-xs text-muted-foreground">开始对话后，相关上下文将自动出现在这里</p>
+      </div>
+    </div>
+  )
+}
+
+function EmptyHint({ icon, text, sub }: { icon: React.ReactNode; text: string; sub?: string }) {
+  return (
+    <div className="flex-1 flex items-center justify-center p-6">
+      <div className="text-center">
+        <div className="mb-2 text-muted-foreground/30 flex justify-center">{icon}</div>
+        <p className="text-xs text-muted-foreground">{text}</p>
+        {sub && <p className="text-[10px] text-muted-foreground/60 mt-1">{sub}</p>}
+      </div>
+    </div>
+  )
+}
+
+// ─── Context sub-views ─────────────────────────────────
+
+function CaseView({ data: _ }: { data?: any }) {
+  return <p className="text-xs text-muted-foreground py-8 text-center">案件信息将自动关联到当前对话</p>
+}
+
+function RegulationView({ data: _ }: { data?: any }) {
   const [results, setResults] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   return (
     <div className="space-y-3">
       <div className="relative">
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-        <input placeholder="搜索法规..." className="w-full pl-8 pr-3 py-1.5 text-xs rounded-md border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+        <input placeholder="搜索法规..."
+          className="w-full pl-8 pr-3 py-1.5 text-xs rounded-md border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
           onKeyDown={async (e) => {
             if (e.key !== "Enter") return
             setLoading(true)
@@ -165,21 +458,22 @@ function RegulationView({ data: _data }: { data?: any }) {
             setLoading(false)
           }} />
       </div>
-      {loading && <p className="text-xs text-center text-muted-foreground">搜索中...</p>}
+      {loading && <p className="text-xs text-center text-muted-foreground py-4">搜索中...</p>}
       {results.map((r: any, i: number) => (
-        <div key={i} className="bg-background rounded-lg border p-2.5">
+        <div key={i} className="bg-background rounded-lg border p-2.5 hover:bg-accent/50 cursor-pointer transition-colors">
           <div className="flex items-center gap-1.5 mb-1">
             <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">{r.category || "法规"}</Badge>
             <span className="text-[11px] font-medium truncate">{r.law_name}</span>
           </div>
           <p className="text-[11px] text-muted-foreground line-clamp-2">{r.text}</p>
+          {r.article && <span className="text-[10px] text-primary mt-0.5 block">{r.article}</span>}
         </div>
       ))}
     </div>
   )
 }
 
-function MonitorView({ data: _data }: { data?: any }) {
+function MonitorView({ data: _ }: { data?: any }) {
   return (
     <div className="space-y-2">
       <MiniCityCard city="长沙市" aqi={72} level="良" primary="PM2.5" />
@@ -197,61 +491,6 @@ function MiniCityCard({ city, aqi, level, primary }: { city: string; aqi: number
     <div className="bg-background rounded-lg border p-2.5 flex items-center justify-between">
       <div><span className="text-xs font-medium">{city}</span><p className="text-[10px] text-muted-foreground">{primary}</p></div>
       <div className="flex items-center gap-2"><span className="text-xs font-bold">{aqi}</span><Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">{level}</Badge><div className={cn("w-2 h-2 rounded-full", c)} /></div>
-    </div>
-  )
-}
-
-// ─── Image View ────────────────────────────────────────
-function ImageView({ urls, onImageClick }: { urls?: string[]; onImageClick?: (url: string) => void }) {
-  const [selectedIdx, setSelectedIdx] = useState(0)
-  if (!urls || urls.length === 0) {
-    return (
-      <div className="flex-1 flex items-center justify-center p-6">
-        <div className="text-center">
-          <ImageIcon className="h-8 w-8 mx-auto mb-2 text-muted-foreground/30" />
-          <p className="text-xs text-muted-foreground">对话中的图片将在此显示</p>
-          <p className="text-[10px] text-muted-foreground/60 mt-1">支持点击查看、缩放、分享</p>
-        </div>
-      </div>
-    )
-  }
-  return (
-    <div className="flex flex-col flex-1">
-      {/* Main image */}
-      <div className="flex-1 flex items-center justify-center bg-black/5 dark:bg-white/5 p-4">
-        <img
-          src={urls[selectedIdx]}
-          alt={`图片 ${selectedIdx + 1}`}
-          className="max-w-full max-h-full object-contain rounded cursor-pointer hover:opacity-90 transition-opacity"
-          onClick={() => onImageClick?.(urls[selectedIdx])}
-        />
-      </div>
-      {/* Thumbnail strip */}
-      {urls.length > 1 && (
-        <div className="flex gap-1.5 p-2 border-t overflow-x-auto">
-          {urls.map((url, i) => (
-            <img
-              key={i}
-              src={url}
-              alt={`缩略图 ${i + 1}`}
-              onClick={() => setSelectedIdx(i)}
-              className={cn(
-                "w-12 h-12 object-cover rounded cursor-pointer border-2 flex-shrink-0 transition-all",
-                i === selectedIdx ? "border-primary" : "border-transparent hover:border-muted-foreground"
-              )}
-            />
-          ))}
-        </div>
-      )}
-      {/* Action bar */}
-      <div className="flex items-center justify-between px-3 py-2 border-t bg-background/50">
-        <span className="text-[10px] text-muted-foreground">{selectedIdx + 1} / {urls.length}</span>
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setSelectedIdx(Math.max(0, selectedIdx - 1))} disabled={selectedIdx === 0}><ZoomOut className="h-3 w-3" /></Button>
-          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setSelectedIdx(Math.min(urls.length - 1, selectedIdx + 1))} disabled={selectedIdx === urls.length - 1}><ZoomIn className="h-3 w-3" /></Button>
-          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => window.open(urls[selectedIdx], "_blank")}><Download className="h-3 w-3" /></Button>
-        </div>
-      </div>
     </div>
   )
 }
