@@ -11,7 +11,7 @@ import {
   X, Scale, Gavel, AlertTriangle, FileText,
   Activity, Sparkles, Search, ExternalLink,
   Globe, Eye, Braces, ImageIcon, Download, ZoomIn, ZoomOut,
-  GitCompare, Terminal, Network, Settings, MoreHorizontal, Check, Copy,
+  GitCompare, Terminal, Network, Settings, Copy,
 } from "lucide-react"
 
 /**
@@ -40,18 +40,26 @@ interface Props {
 }
 
 /** Tab definitions — 6 主 tab + 2 折叠 tab（对标 Trae 的视图容器注册机制） */
-const MAIN_TABS: { key: PanelView; icon: React.ReactNode; label: string }[] = [
-  { key: "context", icon: <Eye className="h-3.5 w-3.5" />, label: "上下文" },
-  { key: "browser", icon: <Globe className="h-3.5 w-3.5" />, label: "浏览器" },
-  { key: "image", icon: <ImageIcon className="h-3.5 w-3.5" />, label: "图片" },
-  { key: "markdown", icon: <Braces className="h-3.5 w-3.5" />, label: "预览" },
-  { key: "diff", icon: <GitCompare className="h-3.5 w-3.5" />, label: "对比" },
-  { key: "terminal", icon: <Terminal className="h-3.5 w-3.5" />, label: "终端" },
-]
-
-const MORE_TABS: { key: PanelView; icon: React.ReactNode; label: string }[] = [
-  { key: "knowledge", icon: <Network className="h-3.5 w-3.5" />, label: "图谱" },
-  { key: "settings", icon: <Settings className="h-3.5 w-3.5" />, label: "设置" },
+/**
+ * ALL_TABS — 对标 Trae Solo 的 ActivityBar + ViewContainer 模式
+ *
+ * 不堆在顶部, 而是:
+ *   左侧 40px 纵向图标条 (ActivityBar)
+ *   右侧 flex-1 主内容区
+ *
+ * 但因为我们只有 8 个视图（Trae VS Code 有十几个 + 扩展视图）,
+ * 且右侧面板宽度 360px 已经很窄, 40px 再切一刀会让内容区只剩 320px。
+ * 所以这里用 8 个图标纵向排列, 紧凑高效。
+ */
+const ALL_TABS: { key: PanelView; icon: React.ReactNode; label: string }[] = [
+  { key: "context",   icon: <Eye className="h-4 w-4" />,         label: "上下文" },
+  { key: "browser",   icon: <Globe className="h-4 w-4" />,       label: "浏览器" },
+  { key: "image",     icon: <ImageIcon className="h-4 w-4" />,   label: "图片" },
+  { key: "markdown",  icon: <Braces className="h-4 w-4" />,      label: "预览" },
+  { key: "diff",      icon: <GitCompare className="h-4 w-4" />,  label: "对比" },
+  { key: "terminal",  icon: <Terminal className="h-4 w-4" />,    label: "终端" },
+  { key: "knowledge", icon: <Network className="h-4 w-4" />,     label: "图谱" },
+  { key: "settings",  icon: <Settings className="h-4 w-4" />,    label: "设置" },
 ]
 
 export function ContextPanel({
@@ -65,19 +73,45 @@ export function ContextPanel({
   if (!open) return <div className={cn(className)} />
 
   return (
-    <div className={cn("flex flex-col", className)}>
-      {/* Tab bar — 对标 Trae: main tabs + overflow 下拉 */}
-      <div className="flex items-center border-b bg-background/50">
-        {MAIN_TABS.map(tab => (
-          <ViewTab key={tab.key} active={view === tab.key} onClick={() => setView(tab.key)} label={tab.label} icon={tab.icon} />
+    <div className={cn("flex", className)}>
+      {/* ── ActivityBar (40px) — 对标 Trae: 纵向图标条 ── */}
+      <div className="w-10 flex-shrink-0 flex flex-col items-center py-2 gap-1 border-r bg-background/50">
+        {ALL_TABS.map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => setView(tab.key)}
+            title={tab.label}
+            className={cn(
+              "w-8 h-8 flex items-center justify-center rounded-md transition-colors",
+              view === tab.key
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:text-foreground hover:bg-accent"
+            )}
+          >
+            {tab.icon}
+          </button>
         ))}
-        {/* Overflow dropdown for less-frequent tabs */}
-        <OverflowMenu tabs={MORE_TABS} active={view} onSelect={setView} />
         <div className="flex-1" />
-        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none" onClick={() => onOpenChange(false)}>
-          <X className="h-3.5 w-3.5" />
-        </Button>
+        <button
+          onClick={() => onOpenChange(false)}
+          className="w-8 h-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          title="关闭面板"
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
+
+      {/* ── View Header + Content ── */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Header: 显示当前视图名称（对标 Trae 的 pane header） */}
+        <div className="flex items-center justify-between px-3 h-9 border-b bg-background/50 flex-shrink-0">
+          <div className="flex items-center gap-2">
+            {ALL_TABS.find(t => t.key === view)?.icon}
+            <span className="text-xs font-semibold">
+              {ALL_TABS.find(t => t.key === view)?.label}
+            </span>
+          </div>
+        </div>
 
       {/* Content */}
       <ViewContent view={view} data={data}
@@ -86,54 +120,7 @@ export function ContextPanel({
         onImageClick={onImageClick} diffContent={diffContent}
         terminalOutput={terminalOutput} knowledgeGraphData={knowledgeGraphData}
       />
-    </div>
-  )
-}
-
-// ─── View Tab ──────────────────────────────────────────
-
-function ViewTab({ active, onClick, label, icon }: { active: boolean; onClick: () => void; label: string; icon: React.ReactNode }) {
-  return (
-    <button onClick={onClick} className={cn(
-      "flex items-center gap-1 px-2.5 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap",
-      active ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
-    )}>
-      {icon}
-      <span className="hidden xl:inline">{label}</span>
-    </button>
-  )
-}
-
-function OverflowMenu({ tabs, active, onSelect }: { tabs: typeof MORE_TABS; active: PanelView; onSelect: (v: PanelView) => void }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as any)) setOpen(false) }
-    if (open) document.addEventListener("mousedown", h)
-    return () => document.removeEventListener("mousedown", h)
-  }, [open])
-
-  const isActive = tabs.some(t => t.key === active)
-  return (
-    <div className="relative" ref={ref}>
-      <button onClick={() => setOpen(!open)} className={cn(
-        "flex items-center gap-1 px-2 py-2 text-xs font-medium border-b-2 transition-colors",
-        isActive ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
-      )}>
-        <MoreHorizontal className="h-3.5 w-3.5" />
-      </button>
-      {open && (
-        <div className="absolute top-full left-0 mt-1 bg-popover border rounded-md shadow-lg z-50 py-1 min-w-[100px]">
-          {tabs.map(tab => (
-            <button key={tab.key} onClick={() => { onSelect(tab.key); setOpen(false) }} className={cn(
-              "flex items-center gap-2 w-full px-3 py-1.5 text-xs hover:bg-accent transition-colors",
-              active === tab.key ? "text-primary font-medium" : "text-muted-foreground"
-            )}>
-              {tab.icon}<span>{tab.label}</span>
-            </button>
-          ))}
-        </div>
-      )}
+      </div>
     </div>
   )
 }
