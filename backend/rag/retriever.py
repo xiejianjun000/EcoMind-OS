@@ -97,7 +97,7 @@ class HybridRetriever:
         try:
             # FTS5 主表
             rows = conn.execute(
-                """SELECT article_id, title, content, publish_time, section
+                """SELECT article_id, title, content, publish_date, section
                    FROM articles WHERE content MATCH ?
                    ORDER BY rank LIMIT ?""",
                 (query, limit),
@@ -107,9 +107,9 @@ class HybridRetriever:
             if not rows:
                 like_query = f"%{query.replace(' ', '%')}%"
                 rows = conn.execute(
-                    """SELECT article_id, title, content, publish_time, section
+                    """SELECT article_id, title, content, publish_date, section
                        FROM articles WHERE content LIKE ?
-                       ORDER BY publish_time DESC LIMIT ?""",
+                       ORDER BY publish_date DESC LIMIT ?""",
                     (like_query, limit),
                 ).fetchall()
 
@@ -122,7 +122,7 @@ class HybridRetriever:
                     "metadata": {
                         "law_name": r["title"],
                         "section": r["section"],
-                        "publish_time": r["publish_time"],
+                        "publish_date": r["publish_date"],
                     },
                     "score": 0.6,  # 关键词基础分
                 })
