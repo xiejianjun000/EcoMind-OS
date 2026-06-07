@@ -86,6 +86,9 @@ def _migration_001(conn: sqlite3.Connection) -> None:
             content TEXT NOT NULL,
             category TEXT DEFAULT 'general',
             tags TEXT DEFAULT '',
+            trust REAL DEFAULT 1.0,
+            expert_id TEXT DEFAULT '',
+            session_id TEXT DEFAULT '',
             created_at REAL NOT NULL,
             updated_at REAL NOT NULL
         );
