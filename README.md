@@ -37,11 +37,11 @@ EcoMind OS 是一个**生态环境垂直领域 AI Agent 管理平台**。它提�
 
 <p align="center">
   <img src="docs/assets/screenshot-chat.png" alt="对话界面" width="45%">
-  <img src="docs/assets/screenshot-dashboard.png" alt="仪表盘" width="45%">
+  <img src="docs/assets/screenshot-experts.png" alt="专家管理" width="45%">
 </p>
 <p align="center">
-  <img src="docs/assets/screenshot-cesium.png" alt="3D 场景" width="45%">
-  <img src="docs/assets/screenshot-experts.png" alt="专家管理" width="45%">
+  <img src="docs/assets/screenshot-agents.png" alt="Agent 仪表盘" width="45%">
+  <img src="docs/assets/screenshot-monitor.png" alt="环境监测" width="45%">
 </p>
 
 ---
