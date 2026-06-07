@@ -119,9 +119,9 @@ def create_tech_logo():
     draw_tech_background(draw, CANVAS_SIZE)
     
     # Logo mark (geometric icon)
-    mark_size = 200
+    mark_size = 220
     mark_x = CENTER - 280
-    mark_y = CENTER - 60
+    mark_y = CENTER - 80
     draw_logo_mark(draw, mark_x, mark_y, mark_size)
     
     # Text: EcoMind OS
@@ -130,13 +130,14 @@ def create_tech_logo():
         font_eco = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 120)
         font_mind = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 120)
         font_os = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 60)
-        font_tagline = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 32)
+        font_tag_en = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 32)
+        font_tag_zh = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 36)
     except:
-        font_eco = font_mind = font_os = font_tagline = ImageFont.load_default()
+        font_eco = font_mind = font_os = font_tag_en = font_tag_zh = ImageFont.load_default()
     
     # Text positioning
     text_start_x = mark_x + mark_size/2 + 60
-    text_y = CENTER - 100
+    text_y = CENTER - 120
     
     # Draw "Eco" in green
     draw.text((text_start_x, text_y), "Eco", font=font_eco, fill=ECO_GREEN)
@@ -156,53 +157,91 @@ def create_tech_logo():
     os_y = text_y - 10
     draw.text((os_x, os_y), "OS", font=font_os, fill=ACCENT_CYAN)
     
-    # Tagline: Intelligence that Nurtures the Planet
-    tagline = "Intelligence that Nurtures the Planet"
-    bbox_tag = draw.textbbox((0, 0), tagline, font=font_tagline)
-    tag_width = bbox_tag[2] - bbox_tag[0]
-    tag_x = text_start_x
-    tag_y = text_y + 150
-    draw.text((tag_x, tag_y), tagline, font=font_tagline, fill=(180, 180, 190))
+    # Calculate center of the text block for alignment
+    total_text_width = eco_width + 10 + mind_width + 25 + (bbox_mind[2] - bbox_mind[0])
+    text_center_x = text_start_x + total_text_width // 2
     
-    # Underline accent line
-    line_y = tag_y - 20
-    draw.rectangle([tag_x, line_y, tag_x + tag_width*0.4, line_y + 4], 
-                  fill=ECO_GREEN)
+    # --- Line 2: English tagline (centered under main text) ---
+    tagline_en = "Intelligence that Nurtures the Planet"
+    bbox_en = draw.textbbox((0, 0), tagline_en, font=font_tag_en)
+    tag_en_width = bbox_en[2] - bbox_en[0]
+    tag_en_x = text_center_x - tag_en_width // 2
+    tag_en_y = text_y + 160
+    draw.text((tag_en_x, tag_en_y), tagline_en, font=font_tag_en, fill=(180, 180, 190))
+    
+    # --- Line 3: Chinese brand idea (centered under English) ---
+    tagline_zh = "会思考的生态大脑"
+    bbox_zh = draw.textbbox((0, 0), tagline_zh, font=font_tag_zh)
+    tag_zh_width = bbox_zh[2] - bbox_zh[0]
+    tag_zh_x = text_center_x - tag_zh_width // 2
+    tag_zh_y = tag_en_y + 60
+    draw.text((tag_zh_x, tag_zh_y), tagline_zh, font=font_tag_zh, fill=ECO_GREEN)
+    
+    # Accent line - centered under main text
+    line_width = tag_en_width * 0.35
+    line_x = text_center_x - line_width // 2
+    draw.rectangle([line_x, text_y + 135, line_x + line_width, text_y + 140], fill=ECO_GREEN)
     
     return img
 
 def create_simple_text_logo():
     """Create pure text logo (tech-style)"""
-    img = Image.new('RGB', (900, 400), DARKER_GRAY)
+    img = Image.new('RGB', (1000, 500), DARKER_GRAY)
     draw = ImageDraw.Draw(img)
     
     try:
-        font_main = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 90)
-        font_tag = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 28)
+        font_main = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 100)
+        font_tag_en = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 32)
+        font_tag_zh = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 36)
     except:
-        font_main = font_tag = ImageFont.load_default()
+        font_main = font_tag_en = font_tag_zh = ImageFont.load_default()
     
-    cx, cy = 450, 150
+    center_x = 500
+    base_y = 150
     
-    # Text "EcoMind OS" split by color
-    draw.text((150, cy - 50), "Eco", font=font_main, fill=ECO_GREEN)
-    bbox_eco = draw.textbbox((0,0), "Eco", font=font_main)
+    # --- Line 1: EcoMind OS (centered) ---
+    text_eco = "Eco"
+    text_mind = "Mind"
+    text_os = "OS"
+    
+    # Measure widths
+    bbox_eco = draw.textbbox((0, 0), text_eco, font=font_main)
     eco_w = bbox_eco[2] - bbox_eco[0]
     
-    draw.text((150 + eco_w, cy - 50), "Mind", font=font_main, fill=TECH_WHITE)
-    bbox_mind = draw.textbbox((0,0), "Mind", font=font_main)
+    bbox_mind = draw.textbbox((0, 0), text_mind, font=font_main)
     mind_w = bbox_mind[2] - bbox_mind[0]
     
-    draw.text((150 + eco_w + mind_w + 20, cy - 30), "OS", font=font_main, fill=ACCENT_CYAN)
+    bbox_os = draw.textbbox((0, 0), text_os, font=font_main)
+    os_w = bbox_os[2] - bbox_os[0]
     
-    # Tagline
-    tagline = "Intelligence that Nurtures the Planet"
-    bbox_tag = draw.textbbox((0,0), tagline, font=font_tag)
-    tag_w = bbox_tag[2] - bbox_tag[0]
-    draw.text((150, cy + 80), tagline, font=font_tag, fill=(160, 160, 170))
+    total_width = eco_w + 10 + mind_w + 20 + os_w
+    start_x = center_x - total_width // 2
     
-    # Accent rectangle behind
-    draw.rectangle([130, 280, 130 + tag_w*0.5, 288], fill=ECO_GREEN)
+    # Draw Eco
+    draw.text((start_x, base_y - 60), text_eco, font=font_main, fill=ECO_GREEN)
+    # Draw Mind
+    draw.text((start_x + eco_w + 10, base_y - 60), text_mind, font=font_main, fill=TECH_WHITE)
+    # Draw OS
+    draw.text((start_x + eco_w + 10 + mind_w + 20, base_y - 40), text_os, font=font_main, fill=ACCENT_CYAN)
+    
+    # --- Line 2: English tagline (centered) ---
+    tagline_en = "Intelligence that Nurtures the Planet"
+    bbox_en = draw.textbbox((0, 0), tagline_en, font=font_tag_en)
+    tag_en_w = bbox_en[2] - bbox_en[0]
+    tag_en_x = center_x - tag_en_w // 2
+    draw.text((tag_en_x, base_y + 80), tagline_en, font=font_tag_en, fill=(180, 180, 190))
+    
+    # --- Line 3: Chinese brand idea (centered) ---
+    tagline_zh = "会思考的生态大脑"
+    bbox_zh = draw.textbbox((0, 0), tagline_zh, font=font_tag_zh)
+    tag_zh_w = bbox_zh[2] - bbox_zh[0]
+    tag_zh_x = center_x - tag_zh_w // 2
+    draw.text((tag_zh_x, base_y + 140), tagline_zh, font=font_tag_zh, fill=ECO_GREEN)
+    
+    # Accent line - centered under main text
+    line_width = tag_en_w * 0.35
+    line_x = center_x - line_width // 2
+    draw.rectangle([line_x, base_y + 55, line_x + line_width, base_y + 60], fill=ECO_GREEN)
     
     return img
 
