@@ -326,6 +326,13 @@ def create_app() -> FastAPI:
     # ─── 学习与反馈引擎 (进化闭环) ───
     application.include_router(learning.router, prefix="/api/learning", tags=["Learning"])
 
+    # ─── 消息网关 (飞书/微信/企微/钉钉) ───
+    try:
+        from gateway.router import router as gateway_router
+        application.include_router(gateway_router)
+    except ImportError as e:
+        logger.warning("消息网关未加载: %s", e)
+
     # 注册 WebSocket 端点
     from api.websocket.manager import websocket_endpoint
     application.websocket_route("/ws")(websocket_endpoint)
