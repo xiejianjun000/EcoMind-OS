@@ -35,6 +35,9 @@ logs/
 *.db-shm
 *.db-wal
 
+# Vector embeddings
+chroma_db/
+
 # IDE / Editor
 *.swo
 *~

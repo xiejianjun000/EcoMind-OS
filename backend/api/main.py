@@ -333,6 +333,13 @@ def create_app() -> FastAPI:
     except ImportError as e:
         logger.warning("消息网关未加载: %s", e)
 
+    # ─── RAG 法规知识库向量化检索引擎 ───
+    try:
+        from rag.registry_api import router as rag_router
+        application.include_router(rag_router)
+    except ImportError as e:
+        logger.warning("RAG 引擎未加载: %s", e)
+
     # 注册 WebSocket 端点
     from api.websocket.manager import websocket_endpoint
     application.websocket_route("/ws")(websocket_endpoint)
