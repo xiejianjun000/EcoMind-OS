@@ -1,92 +1,381 @@
-import React from 'react';
-import { Row, Col, Card, Table, Tag, Typography, Space, Button, List, Select } from 'antd';
-import { ThunderboltOutlined, ExperimentOutlined, SafetyCertificateOutlined, AuditOutlined, FileTextOutlined, BarChartOutlined } from '@ant-design/icons';
-import PageHeader from '@/components/PageHeader';
+/**
+ * Skills 技能市场 — 浏览/安装/卸载技能
+ *
+ * 从后端 API 获取技能列表，支持按智能体安装/卸载。
+ */
+import React, { useState, useMemo, useEffect, useCallback } from 'react'
+import {
+  Card, Tag, Button, Input, Typography, Row, Col, Space, Tooltip, Empty,
+  Tabs, Badge, message, Select, Spin, Progress,
+} from 'antd'
+import {
+  SearchOutlined, ThunderboltOutlined, ExperimentOutlined,
+  GlobalOutlined, ScanOutlined, HeatMapOutlined,
+  CheckCircleOutlined, FileTextOutlined, EyeOutlined,
+  BarChartOutlined, NodeIndexOutlined, DownloadOutlined,
+  StarOutlined, CloudDownloadOutlined, ApiOutlined,
+  DeleteOutlined,
+} from '@ant-design/icons'
+import { useNavigate } from 'react-router-dom'
+import { useExpertStore, useChatStore } from '@/store'
 
-const { Title, Text } = Typography;
+const { Title, Text } = Typography
 
-const SKILLS_DATA = [
-  { name: '环境监测技能', category: 'environment', triggers: ['监测', 'AQI', '水质', '噪声'], tools: ['query_environment_data', 'generate_report'], agents: ['监测分析智能体', '大气治理智能体', '水环境治理智能体'], priority: 10 },
-  { name: '碳排放管理', category: 'carbon', triggers: ['碳排放', '碳配额', '减排', '碳中和'], tools: ['query_emission_data', 'search_regulation'], agents: ['大气治理智能体'], priority: 10 },
-  { name: '执法辅助决策', category: 'enforcement', triggers: ['执法', '违法', '处罚', '超标'], tools: ['search_regulation', 'submit_approval'], agents: ['执法办案智能体'], priority: 8 },
-  { name: '审批流程辅助', category: 'approval', triggers: ['审批', '许可', '环评'], tools: ['submit_approval', 'search_regulation'], agents: ['环评审批智能体'], priority: 8 },
-  { name: '报告自动生成', category: 'report', triggers: ['报告', '日报', '周报', '月报'], tools: ['generate_report'], agents: ['全部智能体'], priority: 5 },
-  { name: 'AI安全审计', category: 'security', triggers: ['安全', '审计', '漏洞'], tools: ['search_regulation'], agents: ['全部智能体'], priority: 9 },
-];
+// ─── 图标映射 ───
+const iconMap: Record<string, React.ReactNode> = {
+  GlobalOutlined: <GlobalOutlined />,
+  ScanOutlined: <ScanOutlined />,
+  HeatMapOutlined: <HeatMapOutlined />,
+  CheckCircleOutlined: <CheckCircleOutlined />,
+  FileTextOutlined: <FileTextOutlined />,
+  EyeOutlined: <EyeOutlined />,
+  BarChartOutlined: <BarChartOutlined />,
+  NodeIndexOutlined: <NodeIndexOutlined />,
+}
 
-const DEPT_SKILLS = [
-  { dept: '生态环境执法局', agent: '执法办案智能体', skills: ['执法辅助决策', '环境监测技能', '报告自动生成'] },
-  { dept: '生态环境监测处', agent: '监测分析智能体', skills: ['环境监测技能', '报告自动生成', 'AI安全审计'] },
-  { dept: '环评与排放管理处', agent: '环评审批智能体', skills: ['审批流程辅助', 'AI安全审计'] },
-  { dept: '大气与气候变化处', agent: '大气治理智能体', skills: ['碳排放管理', '环境监测技能', '报告自动生成'] },
-  { dept: '水生态环境处', agent: '水环境治理智能体', skills: ['环境监测技能', '报告自动生成'] },
-  { dept: '法规与标准处', agent: '法规标准智能体', skills: ['执法辅助决策', '审批流程辅助', 'AI安全审计'] },
-];
+const categoryIcon: Record<string, React.ReactNode> = {
+  analysis: <BarChartOutlined />,
+  visualization: <HeatMapOutlined />,
+  compliance: <CheckCircleOutlined />,
+  generation: <FileTextOutlined />,
+  recognition: <EyeOutlined />,
+}
 
-const CAT_ICONS: Record<string, React.ReactNode> = {
-  environment: <ExperimentOutlined />,
-  carbon: <BarChartOutlined />,
-  enforcement: <ThunderboltOutlined />,
-  approval: <AuditOutlined />,
-  report: <FileTextOutlined />,
-  security: <SafetyCertificateOutlined />,
-};
+const CATEGORIES = [
+  { key: 'all', label: '全部', color: '#6B7280' },
+  { key: 'analysis', label: '分析', color: '#722ed1' },
+  { key: 'visualization', label: '可视化', color: '#1890ff' },
+  { key: 'compliance', label: '合规', color: '#f5222d' },
+  { key: 'generation', label: '生成', color: '#52c41a' },
+  { key: 'recognition', label: '识别', color: '#fa8c16' },
+]
 
-const Skills: React.FC = () => {
+interface SkillItem {
+  id: string
+  name: string
+  description: string
+  category: string
+  author: string
+  downloads: number
+  rating: number
+  version: string
+  expert_ids: string[]
+  tags: string[]
+  safety_level: string
+  handler?: string
+  installed_agents?: string[]
+}
+
+const SkillsPage: React.FC = () => {
+  const navigate = useNavigate()
+  const { experts } = useExpertStore()
+  const { createSession } = useChatStore()
+
+  const [allSkills, setAllSkills] = useState<SkillItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchText, setSearchText] = useState('')
+  const [activeTab, setActiveTab] = useState('all')
+  const [marketCategory, setMarketCategory] = useState('all')
+  const [installing, setInstalling] = useState<string | null>(null)
+  const [selectedAgent, setSelectedAgent] = useState<string>('')
+
+  // 安装状态 { skillId: [agentId, ...] }
+  const [skillAgents, setSkillAgents] = useState<Record<string, string[]>>({})
+
+  // ─── 加载技能列表 ───
+  const fetchSkills = useCallback(async () => {
+    setLoading(true)
+    try {
+      const [listRes, myRes] = await Promise.all([
+        fetch('/api/skills/list').then(r => r.json()),
+        fetch('/api/skills/my').then(r => r.json()),
+      ])
+
+      const skills: SkillItem[] = (listRes.skills || []).map((s: any) => ({
+        ...s,
+        expert_ids: s.expert_ids || [],
+      }))
+      setAllSkills(skills)
+
+      // 构建安装状态
+      const agents: Record<string, string[]> = {}
+      if (myRes.skills) {
+        for (const s of myRes.skills) {
+          agents[s.id] = s.agent_ids || []
+        }
+      }
+      setSkillAgents(agents)
+    } catch (e) {
+      console.warn('Failed to load skills', e)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { fetchSkills() }, [fetchSkills])
+
+  // ─── 过滤 ───
+  const filteredSkills = useMemo(() => {
+    let list = allSkills
+
+    // Tab: installed / market / all
+    if (activeTab === 'installed') {
+      list = list.filter(s => (skillAgents[s.id]?.length || 0) > 0)
+    } else if (activeTab === 'market') {
+      list = list.filter(s => !skillAgents[s.id] || skillAgents[s.id].length === 0)
+    }
+
+    // Agent filter
+    if (selectedAgent) {
+      list = list.filter(s => s.expert_ids?.includes(selectedAgent))
+    }
+
+    // Category
+    if (marketCategory !== 'all') {
+      list = list.filter(s => s.category === marketCategory)
+    }
+
+    // Search
+    if (searchText.trim()) {
+      const kw = searchText.trim().toLowerCase()
+      list = list.filter(s =>
+        s.name.toLowerCase().includes(kw) ||
+        s.description.toLowerCase().includes(kw) ||
+        s.tags?.some((t: string) => t.toLowerCase().includes(kw))
+      )
+    }
+
+    // Sort: installed first, then by downloads
+    list.sort((a, b) => {
+      const aInst = skillAgents[a.id]?.length || 0
+      const bInst = skillAgents[b.id]?.length || 0
+      if (aInst !== bInst) return bInst - aInst
+      return (b.downloads || 0) - (a.downloads || 0)
+    })
+
+    return list
+  }, [allSkills, activeTab, marketCategory, searchText, selectedAgent, skillAgents])
+
+  const installedCount = Object.values(skillAgents).filter(a => a.length > 0).length
+  const marketCount = allSkills.length - installedCount
+
+  // ─── 操作 ───
+  const handleInstall = async (skill: SkillItem, agentId = '') => {
+    setInstalling(skill.id)
+    try {
+      const body: any = { skill_id: skill.id }
+      if (agentId) body.agent_id = agentId
+
+      const r = await fetch('/api/skills/install', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const data = await r.json()
+      if (r.ok) {
+        const newAgents = data.installed_to || []
+        setSkillAgents(prev => ({
+          ...prev,
+          [skill.id]: [...new Set([...(prev[skill.id] || []), ...newAgents])],
+        }))
+        message.success(data.message || `「${skill.name}」安装成功`)
+      } else {
+        message.error(data.detail || '安装失败')
+      }
+    } catch {
+      message.error('安装失败，请稍后重试')
+    } finally {
+      setInstalling(null)
+    }
+  }
+
+  const handleUninstall = async (skill: SkillItem, agentId = '') => {
+    try {
+      const params = agentId ? `?agent_id=${agentId}` : ''
+      const r = await fetch(`/api/skills/uninstall?skill_id=${skill.id}${params}`, { method: 'POST' })
+      const data = await r.json()
+      if (r.ok) {
+        setSkillAgents(prev => {
+          if (agentId) {
+            return { ...prev, [skill.id]: (prev[skill.id] || []).filter(a => a !== agentId) }
+          }
+          const copy = { ...prev }
+          delete copy[skill.id]
+          return copy
+        })
+        message.success(`「${skill.name}」已卸载`)
+      } else {
+        message.error(data.detail || '卸载失败')
+      }
+    } catch {
+      message.error('卸载失败')
+    }
+  }
+
+  const handleUseSkill = (skillId: string, skillName: string) => {
+    const sessionId = createSession({ title: `使用技能：${skillName}`, expertId: 'ecomind' })
+    navigate(`/chat/${sessionId}`)
+  }
+
+  // ─── 渲染卡片 ───
+  const renderCard = (skill: SkillItem) => {
+    const isInstalled = (skillAgents[skill.id]?.length || 0) > 0
+    const boundAgents = (skillAgents[skill.id] || [])
+    const agentObjects = experts.filter((e: any) => skill.expert_ids?.includes(e.id))
+    const boundAgentObjects = experts.filter((e: any) => boundAgents.includes(e.id))
+
+    return (
+      <Col xs={24} sm={12} lg={8} xl={6} key={skill.id}>
+        <Card hoverable className="h-full transition-all duration-200 hover:shadow-md"
+          bodyStyle={{ padding: 16 }}>
+          {/* Header */}
+          <div className="flex items-start gap-3 mb-2">
+            <div className="flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center text-xl"
+              style={{
+                backgroundColor: isInstalled ? '#52c41a20' : '#722ed120',
+                color: isInstalled ? '#52c41a' : '#722ed1',
+              }}>
+              {categoryIcon[skill.category] ?? <ExperimentOutlined />}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold text-base flex items-center gap-2">
+                {skill.name}
+                {skill.rating >= 4.8 && <StarOutlined className="text-xs" style={{ color: '#faad14' }} />}
+              </div>
+              <Text type="secondary" className="text-xs line-clamp-2">{skill.description}</Text>
+            </div>
+          </div>
+
+          {/* Tags */}
+          <div className="flex flex-wrap gap-1 mb-2">
+            {skill.tags?.slice(0, 3).map((tag: string) => (
+              <Tag key={tag} className="text-xs" style={{ margin: 0 }}>{tag}</Tag>
+            ))}
+            <Tag color={isInstalled ? 'green' : 'default'} className="text-xs ml-auto" style={{ margin: 0 }}>
+              {isInstalled ? `已安装(${boundAgents.length}智能体)` : '未安装'}
+            </Tag>
+          </div>
+
+          {/* Compatible agents */}
+          {agentObjects.length > 0 && (
+            <div className="mb-2">
+              <Text type="secondary" className="text-xs">兼容: </Text>
+              {agentObjects.slice(0, 3).map((e: any) => (
+                <Tag key={e.id} color={boundAgents.includes(e.id) ? 'green' : 'default'}
+                  style={{ margin: '0 2px', fontSize: 11 }}>
+                  {e.displayName || e.id}
+                </Tag>
+              ))}
+              {agentObjects.length > 3 && <Tag style={{ margin: '0 2px', fontSize: 11 }}>+{agentObjects.length - 3}</Tag>}
+            </div>
+          )}
+
+          {/* Metadata */}
+          <div className="flex items-center gap-3 mb-3 text-xs text-gray-500">
+            <span><CloudDownloadOutlined /> {(skill.downloads || 0).toLocaleString()}</span>
+            <span><StarOutlined style={{ color: '#faad14' }} /> {skill.rating}</span>
+            <Tooltip title={skill.author}>
+              <span className="ml-auto truncate max-w-[100px]">{skill.version}</span>
+            </Tooltip>
+          </div>
+
+          {/* Actions */}
+          <Space direction="vertical" className="w-full" size={4}>
+            {!isInstalled ? (
+              <Button type="default" block icon={<DownloadOutlined />}
+                loading={installing === skill.id}
+                onClick={() => handleInstall(skill)}
+                style={{ borderColor: '#722ed1', color: '#722ed1' }}>
+                安装到全部兼容智能体
+              </Button>
+            ) : (
+              <>
+                <Button type="primary" block icon={<ThunderboltOutlined />}
+                  onClick={() => handleUseSkill(skill.id, skill.name)}
+                  style={{ backgroundColor: '#fa8c16', borderColor: '#fa8c16' }}>
+                  使用技能
+                </Button>
+                <Space className="w-full" size={4}>
+                  <Select size="small" className="flex-1" placeholder="安装到指定智能体"
+                    options={agentObjects.filter((e: any) => !boundAgents.includes(e.id)).map((e: any) => ({
+                      value: e.id, label: e.displayName || e.id,
+                    }))}
+                    disabled={agentObjects.filter((e: any) => !boundAgents.includes(e.id)).length === 0}
+                    onChange={(val) => handleInstall(skill, val)}
+                  />
+                  <Tooltip title="从全部智能体卸载">
+                    <Button size="small" danger icon={<DeleteOutlined />}
+                      onClick={() => handleUninstall(skill)} />
+                  </Tooltip>
+                </Space>
+              </>
+            )}
+          </Space>
+        </Card>
+      </Col>
+    )
+  }
+
+  // ─── 主渲染 ───
+  if (loading) {
+    return <div className="flex items-center justify-center h-64"><Spin size="large" /></div>
+  }
+
   return (
-    <div>
-      <PageHeader
-        title="技能配置"
-        icon={<ThunderboltOutlined style={{ color: '#8B5CF6' }} />}
-        breadcrumbs={[{ title: '智能体管理', path: '/' }, { title: '技能配置' }]}
-        extra={<Button type="primary">+ 创建自定义技能</Button>}
+    <div className="p-6 max-w-[1400px] mx-auto">
+      {/* Title */}
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <Title level={4} className="mb-1">技能模块</Title>
+          <Text type="secondary">
+            共 {allSkills.length} 个技能 · 已安装 {installedCount} 个 · 可安装 {marketCount} 个
+          </Text>
+        </div>
+        <Button icon={<ApiOutlined />} onClick={fetchSkills}>刷新</Button>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-3 mb-4">
+        <Input prefix={<SearchOutlined />} placeholder="搜索技能名称/描述/标签..."
+          className="w-64" allowClear
+          value={searchText} onChange={e => setSearchText(e.target.value)} />
+
+        <Select placeholder="按智能体筛选" allowClear className="w-40"
+          value={selectedAgent || undefined}
+          onChange={(v) => setSelectedAgent(v || '')}
+          options={experts.map((e: any) => ({ value: e.id, label: e.displayName || e.id }))} />
+
+        <div className="flex gap-1 flex-wrap">
+          {CATEGORIES.map(c => (
+            <Tag key={c.key} color={marketCategory === c.key ? c.color : undefined}
+              className="cursor-pointer"
+              onClick={() => setMarketCategory(c.key)}>
+              {c.label}
+            </Tag>
+          ))}
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <Tabs activeKey={activeTab} onChange={setActiveTab}
+        items={[
+          { key: 'all', label: <Badge count={allSkills.length} overflowCount={99}>全部技能</Badge> },
+          { key: 'installed', label: <Badge count={installedCount} overflowCount={99}>已安装</Badge> },
+          { key: 'market', label: <Badge count={marketCount} overflowCount={99}>可安装</Badge> },
+        ]}
+        className="mb-4"
       />
 
-      <Row gutter={[16, 16]}>
-        <Col xs={24} lg={16}>
-          <Card size="small" title="📦 技能库 (ECC格式)" bodyStyle={{ padding: 0 }}>
-            <Table
-              dataSource={SKILLS_DATA}
-              rowKey="name"
-              size="small"
-              pagination={false}
-              columns={[
-                { title: '技能名称', dataIndex: 'name', width: 160, render: (v: string, r: typeof SKILLS_DATA[0]) => <Space>{CAT_ICONS[r.category]}<Text strong>{v}</Text></Space> },
-                { title: '触发词', dataIndex: 'triggers', width: 220, render: (v: string[]) => v.map(t => <Tag key={t} size="small">{t}</Tag>) },
-                { title: '绑定工具', dataIndex: 'tools', width: 200, render: (v: string[]) => v.map(t => <Tag key={t} color="blue" size="small">{t}</Tag>) },
-                { title: '绑定智能体', dataIndex: 'agents', width: 200, render: (v: string[]) => v.map(a => <Tag key={a} color="purple" size="small">{a}</Tag>) },
-                { title: '优先级', dataIndex: 'priority', width: 70 },
-              ]}
-            />
-          </Card>
-        </Col>
-
-        <Col xs={24} lg={8}>
-          <Card size="small" title="🔗 部门-智能体-技能绑定" bodyStyle={{ padding: '8px 0', maxHeight: 400, overflow: 'auto' }}>
-            {DEPT_SKILLS.map((item, i) => (
-              <div key={i} style={{ padding: '8px 12px', borderBottom: '1px solid #f0f0f0' }}>
-                <Text strong style={{ fontSize: 13 }}>{item.dept}</Text>
-                <br />
-                <Tag color="purple" size="small">{item.agent}</Tag>
-                <div style={{ marginTop: 4 }}>
-                  {item.skills.map(s => <Tag key={s} size="small" color="green">{s}</Tag>)}
-                </div>
-              </div>
-            ))}
-          </Card>
-          <Card size="small" title="🧠 Instincts 全局规则" style={{ marginTop: 16 }}>
-            <List size="small" dataSource={[
-              '绝不编造环境监测数据',
-              '数值引用必须有来源',
-              '不确定信息标注"待核实"',
-              '执法建议标注"AI辅助生成"',
-              '不得建议违法或规避监管的行为',
-            ]} renderItem={(item) => <List.Item style={{ padding: '4px 0' }}><Text style={{ fontSize: 12 }}>🔴 {item}</Text></List.Item>} />
-          </Card>
-        </Col>
-      </Row>
+      {/* Grid */}
+      {filteredSkills.length === 0 ? (
+        <Empty description="没有匹配的技能" />
+      ) : (
+        <Row gutter={[16, 16]}>
+          {filteredSkills.map(renderCard)}
+        </Row>
+      )}
     </div>
-  );
-};
+  )
+}
 
-export default Skills;
+export default SkillsPage
