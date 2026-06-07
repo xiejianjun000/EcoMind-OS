@@ -201,6 +201,18 @@ Apache License 2.0 — 详见 [LICENSE](./LICENSE)。
 
 ---
 
+## ⭐ Star History
+
+<a href="https://star-history.com/#xiejianjun000/EcoMind-OS&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=xiejianjun000/EcoMind-OS&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=xiejianjun000/EcoMind-OS&type=Date&theme=light" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=xiejianjun000/EcoMind-OS&type=Date" width="100%" />
+ </picture>
+</a>
+
+---
+
 ## 🙏 致谢
 
 EcoMind OS 自建架构受以下开源项目理念启发：ECC (Skills + Memory + Security pattern)、Claude-Mem (持久化压缩上下文)、Understand-Anything (交互式知识图谱)、Anthropic-Cybersecurity-Skills (结构化安全规则)。
