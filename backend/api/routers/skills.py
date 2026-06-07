@@ -260,6 +260,15 @@ MARKETPLACE_SKILLS: list[dict[str, Any]] = [
     },
 ]
 
+# 自动安装所有市场技能到注册表
+for _ms in MARKETPLACE_SKILLS:
+    if not any(r["id"] == _ms["id"] for r in SKILL_REGISTRY):
+        _ms["safety_level"] = "L2"
+        _ms["handler"] = f"skills.{_ms['id'].replace('-', '_')}.run"
+        if "input_schema" not in _ms:
+            _ms["input_schema"] = {}
+        SKILL_REGISTRY.append(_ms)
+
 
 # ─── API 端点 ──────────────────────────────────────────────────
 
@@ -275,7 +284,12 @@ async def list_skills(
     sort_by: str = Query(default="downloads"),
 ):
     """技能市场列表 — 支持搜索/分类/排序（含自动生成技能）"""
-    all_skills = SKILL_REGISTRY + MARKETPLACE_SKILLS
+    seen_ids = set()
+    all_skills = []
+    for s in SKILL_REGISTRY + MARKETPLACE_SKILLS:
+        if s["id"] not in seen_ids:
+            seen_ids.add(s["id"])
+            all_skills.append(s)
 
     # 注入自动生成的技能
     try:
