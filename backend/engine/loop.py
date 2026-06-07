@@ -324,8 +324,9 @@ class EcoAgentEngine:
                         is_truncated = data.get("truncated", False)
                         content = data.get("content", "")
 
-                        # 🔒 反绕过：首次回复如果是纯文本（无工具调用），强制重试
-                        if iteration == 1 and len(tools_used) == 0 and len(content) > 30:
+                        # 🔒 反绕过：首次回复纯文本且未用工具 — 仅对长篇（>200字）强制拦截
+                        # 简短问候（你好/介绍一下你自己）不需要工具
+                        if iteration == 1 and len(tools_used) == 0 and len(content) > 200:
                             logger.warning(f"🚫 首次回复纯文本({len(content)}字)，注入工具强制指令")
                             messages.append({
                                 "role": "system",
