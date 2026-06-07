@@ -60,7 +60,7 @@ class AgentConfig:
     soul: str = ""                        # Agent 角色/灵魂定义
     temperature: float = 0.7
     max_tokens: int = 4096
-    max_iterations: int = 10              # 最多循环轮数
+    max_iterations: int = 20              # 最多循环轮数（含思考+纠错）
     stream: bool = True                   # 是否流式输出
     tools: list[str] = field(default_factory=list)  # 启用的工具名列表
     tier: AgentTier = AgentTier.SONNET    # 模型层级
@@ -132,6 +132,11 @@ class EcoAgentEngine:
         self.api_key = api_key or self._get_api_key(config.provider)
         self.api_base = api_base or self._get_api_base(config.provider)
 
+        # 最后一次运行的最终状态（由 run_stream 设置）
+        self._last_status: Optional[AgentRunStatus] = None
+        self._last_iterations: int = 0
+        self._last_tools_used: list[str] = []
+
     # ─── 公开 API ─────────────────────────────────
 
     async def run(self, task: str, system_message: Optional[str] = None) -> AgentResult:
@@ -145,17 +150,22 @@ class EcoAgentEngine:
         Returns:
             AgentResult: 执行结果
         """
-        result = AgentResult(content="", status=AgentRunStatus.RUNNING)
-
         # 收集流式输出
         final_content = ""
         async for text_delta in self.run_stream(task, system_message):
             final_content += text_delta
 
-        result.content = final_content
-        result.status = AgentRunStatus.COMPLETED
-        result.finished_at = datetime.now()
-        return result
+        # 去尾重复 —— 引擎层统一后处理，所有调用路径都受益
+        final_content = self._dedup_tail(final_content)
+
+        # 从 run_stream 的最终状态获取结果
+        return AgentResult(
+            content=final_content,
+            status=self._last_status or AgentRunStatus.ERROR,
+            iterations=self._last_iterations or 0,
+            tools_used=getattr(self, "_last_tools_used", []),
+            finished_at=datetime.now(),
+        )
 
     async def run_stream(
         self, task: str, system_message: Optional[str] = None
@@ -203,44 +213,41 @@ class EcoAgentEngine:
                         if not tool_calls:
                             continue
 
-                        # 执行工具
-                        tool_results = []
-                        for tc in tool_calls:
+                        # 并行执行所有工具调用
+                        async def _exec_tool(tc):
                             tool_name = tc["name"]
-                            tool_args = json.loads(tc.get("arguments", "{}"))
-
+                            try:
+                                tool_args = json.loads(tc.get("arguments", "{}"))
+                            except (json.JSONDecodeError, TypeError) as e:
+                                return {
+                                    "tool_call_id": tc.get("id", str(uuid.uuid4())),
+                                    "name": tool_name,
+                                    "result": f"[参数解析失败] JSON格式错误: {e}. 原始参数: {tc.get('arguments', '')[:200]}",
+                                }
                             self._emit_progress("tool_call", {
-                                "name": tool_name,
-                                "arguments": tool_args,
-                                "iteration": iteration,
+                                "name": tool_name, "arguments": tool_args, "iteration": iteration,
                             })
-
                             try:
                                 tool_output = await self.tool_registry.execute(tool_name, **tool_args)
-                                tools_used.append(tool_name)
-                                tool_results.append({
-                                    "tool_call_id": tc.get("id", str(uuid.uuid4())),
-                                    "name": tool_name,
-                                    "result": str(tool_output),
-                                })
-
                                 self._emit_progress("tool_result", {
-                                    "name": tool_name,
-                                    "success": True,
-                                    "iteration": iteration,
+                                    "name": tool_name, "success": True, "iteration": iteration,
                                 })
+                                return {
+                                    "tool_call_id": tc.get("id", str(uuid.uuid4())),
+                                    "name": tool_name, "result": str(tool_output),
+                                }
                             except Exception as e:
-                                tool_results.append({
-                                    "tool_call_id": tc.get("id", str(uuid.uuid4())),
-                                    "name": tool_name,
-                                    "result": f"[工具执行失败] {e}",
-                                })
                                 self._emit_progress("tool_result", {
-                                    "name": tool_name,
-                                    "success": False,
-                                    "error": str(e),
-                                    "iteration": iteration,
+                                    "name": tool_name, "success": False, "iteration": iteration,
                                 })
+                                return {
+                                    "tool_call_id": tc.get("id", str(uuid.uuid4())),
+                                    "name": tool_name, "result": f"[工具执行失败] {e}",
+                                }
+
+                        tool_results = await asyncio.gather(*[_exec_tool(tc) for tc in tool_calls])
+                        for tr in tool_results:
+                            tools_used.append(tr["name"])
 
                         # 将工具结果追加到消息列表，继续循环
                         self._append_tool_results(messages, tool_calls, tool_results)
@@ -256,6 +263,9 @@ class EcoAgentEngine:
                         result.iterations = iteration
                         result.tools_used = tools_used
                         result.finished_at = datetime.now()
+                        self._last_status = AgentRunStatus.COMPLETED
+                        self._last_iterations = iteration
+                        self._last_tools_used = list(tools_used)
                         return
 
                     elif event_type == "error":
@@ -265,6 +275,9 @@ class EcoAgentEngine:
                         result.iterations = iteration
                         result.tools_used = tools_used
                         result.finished_at = datetime.now()
+                        self._last_status = AgentRunStatus.ERROR
+                        self._last_iterations = iteration
+                        self._last_tools_used = list(tools_used)
                         yield f"\n[错误] {data.get('error', '未知错误')}"
                         return
 
@@ -276,6 +289,9 @@ class EcoAgentEngine:
                 result.iterations = iteration
                 result.tools_used = tools_used
                 result.finished_at = datetime.now()
+                self._last_status = AgentRunStatus.ERROR
+                self._last_iterations = iteration
+                self._last_tools_used = list(tools_used)
                 yield f"\n[系统错误] {e}"
                 return
 
@@ -284,6 +300,9 @@ class EcoAgentEngine:
         result.iterations = iteration
         result.tools_used = tools_used
         result.finished_at = datetime.now()
+        self._last_status = AgentRunStatus.MAX_ITERATIONS
+        self._last_iterations = iteration
+        self._last_tools_used = list(tools_used)
         self._emit_progress("completed", {
             "status": "max_iterations",
             "iterations": iteration,
@@ -291,14 +310,82 @@ class EcoAgentEngine:
 
     # ─── 内部方法 ───────────────────────────────
 
+    @staticmethod
+    def _dedup_tail(text: str) -> str:
+        """去除 LLM 尾部重复——引擎层统一后处理。
+
+        三层检测：首尾相同 → 紧邻重复 → 句边界重复，迭代剥离直到干净。
+        """
+        if not text or len(text) < 6:
+            return text
+
+        for _ in range(5):  # 最多 5 轮迭代剥离
+            changed = False
+            n = len(text)
+
+            # 第一层：首尾相同
+            for k in range(n // 2, 3, -1):
+                if text[:k] == text[-k:]:
+                    text = text[:-k]
+                    changed = True
+                    break
+            if changed:
+                continue
+
+            # 第二层：尾部紧邻重复
+            for k in range(n // 2, 3, -1):
+                if text[-k:] == text[-(2 * k):-k]:
+                    text = text[:-k]
+                    changed = True
+                    break
+            if changed:
+                continue
+
+            # 第三层：句边界重复
+            import re
+            sentences = re.split(r'(?<=[。！？\n])\s*', text)
+            sentences = [s.rstrip() for s in sentences if s.strip()]
+            if len(sentences) >= 2:
+                last = sentences[-1]
+                prev = sentences[-2]
+                if last == prev:
+                    text = ''.join(sentences[:-1])
+                    changed = True
+                elif len(prev) > len(last) and prev.endswith(last):
+                    text = ''.join(sentences[:-1])
+                    changed = True
+                elif len(last) > len(prev) and last.startswith(prev):
+                    sentences[-1] = last[len(prev):].lstrip('，。！？')
+                    text = ''.join(s for s in sentences if s.strip())
+                    changed = True
+
+            if not changed:
+                break
+
+        return text
+
+    # ─── 全局输出约束（注入所有 Agent，不区分角色）─────
+    _GLOBAL_FORMAT_RULES = """
+## 输出格式（强制）
+- 用自然段落回答，禁止分节标题（###）、表格、bullet 列表、**加粗标题**分节
+- 回答长度与问题复杂度成正比：简单问候 2-3 句，复杂问题可展开但不啰嗦
+- 禁止在回复末尾重复最后一句话或短语——说完就停
+- 禁止对用户展示内部工具名、函数名或行内代码格式
+- 禁止自夸语气（"我具备强大的XX能力""作为XX我可以协调编排多个专家"），直接说能做什么
+- 当用户问"你能做什么"时，用 3-4 句自然口语回答，点名核心方向即可，不要展开成带标题的清单
+- 当用户问"你是谁"时，用 1-2 句自然介绍即可
+- 禁止使用 emoji 作为分节符号或排版元素，每段最多 1 个 emoji
+- 回复中不要使用 --- 分隔线"""
+
     def _build_messages(
         self, task: str, system_message: Optional[str] = None
     ) -> list[dict[str, Any]]:
         """构建消息列表"""
         messages: list[dict[str, Any]] = []
 
-        # System prompt
+        # System prompt — 始终追加全局格式约束
         soul = system_message or self.config.soul or self._default_soul()
+        soul = soul.rstrip() + "\n\n" + self._GLOBAL_FORMAT_RULES
         messages.append({"role": "system", "content": soul})
 
         # User message
@@ -307,20 +394,7 @@ class EcoAgentEngine:
         return messages
 
     def _default_soul(self) -> str:
-        """默认 Agent 角色"""
-        return """你是 EcoMind 生态环境智能助手。你的职责包括：
-
-1. **环境监测**：分析空气质量、水质、噪声等环境数据
-2. **碳排放管理**：核算碳排放量、管理碳配额、评估减排项目
-3. **法规合规**：解读环保法律法规、评估合规风险
-4. **报告生成**：生成监测日报、执法报告、环评文件
-
-回答原则：
-- 使用中文，专业但不晦涩
-- 涉及数据时注明来源和时间
-- 涉及法规时引用具体条款
-- 不确定的信息明确标注"待核实"
-- 有工具可用时优先调用工具获取实时数据"""
+        return "你是 EcoMind 助手。问候只回两字\"你好\"。禁止自我介绍和功能罗列。不回任何多余的话。"
 
     async def _call_llm_stream(
         self,
@@ -343,6 +417,8 @@ class EcoAgentEngine:
             "temperature": self.config.temperature,
             "max_tokens": self.config.max_tokens,
             "stream": True,
+            "frequency_penalty": 2.0,
+            "presence_penalty": 1.5,
         }
 
         if tools:
