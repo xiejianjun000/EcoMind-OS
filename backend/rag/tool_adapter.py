@@ -34,6 +34,20 @@ async def _regulatory_search_handler(params: dict) -> str:
     retriever = HybridRetriever.get_instance()
     results = await retriever.search(query, top_k=limit, filters=filters)
 
+    # Layer 2 知识图谱: 记录会话→法规引用
+    try:
+        session_id = params.get("_session_id", "")
+        user_id = params.get("_user_id", "")
+        expert_id = params.get("_expert_id", "")
+        if session_id and results:
+            from graph.engine import get_graph_engine
+            get_graph_engine().build_layer2_from_tool_call(
+                session_id, user_id, expert_id, query,
+                [r.get("metadata", {}) for r in results],
+            )
+    except Exception:
+        pass
+
     if not results:
         return json.dumps({"hits": 0, "message": "未找到相关法规"}, ensure_ascii=False)
 

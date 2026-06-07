@@ -340,6 +340,13 @@ def create_app() -> FastAPI:
     except ImportError as e:
         logger.warning("RAG 引擎未加载: %s", e)
 
+    # ─── 知识图谱 (三层实体关系网络) ───
+    try:
+        from graph.api import router as graph_router
+        application.include_router(graph_router)
+    except ImportError as e:
+        logger.warning("知识图谱未加载: %s", e)
+
     # ─── Skill Marketplace (对标 Trae Solo 50技能生态) ───
     try:
         from marketplace.api import router as marketplace_router

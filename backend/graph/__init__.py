@@ -1,9 +1,8 @@
-"""EcoMind Knowledge Graph — 基于 Understand-Anything (33K ⭐) 理念"""
-from .understand_adapter import (
-    KnowledgeGraph,
-    GraphNode,
-    GraphEdge,
-    get_knowledge_graph,
-)
+"""
+EcoMind 知识图谱 — 三层实体关系网络
 
-__all__ = ["KnowledgeGraph", "GraphNode", "GraphEdge", "get_knowledge_graph"]
+Layer 1: 法规网络 (全局, RAG 注入时自动构建)
+Layer 2: 会话网络 (每会话, 工具调用时实时追加)
+Layer 3: 进化网络 (跨会话, 夜间反思时聚合)
+"""
+from graph.engine import KnowledgeGraphEngine, GraphNode, GraphEdge, get_graph_engine

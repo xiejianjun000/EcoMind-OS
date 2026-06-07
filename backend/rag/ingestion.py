@@ -113,6 +113,12 @@ async def ingest_hunan_policies(
                         embeddings = embedder.embed(batch_texts)
                         store.add_chunks(batch_chunks, embeddings)
                         total_embedded += len(batch_chunks)
+                        # Layer 1 知识图谱: 法规引用链
+                        try:
+                            from graph.engine import get_graph_engine
+                            get_graph_engine().build_layer1_bulk(batch_chunks)
+                        except Exception:
+                            pass
                     except Exception as e:
                         errors.append(f"embed batch error: {e}")
                     batch_texts = []
@@ -127,6 +133,11 @@ async def ingest_hunan_policies(
             embeddings = embedder.embed(batch_texts)
             store.add_chunks(batch_chunks, embeddings)
             total_embedded += len(batch_chunks)
+            try:
+                from graph.engine import get_graph_engine
+                get_graph_engine().build_layer1_bulk(batch_chunks)
+            except Exception:
+                pass
         except Exception as e:
             errors.append(f"final batch error: {e}")
 

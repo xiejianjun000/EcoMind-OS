@@ -301,43 +301,51 @@ function TerminalView({ output }: { output?: string }) {
 
 // ─── Knowledge Graph — 对标 Trae solo_deepwiki ─────────
 
-function KnowledgeView({ data }: { data?: { nodes: Array<{ id: string; label: string }>; edges: Array<{ source: string; target: string }> } }) {
-  if (!data) return <EmptyHint icon={<Network />} text="知识图谱将在对话中自动构建" sub="法规-案例-处罚三者关联网络" />
+function KnowledgeView({ data }: { data?: { nodes: Array<{ id: string; label: string; type?: string; layer?: number }>; edges: Array<{ source: string; target: string; relation: string; layer?: number; weight?: number }> } }) {
+  const [liveData, setLiveData] = useState<any>(null)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => { setLoading(true); fetch("/api/graph/subgraph").then(r => r.json()).then(d => { if (d.nodes?.length > 0) setLiveData(d); setLoading(false) }).catch(() => setLoading(false)) }, [])
+
+  const displayData = data || liveData
+  const layerColors: Record<number, string> = { 1: "border-blue-300", 2: "border-green-300", 3: "border-purple-300" }
+  const relationLabels: Record<string, string> = { cites: "引用", session_references: "搜索引用", user_corrects: "⚠纠正", co_occurred: "共现", frequently_cited: "高频引用", knowledge_gap: "知识缺口" }
+
+  if (loading && !displayData) return <div className="flex-1 flex items-center justify-center"><p className="text-xs text-muted-foreground">加载中...</p></div>
+  if (!displayData || displayData.nodes?.length === 0) return <EmptyHint icon={<Network />} text="知识图谱将在对话中自动构建" sub="RAG注入→Layer1 / 搜索→Layer2 / 反思→Layer3" />
+
+  const nodes = displayData.nodes || []; const edges = displayData.edges || []
 
   return (
     <div className="flex flex-col flex-1">
       <div className="flex items-center gap-2 px-3 py-2 border-b bg-background/50">
         <Network className="h-3.5 w-3.5 text-primary" />
         <span className="text-xs font-medium">知识图谱</span>
-        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">{data.nodes.length} 节点</Badge>
-        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">{data.edges.length} 边</Badge>
+        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">{nodes.length} 节点</Badge>
+        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">{edges.length} 边</Badge>
       </div>
       <ScrollArea className="flex-1 p-3">
         <div className="space-y-3">
-          {/* Nodes */}
+          <div className="flex gap-1.5">{[1,2,3].map(layer => { const cnt = nodes.filter((n:any) => (n.layer||1)===layer).length; if(!cnt) return null; return <Badge key={layer} variant="outline" className={cn("text-[10px] px-1.5 py-0 h-4 border", layerColors[layer]||"")}>{layer===1?"法规层":layer===2?"会话层":"进化层"} {cnt}</Badge>})}</div>
+          <Separator />
           <div>
             <p className="text-[10px] font-semibold text-muted-foreground uppercase mb-1.5">实体节点</p>
-            <div className="flex flex-wrap gap-1.5">
-              {data.nodes.map(n => (
-                <Badge key={n.id} variant="secondary" className="text-[10px]">{n.label}</Badge>
-              ))}
+            <div className="flex flex-wrap gap-1">
+              {nodes.map((n: any) => <Badge key={n.id} variant="secondary" className={cn("text-[10px] border", layerColors[n.layer||1]||layerColors[1])} title={n.id}>{(n.type==="regulation"?"📜 ":n.type==="session"?"💬 ":n.type==="user"?"👤 ":"")}{n.label.length>18?n.label.slice(0,16)+"…":n.label}</Badge>)}
             </div>
           </div>
           <Separator />
-          {/* Edges */}
           <div>
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase mb-1.5">关联关系</p>
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase mb-1.5">关联关系（带权重）</p>
             <div className="space-y-1">
-              {data.edges.map((e, i) => {
-                const srcN = data.nodes.find(n => n.id === e.source)
-                const tgtN = data.nodes.find(n => n.id === e.target)
-                return (
-                  <div key={i} className="flex items-center gap-1.5 text-[10px]">
-                    <span className="text-primary font-medium">{srcN?.label || e.source}</span>
-                    <span className="text-muted-foreground">→</span>
-                    <span className="font-medium">{tgtN?.label || e.target}</span>
-                  </div>
-                )
+              {edges.slice(0,30).map((e: any, i: number) => {
+                const srcN = nodes.find((n:any) => n.id === e.source); const tgtN = nodes.find((n:any) => n.id === e.target)
+                return (<div key={i} className={cn("flex items-center gap-1 text-[10px] p-1 rounded border", layerColors[e.layer||1]||layerColors[1])}>
+                  <span className="font-medium flex-1 truncate">{srcN?.label || e.source.slice(0,12)}</span>
+                  <span className="text-primary font-medium px-1 rounded bg-primary/5 text-[9px]">{relationLabels[e.relation]||e.relation}</span>
+                  <span className="font-medium flex-1 truncate text-right">{tgtN?.label || e.target.slice(0,12)}</span>
+                  {e.weight && e.weight !== 1 && <span className="text-[8px] text-muted-foreground">{e.relation==="user_corrects"?"⚠":`×${e.weight.toFixed(1)}`}</span>}
+                </div>)
               })}
             </div>
           </div>

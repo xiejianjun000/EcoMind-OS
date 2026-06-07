@@ -344,6 +344,14 @@ class LearningLoop:
             evo_report = self._evo.nightly_reflection(list(sessions))
             report["memory_evolution"] = evo_report
 
+            # Layer 3 知识图谱: 交叉会话聚合
+            try:
+                from graph.engine import get_graph_engine
+                graph_stats = get_graph_engine().build_layer3_from_sessions(list(sessions))
+                report["knowledge_graph_layer3"] = graph_stats
+            except Exception as e:
+                logger.warning("Layer 3 构建失败: %s", e)
+
         finally:
             conn.close()
 

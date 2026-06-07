@@ -93,7 +93,7 @@ class TestServiceResilience:
     @pytest.mark.asyncio
     async def test_knowledge_graph_empty_search(self):
         """空搜索关键词"""
-        from graph.understand_adapter import get_knowledge_graph
+        from graph.engine import get_graph_engine
         kg = get_knowledge_graph()
         nodes = list(kg._nodes.values())
         assert len(nodes) > 0  # 图谱应有节点

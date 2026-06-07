@@ -82,6 +82,6 @@ class TestSafetyChainAgentIntegration:
         """SafetyChain 和 KnowledgeGraph 独立运行"""
         from api.routers.safety_chain import SAFETY_RULES
         from graph.understand_adapter import get_knowledge_graph
-        kg = get_knowledge_graph()
+        kg = get_graph_engine(); get_graph_engine().build_layer1_from_regulation("测试法","第一条","t1","测试内容")
         assert len(SAFETY_RULES) > 0
-        assert len(list(kg._nodes.values())) > 0
+        assert len(list(kg.get_nodes_by_type("regulation").values())) > 0
