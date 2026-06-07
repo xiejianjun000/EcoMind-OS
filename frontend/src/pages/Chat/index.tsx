@@ -287,6 +287,12 @@ export default function ChatPage() {
     setMessages((prev) => [...prev, userMsg, assistantMsg])
     setInputValue("")
     setIsLoading(true)
+    // 安全兜底：5 分钟后强制清除 loading 状态，防止"思考中"卡死
+    const safetyTimer = setTimeout(() => {
+      console.warn('[Chat] 安全兜底：5分钟未收到 onDone/onError，强制清除 loading')
+      setIsLoading(false)
+      setLastError('响应超时，请重试')
+    }, 300_000)
     if (attachedFiles.length > 0) {
       setAttachedFiles([])
     }
@@ -551,6 +557,7 @@ export default function ChatPage() {
         }
       },
       onDone: (fullContent) => {
+        clearTimeout(safetyTimer)
         // 清理所有运行中的工具调用状态
         setToolCalls(prev => prev.map(tc =>
           tc.status === 'running' ? { ...tc, status: 'success' as const } : tc
@@ -575,6 +582,7 @@ export default function ChatPage() {
         addNotification({ type: 'system', severity: 'success', title: `${EXPERT_MAP[selectedExpert]?.name || 'EcoMind'} 回复完成`, message: fullContent?.slice(0, 80) || '已生成回复' })
       },
       onError: (err) => {
+        clearTimeout(safetyTimer)
         console.error("[DeepSeek]", err.message)
         const isNetworkError = err.message.includes('Failed to fetch') || !navigator.onLine
         const errMsg = isNetworkError
