@@ -340,6 +340,34 @@ def create_app() -> FastAPI:
     except ImportError as e:
         logger.warning("RAG 引擎未加载: %s", e)
 
+    # ─── Skill Marketplace (对标 Trae Solo 50技能生态) ───
+    try:
+        from marketplace.api import router as marketplace_router
+        application.include_router(marketplace_router)
+    except ImportError as e:
+        logger.warning("市场未加载: %s", e)
+
+    # ─── 代码执行沙箱 (对标 Trae Solo shell-exec) ───
+    try:
+        from sandbox.api import router as sandbox_router
+        application.include_router(sandbox_router)
+    except ImportError as e:
+        logger.warning("沙箱未加载: %s", e)
+
+    # ─── 浏览器自动化 (对标 Trae Solo agent-browser) ───
+    try:
+        from browser.api import router as browser_router
+        application.include_router(browser_router)
+    except ImportError as e:
+        logger.warning("浏览器未加载: %s", e)
+
+    # ─── 多格式文书生成 (对标 Trae Solo report-generator) ───
+    try:
+        from docgen.api import router as docgen_router
+        application.include_router(docgen_router)
+    except ImportError as e:
+        logger.warning("文书生成未加载: %s", e)
+
     # 注册 WebSocket 端点
     from api.websocket.manager import websocket_endpoint
     application.websocket_route("/ws")(websocket_endpoint)
