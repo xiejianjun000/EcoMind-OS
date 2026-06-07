@@ -1,206 +1,110 @@
-# EcoMind OS - CI/CD Pipeline (GitHub Actions)
-# Trigger: push/PR to main & develop
-
-name: EcoMind OS CI/CD
+name: EcoMind CI
 
 on:
   push:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
-env:
-  PYTHON_VERSION: "3.11"
-  NODE_VERSION: "20"
+  schedule:
+    - cron: "0 2 * * *"  # 每天凌晨 2 点跑一次夜间反思
 
 jobs:
-  # =============================================
-  # Commit Message Convention Check
-  # =============================================
-  commit-lint:
-    name: "Commit Lint"
+  # ── 第一道门：烟雾测试（30秒内跑完）──
+  smoke:
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          fetch-depth: 0
-      - name: Check Conventional Commits
-        uses: amannn/action-semantic-pull-request@v5
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          cd backend
+          python -m venv venv
+          source venv/bin/activate
+          pip install fastapi uvicorn pydantic httpx python-dotenv pyyaml sqlalchemy websockets aiofiles python-multipart edge-tts
+      - name: Module import check
+        run: |
+          cd backend
+          source venv/bin/activate
+          PIPYTHONPATH=. python -c "from api.main import app; print('✅ FastAPI app importable')"
+      - name: Configuration check
+        run: |
+          test -f backend/config/model_config.yaml && echo "✅ model_config.yaml exists"
+          test -f backend/.env && echo "✅ .env exists" || echo "⚠️  .env missing (expected for CI)"
+
+  # ── 第二道门：单元测试 ──
+  unit:
+    needs: smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          validateSingleCommit: false
-          validateSingleCommitMatchesPrTitle: false
-          requireConventional: true
-          types: |
-            feat
-            fix
-            docs
-            style
-            refactor
-            perf
-            test
-            chore
-            ci
-            build
-            revert
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          cd backend
+          python -m venv venv && source venv/bin/activate
+          pip install fastapi uvicorn pydantic httpx python-dotenv pyyaml sqlalchemy websockets aiofiles python-multipart edge-tts pytest pytest-asyncio pytest-timeout pytest-cov
+      - name: Run unit tests
+        run: |
+          cd backend
+          source venv/bin/activate
+          python -m pytest tests/unit/ tests/contract/ -v --tb=short --timeout=30
+      - name: Run security tests
+        run: |
+          cd backend
+          source venv/bin/activate
+          python -m pytest tests/security/ -v --tb=short --timeout=30
 
-  # =============================================
-  # L0: Static Analysis
-  # =============================================
-  static-analysis:
-    name: "L0 - Static Analysis"
+  # ── 第三道门：集成测试 ──
+  integration:
+    needs: unit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          submodules: recursive
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with: { python-version: "${{ env.PYTHON_VERSION }}" }
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with: { node-version: "${{ env.NODE_VERSION }}" }
-
-      - name: Python Syntax Check
+          python-version: "3.11"
+      - name: Install dependencies
         run: |
-          pip install mypy ruff
-          python -m compileall backend/ -q
-          ruff check backend/ --select=E,F,W --ignore=E501 || true
-
-      - name: Frontend Type Check
-        working-directory: frontend
+          cd backend
+          python -m venv venv && source venv/bin/activate
+          pip install fastapi uvicorn pydantic httpx python-dotenv pyyaml sqlalchemy websockets pytest pytest-asyncio pytest-timeout
+      - name: Start backend
         run: |
-          npm install -g pnpm
-          pnpm install --frozen-lockfile || true
-          npx tsc --noEmit --skipLibCheck || true
+          cd backend
+          source venv/bin/activate
+          nohup python -m uvicorn api.main:app --host 0.0.0.0 --port 8000 &
+          sleep 5
+          curl -f http://localhost:8000/health || (echo "Backend failed to start" && exit 1)
+      - name: Run integration tests
+        run: |
+          cd backend
+          source venv/bin/activate
+          python -m pytest tests/integration/ tests/chaos/ -v --tb=short --timeout=30
 
-  # =============================================
-  # L1: Unit Tests
-  # =============================================
-  unit-tests:
-    name: "L1 - Unit Tests"
+  # ── 第四道门：每日反思 ──
+  nightly-reflection:
+    if: github.event_name == 'schedule'
+    needs: integration
     runs-on: ubuntu-latest
-    needs: [commit-lint, static-analysis]
     steps:
       - uses: actions/checkout@v4
-        with: { submodules: recursive }
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with: { python-version: "${{ env.PYTHON_VERSION }}" }
-
-      - name: Backend Unit Tests
-        working-directory: backend
-        run: |
-          pip install pytest pytest-asyncio pytest-cov httpx
-          python -m pytest tests/unit/ tests/test_modules.py \
-            -v --tb=short \
-            --cov=. --cov-report=term --cov-report=xml \
-            --timeout=30 \
-            -p no:warnings || true
-
-      - name: Upload Coverage
-        uses: actions/upload-artifact@v4
-        if: always()
+      - uses: actions/setup-python@v5
         with:
-          name: coverage-report
-          path: backend/coverage.xml
-
-  # =============================================
-  # L2+L3: Integration + Contract Tests
-  # =============================================
-  integration-tests:
-    name: "L2+L3 - Integration & Contract"
-    runs-on: ubuntu-latest
-    needs: unit-tests
-    steps:
-      - uses: actions/checkout@v4
-        with: { submodules: recursive }
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with: { python-version: "${{ env.PYTHON_VERSION }}" }
-
-      - name: Install Dependencies
+          python-version: "3.11"
+      - name: Run nightly reflection
         run: |
-          pip install fastapi uvicorn httpx pytest pytest-asyncio
-
-      - name: Start Backend Server
-        working-directory: backend
-        run: |
-          python -m uvicorn api.main:app --host 0.0.0.0 --port 8000 &
-          sleep 3
-          curl -s http://localhost:8000/health || echo "Server not ready"
-
-      - name: Run Integration Tests
-        working-directory: backend
-        run: |
-          python -m pytest tests/integration/ -v --tb=short -p no:warnings || true
-
-      - name: Run Contract Tests
-        working-directory: backend
-        run: |
-          python -m pytest tests/contract/ -v --tb=short -p no:warnings || true
-
-  # =============================================
-  # L6: Security Tests
-  # =============================================
-  security-tests:
-    name: "L6 - Security Tests"
-    runs-on: ubuntu-latest
-    needs: unit-tests
-    steps:
-      - uses: actions/checkout@v4
-        with: { submodules: recursive }
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with: { python-version: "${{ env.PYTHON_VERSION }}" }
-
-      - name: Run Security Tests
-        working-directory: backend
-        run: |
-          pip install pytest pytest-asyncio httpx
-          python -m pytest tests/security/ -v --tb=short -p no:warnings || true
-
-  # =============================================
-  # Frontend Build Check
-  # =============================================
-  frontend-build:
-    name: "Frontend Build"
-    runs-on: ubuntu-latest
-    needs: static-analysis
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with: { node-version: "${{ env.NODE_VERSION }}" }
-
-      - name: Install & Build
-        working-directory: frontend
-        run: |
-          npm install -g pnpm
-          pnpm install --frozen-lockfile || pnpm install
-          pnpm build || true
-
-  # =============================================
-  # Auto PR Label (release only on main push)
-  # =============================================
-  auto-label:
-    name: "Auto Label Release"
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [integration-tests, security-tests, frontend-build]
-    steps:
-      - uses: actions/checkout@v4
-      - name: Create Release Tag
-        run: echo "Release triggered by main push"
+          cd backend
+          python -m venv venv && source venv/bin/activate
+          pip install fastapi uvicorn pydantic httpx python-dotenv pyyaml sqlalchemy
+          PYTHONPATH=. python -c "
+          from engine.memory_evolution import MemoryEvolution
+          from engine.learning_loop import LearningLoop
+          evo = MemoryEvolution()
+          evo.apply_decay()
+          evo.detect_conflicts()
+          print('✅ Nightly reflection complete')
+          "

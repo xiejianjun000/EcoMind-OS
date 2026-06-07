@@ -69,6 +69,8 @@ class AgentConfig:
     # 验证开关
     verify_enabled: bool = True           # 是否启用输出验证
     expert_id: str = ""                   # 当前 Agent ID（用于权限拦截）
+    user_id: str = ""                     # 当前用户 ID（用于偏好注入）
+    compaction_enabled: bool = True       # 是否启用上下文压缩（长对话超限时自动压缩）
 
     def to_dict(self) -> dict:
         return {
@@ -206,6 +208,10 @@ class EcoAgentEngine:
         if history_messages:
             # 在 system 和 user 之间插入历史
             messages = [messages[0]] + history_messages + [messages[1]]
+
+        # 上下文压缩：长对话自动压缩旧轮次
+        if self.config.compaction_enabled:
+            messages = self._maybe_compact(messages)
 
         iteration = 0
         tools_used: list[str] = []
@@ -651,6 +657,27 @@ class EcoAgentEngine:
                 "tool_call_id": tr["tool_call_id"],
                 "content": tr["result"],
             })
+
+    def _maybe_compact(self, messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """长对话自动压缩：当消息超出 token 上限时自动压缩旧轮次。"""
+        try:
+            from engine.context_compactor import ContextCompactor, CompactionConfig
+            compactor = ContextCompactor(CompactionConfig(
+                max_tokens=self.config.max_tokens * 2,  # 消息 token + 输出 token
+                protect_first=2,
+                protect_last=8,
+            ))
+            if compactor.needs_compaction(messages):
+                logger.warning("触发上下文压缩... (超出token限制)")
+                result = compactor.compact(messages)
+                return result.compressed
+        except ImportError:
+            pass
+        return messages
+
+    def _drain(self) -> None:
+        """等待当前 Agent 任务完成（用于优雅关闭）"""
+        pass  # EcoAgentEngine 本身不维护任务队列
 
     def _emit_progress(self, event_type: str, data: dict[str, Any]) -> None:
         """触发进度回调"""

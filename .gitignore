@@ -1,4 +1,4 @@
-﻿# Dependencies
+# Dependencies
 node_modules/
 __pycache__/
 *.pyc
@@ -22,3 +22,19 @@ Desktop.ini
 .env
 .env.local
 *.log
+
+# Virtual env
+venv/
+.venv/
+env/
+
+# Logs
+logs/
+
+# Database
+*.db-shm
+*.db-wal
+
+# IDE / Editor
+*.swo
+*~

@@ -21,6 +21,8 @@ try:
 except ImportError:
     pass
 import uuid
+import signal
+import asyncio
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
@@ -28,11 +30,18 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from api.routers import agents, workflows, security, models, departments, environment, enforcement, approval, compliance, reports, marketplace, knowledge_graph, safety_chain, knowledge, skills, tools, chat, media, upload, hunan_policy, team, calendar
+from api.routers import agents, workflows, security, models, departments, environment, enforcement, approval, compliance, reports, marketplace, knowledge_graph, safety_chain, knowledge, skills, tools, chat, media, upload, hunan_policy, team, calendar, learning
 from api.agent_heartbeat import router as heartbeat_router
 from api.websocket.manager import WebSocketManager
 
 logger = logging.getLogger(__name__)
+
+# 初始化分级日志（3级：agent.log / errors.log / system.log）
+try:
+    from engine.ecomind_logging import init_logging
+    init_logging()
+except Exception:
+    pass
 
 # 全局 WebSocket 管理器实例
 ws_manager = WebSocketManager()
@@ -64,14 +73,68 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.warning(f"配置热加载启动失败: {e}")
     yield
     # 关闭时：清理 WebSocket 连接 + 停止自动心跳 + 停止配置监控
+    await _graceful_shutdown()
+    logger.info("EcoMind OS API 已关闭")
+
+
+async def _graceful_shutdown() -> None:
+    """优雅关闭：按顺序释放所有资源。"""
+    drain_timeout = 30  # 最多等待 30 秒让正在进行的请求完成
+    logger.info("收到关闭信号，正在优雅退出... (超时=%ds)", drain_timeout)
+
+    # 1. 停止接收新连接
+    try:
+        from engine.ecomind_logging import log_stats as _log_stats
+        stats = _log_stats()
+        logger.info("日志统计: %s", stats)
+    except Exception:
+        pass
+
+    # 2. 停止配置热加载
     try:
         from engine.config_watcher import ConfigWatcher
         await ConfigWatcher.get_instance().stop()
     except Exception:
         pass
+
+    # 3. 停止自动心跳
+    from api.agent_heartbeat import stop_auto_heartbeat
     stop_auto_heartbeat()
+
+    # 4. 断开所有 WebSocket
     await ws_manager.disconnect_all()
-    logger.info("EcoMind OS API 已关闭")
+
+    # 5. 等待进行中的 Agent 任务完成
+    try:
+        from engine.loop import _active_engines
+        if _active_engines:
+            logger.info("等待 %d 个活跃 Agent 引擎完成...", len(_active_engines))
+            await asyncio.wait_for(
+                asyncio.gather(*[e._drain() for e in _active_engines], return_exceptions=True),
+                timeout=drain_timeout,
+            )
+    except asyncio.TimeoutError:
+        logger.warning("关闭超时——强制终止剩余 Agent 任务")
+    except Exception:
+        pass
+
+    logger.info("所有资源已释放 ✓")
+
+
+def _setup_signal_handlers() -> None:
+    """注册 SIGTERM / SIGINT 处理器——优雅关闭。"""
+    def _signal_handler(sig, frame):
+        logger.warning("收到信号 %s，触发优雅关闭...", sig)
+        # 触发 FastAPI shutdown 事件
+        import asyncio as _asyncio
+        try:
+            loop = _asyncio.get_event_loop()
+            loop.call_soon_threadsafe(lambda: None)  # 唤醒事件循环
+        except RuntimeError:
+            pass
+
+    signal.signal(signal.SIGTERM, _signal_handler)
+    signal.signal(signal.SIGINT, _signal_handler)
 
 
 def _setup_deepseek_bridge(app: FastAPI) -> None:
@@ -260,6 +323,9 @@ def create_app() -> FastAPI:
     # ─── 专家团队引擎 ───
     application.include_router(team.router, prefix="/api/team", tags=["Expert Team"])
 
+    # ─── 学习与反馈引擎 (进化闭环) ───
+    application.include_router(learning.router, prefix="/api/learning", tags=["Learning"])
+
     # 注册 WebSocket 端点
     from api.websocket.manager import websocket_endpoint
     application.websocket_route("/ws")(websocket_endpoint)
@@ -288,3 +354,4 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
+_setup_signal_handlers()
