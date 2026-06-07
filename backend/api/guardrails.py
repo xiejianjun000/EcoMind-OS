@@ -44,7 +44,7 @@ TOOL_WHITELIST: dict[SafetyLevel, set[str]] = {
         "case_search", "map_visualize", "alert_check",
         "document_parse", "compliance_check", "data_analyze",
         "dispatch_expert", "knowledge_query", "skill_execute",
-        "code_read", "git_status",
+        "code_read", "code_edit", "code_write", "git_status", "git_commit",
         # 多模态分析
         "image_analyze", "video_analyze", "voice_transcribe", "document_ocr",
         # Hermes 级工具

@@ -12,7 +12,16 @@ import logging
 import time
 from typing import Any
 
+import os
+from pathlib import Path
+
 from fastapi import APIRouter, HTTPException, Query
+
+# 真实项目根目录（本文件在 backend/api/routers/ → 上四级到 EcoMind-OS/）
+_ACTUAL_PROJECT_ROOT = os.environ.get(
+    "PROJECT_ROOT",
+    str(Path(__file__).resolve().parent.parent.parent.parent)
+)
 from pydantic import BaseModel, Field
 
 from api.guardrails import (
@@ -247,7 +256,7 @@ async def _skill_execute(params: dict) -> dict:
 async def _code_read(params: dict) -> dict:
     import os
     file_path = params.get("file_path", "")
-    project_root = os.environ.get("PROJECT_ROOT", "/Users/mac/EcoMind-OS/.github-clone")
+    project_root = _ACTUAL_PROJECT_ROOT
     full_path = os.path.normpath(os.path.join(project_root, file_path))
     if not full_path.startswith(os.path.normpath(project_root)):
         raise HTTPException(status_code=403, detail="不允许访问项目目录外的文件")
@@ -269,7 +278,7 @@ async def _code_edit(params: dict) -> dict:
     file_path = params.get("file_path", "")
     old_string = params.get("old_string", "")
     new_string = params.get("new_string", "")
-    project_root = os.environ.get("PROJECT_ROOT", "/Users/mac/EcoMind-OS/.github-clone")
+    project_root = _ACTUAL_PROJECT_ROOT
     full_path = os.path.normpath(os.path.join(project_root, file_path))
     if not full_path.startswith(os.path.normpath(project_root)):
         raise HTTPException(status_code=403, detail="不允许访问项目目录外的文件")
@@ -283,26 +292,40 @@ async def _code_edit(params: dict) -> dict:
     diff = list(difflib.unified_diff(
         content.splitlines(keepends=True), new_content.splitlines(keepends=True),
         fromfile=file_path, tofile=file_path))
-    return {"status": "diff_generated", "file_path": file_path, "diff": "".join(diff),
-            "note": "⚠️ 预览diff，文件未被修改。确认后通过git branch提交。"}
+    # 实际写入
+    with open(full_path, "w", encoding="utf-8") as f:
+        f.write(new_content)
+    return {"status": "patched", "file_path": file_path,
+            "lines_changed": len(diff),
+            "note": "✅ 文件已实际修改"}
 
 async def _code_write(params: dict) -> dict:
+    """写入文件（真实写入）"""
     import os
     file_path = params.get("file_path", "")
     content = params.get("content", "")
-    project_root = os.environ.get("PROJECT_ROOT", "/Users/mac/EcoMind-OS/.github-clone")
-    full_path = os.path.normpath(os.path.join(project_root, file_path))
-    if not full_path.startswith(os.path.normpath(project_root)):
+    if not file_path:
+        raise HTTPException(status_code=400, detail="缺少 file_path 参数")
+    project_root = _ACTUAL_PROJECT_ROOT
+    full_path = os.path.abspath(file_path if os.path.isabs(file_path) else os.path.join(project_root, file_path))
+    # 安全边界：允许项目目录 + /tmp
+    safe_roots = [os.path.normpath(project_root), "/tmp"]
+    if not any(full_path.startswith(r) for r in safe_roots):
         raise HTTPException(status_code=403, detail="不允许访问项目目录外的文件")
-    if os.path.exists(full_path):
-        return {"status": "error", "reason": f"文件已存在: {file_path}", "suggestion": "使用code_edit修改"}
-    return {"status": "preview", "file_path": file_path, "content_lines": len(content.split("\n")),
-            "note": "⚠️ 内容预览，文件未创建。确认后写入。"}
+    try:
+        os.makedirs(os.path.dirname(full_path), exist_ok=True)
+        with open(full_path, "w", encoding="utf-8") as f:
+            f.write(content)
+        return {"status": "created", "file_path": full_path,
+                "size_bytes": len(content.encode("utf-8")),
+                "lines": len(content.split("\n"))}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"写入失败: {str(e)}")
 
 async def _shell_exec(params: dict) -> dict:
     import subprocess, os
     command = params.get("command", "")
-    cwd = params.get("cwd", os.environ.get("PROJECT_ROOT", "/Users/mac/EcoMind-OS/.github-clone"))
+    cwd = params.get("cwd", _ACTUAL_PROJECT_ROOT)
     ALLOWED = ["npm ", "npx ", "git ", "tsc", "vite", "python", "pip", "ls", "cat", "head", "tail", "wc", "find", "grep", "node ", "echo ", "pwd", "whoami", "date"]
     BLOCKED = ["rm ", "sudo", "chmod", "chown", "curl", "wget", ">", "&&", "|", ";", "$(", "`"]
     if not any(command.lower().strip().startswith(p) for p in ALLOWED):
@@ -320,7 +343,7 @@ async def _shell_exec(params: dict) -> dict:
 
 async def _git_status(params: dict) -> dict:
     import subprocess, os
-    project_root = os.environ.get("PROJECT_ROOT", "/Users/mac/EcoMind-OS/.github-clone")
+    project_root = _ACTUAL_PROJECT_ROOT
     try:
         s = subprocess.run("git status --short", shell=True, cwd=project_root, capture_output=True, text=True, timeout=10)
         b = subprocess.run("git branch --show-current", shell=True, cwd=project_root, capture_output=True, text=True, timeout=5)
@@ -332,7 +355,7 @@ async def _git_status(params: dict) -> dict:
 
 async def _git_commit(params: dict) -> dict:
     import subprocess, os
-    project_root = os.environ.get("PROJECT_ROOT", "/Users/mac/EcoMind-OS/.github-clone")
+    project_root = _ACTUAL_PROJECT_ROOT
     message = params.get("message", "AI: code change")
     branch_name = params.get("branch_name", f"ai/auto-{int(time.time())}")
     try:
