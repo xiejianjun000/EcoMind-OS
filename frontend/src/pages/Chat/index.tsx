@@ -12,7 +12,8 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Send, Sparkles, ThumbsUp, Clipboard, Volume2, Search, Plus } from "lucide-react"
+import { Send, Sparkles, ThumbsUp, Clipboard, Volume2, Search, Plus, Eye } from "lucide-react"
+import { TaskList } from "@/components/Chat/TaskList"
 import { chatStream, isApiKeyConfigured } from "@/services/deepseek"
 import { getCityAQI, getCityStations, getAllCities, resolveCity } from "@/services/envDataService"
 import { getToolLabel, getToolIcon, summarizeToolResult } from "@/services/toolService"
@@ -57,6 +58,7 @@ export default function ChatPage() {
   const [selectedExpert, setSelectedExpert] = useState("ecomind")
   const [isLoading, setIsLoading] = useState(false)
   const [toolCalls, setToolCalls] = useState<ToolCallMsg[]>([])
+  const [taskListVisible, setTaskListVisible] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [attachedFiles, setAttachedFiles] = useState<Array<{ file: File; status: string; serverPath?: string }>>([])
@@ -88,6 +90,7 @@ export default function ChatPage() {
     setMessages(prev => [...prev, userMsg])
     setIsLoading(true)
     setToolCalls([])
+    setTaskListVisible(true)  // 发送新消息时显示任务列表
 
     const assistantMsg: Message = { id: String(Date.now() + 1), role: "assistant", content: "", timestamp: new Date().toISOString(), isStreaming: true, toolCalls: [] }
     setMessages(prev => [...prev, assistantMsg])
@@ -105,8 +108,12 @@ export default function ChatPage() {
           setToolCalls(prev => [...prev, tc])
           setMessages(prev => prev.map(m => m.id === assistantMsg.id ? { ...m, toolCalls: [...(m.toolCalls || []), tc] } : m))
         },
+        onToolResult: (name: string, summary: string, callId: string) => {
+          setToolCalls(prev => prev.map(tc => tc.id === callId ? { ...tc, status: "success", result: summary } : tc))
+        },
         onDone: (_fullContent: string) => {
           setIsLoading(false)
+          setToolCalls(prev => prev.map(tc => tc.status === "running" ? { ...tc, status: "success" } : tc))
           setMessages(prev => prev.map(m => m.id === assistantMsg.id ? { ...m, isStreaming: false } : m))
         },
         onError: (err: Error) => {
@@ -175,6 +182,9 @@ export default function ChatPage() {
           <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
+
+      {/* Task List — 对标 Trae: 消息区和输入框之间, 实时显示Agent正在执行的操作 */}
+      <TaskList toolCalls={toolCalls} visible={taskListVisible} onToggle={() => setTaskListVisible(false)} />
 
       <Separator />
 
