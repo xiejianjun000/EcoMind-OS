@@ -32,10 +32,15 @@ SAFETY_RULES = {
         "name": "输入护栏",
         "desc": "Prompt注入检测 / PII脱敏 / 恶意输入过滤",
         "rules": [
-            {"id": "L1-001", "name": "Prompt注入检测", "pattern": "(ignore|forget|override|system prompt|你是一个)", "severity": "high"},
+            {"id": "L1-001", "name": "Prompt注入检测", "pattern": "(?:ignore|forget|override|disregard)\\s+(?:all|previous|your|the|everything|instructions|rules|constraints|limitations|guidelines|above)", "severity": "critical"},
+            {"id": "L1-001b", "name": "角色越狱检测", "pattern": "(?:you are now|act as|pretend to be|you are a|roleplay as|扮演|假装你是|你现在是)\\s*(?:DAN|evil|hacker|unethical|malicious|不受限制|没有限制|任何角色|黑客|攻击者|恶意)", "severity": "critical"},
+            {"id": "L1-001b2", "name": "角色越狱-中文", "pattern": "(?:假装你是|扮演一个|装作是|现在你是|你变成了)(?:黑客|恶意|不受限|无限制)", "severity": "critical"},
+            {"id": "L1-001c", "name": "系统提示词窃取", "pattern": "(?:show\\s*me\\s*your|reveal\\s*your|print\\s*your|tell\\s*me\\s*your|what\\s*(?:is|are)\\s*your|泄露|展示你的|告诉我你的|output\\s*your).*?(?:system\\s*(?:prompt|message)|instructions|rules|guidelines|提示词|规则|指令|configuration|config\\b|API\\s*key|secrets|hidden)", "severity": "critical"},
+            {"id": "L1-001d", "name": "通用注入关键词", "pattern": "(?:jailbreak|DAN\\s*mode|developer\\s*mode|god\\s*mode|no\\s*restrictions|bypass\\s*safety|disable\\s*safety)", "severity": "critical"},
+            {"id": "L1-001e", "name": "中文注入检测", "pattern": "(?:忽略(?:所有|一切|之前|上述|掉)?|忘记(?:所有|规则|限制|身份|你的|掉)?|删除(?:一切|所有数据|数据库|系统|掉)?|你是一[个台]|从现在起你是|不再受?限制)", "severity": "critical"},
             {"id": "L1-002", "name": "PII脱敏", "pattern": "(身份证|手机号|银行卡|驾驶证)", "severity": "medium"},
             {"id": "L1-003", "name": "SQL注入检测", "pattern": "(DROP TABLE|INSERT INTO|DELETE FROM|UNION SELECT)", "severity": "critical"},
-            {"id": "L1-004", "name": "XSS检测", "pattern": "(<script|javascript:|onerror=|onload=)", "severity": "high"},
+            {"id": "L1-004", "name": "XSS检测", "pattern": "(?:<script|javascript:|onerror=|onload=)", "severity": "critical"},
         ],
     },
     "L2": {
@@ -106,11 +111,16 @@ def _check_content(content: str, rules: list[dict]) -> dict:
 
     score = 100.0
     for f in findings:
-        deduction = {"critical": 25, "high": 15, "medium": 8, "low": 3}.get(f["severity"], 5)
-        score -= min(deduction * f["count"], 30)
+        deduction = {"critical": 30, "high": 15, "medium": 8, "low": 3}.get(f["severity"], 5)
+        score -= min(deduction * f["count"], 50)
+
+    # critical 或 high 级命中直接判定不通过
+    has_critical = any(f["severity"] == "critical" for f in findings)
+    has_high = any(f["severity"] == "high" for f in findings)
+    passed = score >= 75 and not has_critical
 
     return {
-        "passed": score >= 60,
+        "passed": passed,
         "score": max(score, 0),
         "findings": findings,
         "rules_checked": len(rules),

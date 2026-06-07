@@ -7,13 +7,29 @@ EcoMind OS FastAPI 应用入口
 from __future__ import annotations
 
 import logging
+import os
+import traceback
+from pathlib import Path
+
+# 加载 .env 环境变量
+try:
+    from dotenv import load_dotenv
+    _env_path = Path(__file__).resolve().parent.parent / ".env"
+    if _env_path.exists():
+        load_dotenv(_env_path)
+        logging.getLogger(__name__).info(f"✅ 已加载环境变量: {_env_path}")
+except ImportError:
+    pass
+import uuid
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
-from api.routers import agents, workflows, security, models, departments, environment, enforcement, approval, compliance, reports, marketplace, knowledge_graph, safety_chain
+from api.routers import agents, workflows, security, models, departments, environment, enforcement, approval, compliance, reports, marketplace, knowledge_graph, safety_chain, knowledge, skills, tools, chat, media, upload, hunan_policy, team
+from api.agent_heartbeat import router as heartbeat_router
 from api.websocket.manager import WebSocketManager
 
 logger = logging.getLogger(__name__)
@@ -28,11 +44,104 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("EcoMind OS API 启动中...")
     # 启动时：初始化 EventBus 订阅、Agent 服务等
     ws_manager.start_background_broadcaster()
+    # 启动 Agent 自动心跳（每30秒刷新，防止预注册Agent全部掉线）
+    from api.agent_heartbeat import start_auto_heartbeat, stop_auto_heartbeat
+    start_auto_heartbeat()
     logger.info("EcoMind OS API 已启动 ✓")
     yield
-    # 关闭时：清理 WebSocket 连接
+    # 关闭时：清理 WebSocket 连接 + 停止自动心跳
+    stop_auto_heartbeat()
     await ws_manager.disconnect_all()
     logger.info("EcoMind OS API 已关闭")
+
+
+def _setup_deepseek_bridge(app: FastAPI) -> None:
+    """
+    前端 deepseek.ts → /deepseek/v1/chat/completions → EcoAgentEngine
+
+    接受 OpenAI 兼容格式请求，内部走 EcoAgentEngine。
+    流式返回 SSE，非流式返回标准 JSON。
+    """
+    import json as _json
+    from fastapi import Request
+    from fastapi.responses import StreamingResponse, JSONResponse
+    from engine.loop import AgentConfig, AgentTier, EcoAgentEngine
+    from engine.tool_registry import get_tool_registry as _get_registry
+
+    @app.post("/deepseek/v1/chat/completions")
+    async def deepseek_bridge(request: Request):
+        body = await request.json()
+        messages = body.get("messages", [])
+        stream = body.get("stream", False)
+
+        system_prompt = ""
+        history_parts: list[str] = []
+        current_user_message = ""
+
+        for m in messages:
+            role = m.get("role", "")
+            content = m.get("content", "")
+            if role == "system":
+                system_prompt = content
+            elif role == "user":
+                if current_user_message:
+                    history_parts.append(f"[用户]: {current_user_message[:300]}")
+                current_user_message = content
+            elif role == "assistant":
+                if current_user_message:
+                    history_parts.append(f"[用户]: {current_user_message[:300]}")
+                    current_user_message = ""
+                history_parts.append(f"[AI]: {content[:300]}")
+
+        if history_parts:
+            task = "[对话历史]\n" + "\n".join(history_parts[-12:]) + "\n\n[当前问题]\n" + current_user_message
+        else:
+            task = current_user_message
+
+        config = AgentConfig(
+            provider="deepseek",
+            model=body.get("model", "deepseek-chat"),
+            soul=system_prompt,
+            temperature=body.get("temperature", 0.7),
+            max_tokens=body.get("max_tokens", 4096),
+            max_iterations=10,
+            stream=True,
+            tools=list(_get_registry()._tools.keys()),
+            tier=AgentTier.SONNET,
+            verify_enabled=True,
+        )
+
+        engine = EcoAgentEngine(config=config, tool_registry=_get_registry())
+
+        if stream:
+            async def sse_generator():
+                full_text = ""
+                recent_window: list[str] = []
+                async for delta in engine.run_stream(task, system_prompt):
+                    recent_window.append(delta)
+                    if len(recent_window) > 15:
+                        recent_window.pop(0)
+                    recent_text = "".join(recent_window[-5:]) if len(recent_window) >= 5 else delta
+                    if len(recent_text) >= 6 and len(full_text) >= len(recent_text):
+                        if full_text.endswith(recent_text):
+                            continue
+                    full_text += delta
+                    yield f"data: {_json.dumps({'choices': [{'delta': {'content': delta}, 'index': 0}]}, ensure_ascii=False)}\n\n"
+
+                deduped = EcoAgentEngine._dedup_tail(full_text)
+                yield "data: [DONE]\n\n"
+
+            return StreamingResponse(
+                sse_generator(),
+                media_type="text/event-stream",
+                headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+            )
+        else:
+            # 非流式：直接返回 JSON
+            result = await engine.run(task, system_prompt)
+            return JSONResponse(content={
+                "choices": [{"message": {"content": result.content}, "finish_reason": "stop"}]
+            })
 
 
 def create_app() -> FastAPI:
@@ -59,7 +168,24 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # 注册路由
+    # Security headers middleware
+    from starlette.middleware.base import BaseHTTPMiddleware
+    from starlette.responses import Response
+
+    class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+        async def dispatch(self, request, call_next):
+            response: Response = await call_next(request)
+            response.headers["X-Content-Type-Options"] = "nosniff"
+            response.headers["X-Frame-Options"] = "DENY"
+            response.headers["X-XSS-Protection"] = "1; mode=block"
+            response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+            response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+            return response
+
+    application.add_middleware(SecurityHeadersMiddleware)
+
+    # 注册路由 — heartbeat 必须在 agents 之前，避免 /status 被 /{agent_id} 拦截
+    application.include_router(heartbeat_router, prefix="/api/agents", tags=["Agent Heartbeat"])
     application.include_router(agents.router, prefix="/api/agents", tags=["Agents"])
     application.include_router(workflows.router, prefix="/api/workflows", tags=["Workflows"])
     application.include_router(security.router, prefix="/api/security", tags=["Security"])
@@ -87,6 +213,31 @@ def create_app() -> FastAPI:
     # ─── SafetyChain 六层安全 (P2) ───
     application.include_router(safety_chain.router)
 
+    # ─── 本地资料库 (P2) ───
+    application.include_router(knowledge.router, prefix="/api/knowledge", tags=["Knowledge"])
+
+    # ─── 技能 & 工具 (P0) ───
+    application.include_router(skills.router, prefix="/api/skills", tags=["Skills"])
+    application.include_router(tools.router, prefix="/api/tools", tags=["Tools"])
+
+    # ─── 统一 Chat 引擎 (P0) ───
+    application.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
+
+    # ─── 前端直连桥接：/deepseek/v1/chat/completions → EcoAgentEngine ───
+    _setup_deepseek_bridge(application)
+
+    # ─── 媒体服务 (语音播报/TTS) ───
+    application.include_router(media.router, prefix="/api/media", tags=["Media"])
+
+    # ─── 文件上传 (供 AI 工具分析) ───
+    application.include_router(upload.router, prefix="/api/upload", tags=["Upload"])
+
+    # ─── 湖南生态环境政策 MCP ───
+    application.include_router(hunan_policy.router, prefix="/api/hunan-policy", tags=["Hunan Policy MCP"])
+
+    # ─── 专家团队引擎 ───
+    application.include_router(team.router, prefix="/api/team", tags=["Expert Team"])
+
     # 注册 WebSocket 端点
     from api.websocket.manager import websocket_endpoint
     application.websocket_route("/ws")(websocket_endpoint)
@@ -96,6 +247,20 @@ def create_app() -> FastAPI:
     async def health_check() -> dict[str, str]:
         """系统健康检查端点。"""
         return {"status": "ok", "service": "EcoMind OS API", "version": "1.0.0"}
+
+    # 全局异常处理器 — 防止 SQL 错误、堆栈信息泄露给客户端
+    @application.exception_handler(Exception)
+    async def global_exception_handler(request: Request, exc: Exception):
+        request_id = str(uuid.uuid4())[:8]
+        logger.error(f"[{request_id}] 未处理异常: {type(exc).__name__}: {exc}\n{traceback.format_exc()}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": "internal_server_error",
+                "message": "服务器内部错误",
+                "request_id": request_id,
+            },
+        )
 
     return application
 
