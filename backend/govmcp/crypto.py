@@ -18,7 +18,6 @@ from typing import Any, Optional
 
 # 尝试使用专业国密库，如果没有则使用内置实现
 try:
-    import gmssl
     from gmssl.sm2 import Cipher
     from gmssl.sm3 import sm3_hash
     from gmssl.sm4 import CryptSM4, SM4_ENCRYPT, SM4_DECRYPT

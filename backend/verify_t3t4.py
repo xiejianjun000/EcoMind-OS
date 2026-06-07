@@ -570,7 +570,7 @@ async def verify_litellm_integration():
 
         # 导入 MockLiteLLMProvider
         sys.path.insert(0, str(BACKEND_DIR / "taiji-agent" / "src"))
-        from taiji_agent.providers.litellm_provider import MockLiteLLMProvider, LiteLLMProvider
+        from taiji_agent.providers.litellm_provider import MockLiteLLMProvider
 
         # 使用 Mock 模式验证端到端
         mock_provider = MockLiteLLMProvider(model="mock-qwen3")

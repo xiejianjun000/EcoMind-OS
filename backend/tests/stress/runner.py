@@ -278,7 +278,6 @@ def _uuid4():
 
 async def run_direct_mode(config: StressConfig) -> StatsCollector:
     """直接模式：不启动 HTTP 服务，直接调用 service 层测试业务逻辑压力"""
-    import uuid as _uuid
     stats = StatsCollector()
     stats.start_time = time.time()
 

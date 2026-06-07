@@ -21,7 +21,7 @@ interface DeptState {
 
 export const useDeptStore = create<DeptState>()((set, get) => ({
   agents: {},
-  bindings: DEFAULT_DEPT_AGENTS,
+  bindings: DEFAULT_DEPT_AGENTS as DepartmentAgentBinding[],
 
   bindAgent: (department, agentId) =>
     set((state) => ({

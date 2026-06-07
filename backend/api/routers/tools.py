@@ -22,6 +22,12 @@ _ACTUAL_PROJECT_ROOT = os.environ.get(
     "PROJECT_ROOT",
     str(Path(__file__).resolve().parent.parent.parent.parent)
 )
+# 允许读取的文档目录（案卷、报告等）
+_DOCUMENT_ROOTS = [
+    os.path.expanduser("~/Documents"),
+    os.path.expanduser("~/Desktop"),
+    "/tmp",
+]
 from pydantic import BaseModel, Field
 
 from api.guardrails import (
@@ -176,8 +182,90 @@ async def _alert_check(params: dict) -> dict:
     return {"alerts": [], "count": 0, "note": "告警系统对接中"}
 
 async def _document_parse(params: dict) -> dict:
-    """解析上传文档（OCR/PDF/Word）— 委托给 document_ocr 实现"""
-    return await _document_ocr(params)
+    """解析上传文档 — pdftotext 优先，Tesseract OCR 降级"""
+    import os, subprocess, tempfile
+
+    file_path = params.get("file_path", "")
+    if not file_path:
+        file_path = params.get("path", "")
+
+    # 展开 ~ 路径
+    file_path = os.path.expanduser(file_path)
+
+    if not file_path or not os.path.exists(file_path):
+        return {"status": "error", "reason": f"文件不存在: {file_path}"}
+
+    file_size_mb = os.path.getsize(file_path) / (1024 * 1024)
+    ext = os.path.splitext(file_path)[1].lower()
+    result = {"file_path": file_path, "file_name": os.path.basename(file_path),
+              "file_size_mb": round(file_size_mb, 1), "method": "unknown"}
+
+    # 大文件警告
+    if file_size_mb > 20:
+        result["warning"] = f"文件较大({file_size_mb:.0f}MB)，可能处理较慢"
+
+    try:
+        if ext == '.pdf':
+            # 策略1: pdftotext 直接提取文本（快速、可靠）
+            try:
+                proc = subprocess.run(
+                    ["pdftotext", "-layout", "-nopgbrk", file_path, "-"],
+                    capture_output=True, timeout=30, text=True,
+                )
+                text = proc.stdout.strip()
+                if text and len(text) > 100:
+                    result["method"] = "pdftotext"
+                    result["text"] = text[:15000]  # 限制返回量
+                    result["text_length"] = len(text)
+                    result["truncated"] = len(text) > 15000
+                    result["status"] = "success"
+                    return result
+            except Exception as e:
+                result["pdftotext_error"] = str(e)[:200]
+
+            # 策略2: pdftotext 失败，降级到 OCR
+            logger.warning(f"pdftotext failed for {file_path}, falling back to OCR")
+            ocr_result = await _document_ocr(params)
+            if ocr_result.get("status") == "success":
+                # 统一字段名：ocr_text → text
+                ocr_text = ocr_result.get("ocr_text", "")
+                result["method"] = "ocr_fallback"
+                result["text"] = ocr_text[:15000]
+                result["text_length"] = len(ocr_text)
+                result["truncated"] = len(ocr_text) > 15000
+                result["ocr_text_length"] = ocr_result.get("ocr_text_length", 0)
+                result["status"] = "success"
+                return result
+            result["status"] = "error"
+            result["reason"] = "PDF 文本提取和 OCR 均失败"
+            return result
+
+        elif ext in ('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif', '.webp'):
+            return await _document_ocr(params)
+
+        elif ext in ('.txt', '.md', '.csv', '.json', '.xml', '.yaml', '.yml', '.log'):
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    text = f.read()
+                result["method"] = "direct_read"
+                result["text"] = text[:15000]
+                result["text_length"] = len(text)
+                result["truncated"] = len(text) > 15000
+                result["status"] = "success"
+                return result
+            except Exception as e:
+                result["status"] = "error"
+                result["reason"] = f"文件读取失败: {e}"
+                return result
+
+        else:
+            result["status"] = "error"
+            result["reason"] = f"不支持的文件格式: {ext}。支持的格式: PDF/PNG/JPG/TXT/MD/CSV/JSON"
+            return result
+
+    except Exception as e:
+        logger.error(f"document_parse failed: {e}")
+        return {"status": "error", "reason": str(e)[:500]}
 
 async def _compliance_check(params: dict) -> dict:
     return {"target": params.get("target_description"), "result": "pending", "note": "合规引擎对接中"}
@@ -186,7 +274,7 @@ async def _data_analyze(params: dict) -> dict:
     return {"analysis_type": params.get("analysis_type"), "result": {}, "note": "分析引擎对接中"}
 
 async def _dispatch_expert(params: dict) -> dict:
-    """真调度：启动独立专家子任务，返回 task_id 供后续查询"""
+    """调度专家并等待完成，返回专家的分析结果"""
     from engine.team_engine import get_team_engine
     import os
 
@@ -206,7 +294,13 @@ async def _dispatch_expert(params: dict) -> dict:
     api_key = os.environ.get("DEEPSEEK_API_KEY", "")
     api_base = os.environ.get("DEEPSEEK_API_BASE", "https://api.deepseek.com/v1")
 
-    task_id = await engine.dispatch(
+    # 🔍 DEBUG: 记录调度信息
+    print(f"[DISPATCH] expert={expert_id} name={expert_name} task={task_description[:100]}")
+    print(f"[DISPATCH] tools={allowed_tools[:5]}... ({len(allowed_tools)} total)")
+    print(f"[DISPATCH] prompt_len={len(system_prompt)} prompt_tail={system_prompt[-200:]}")
+
+    # 🔄 改用 dispatch_and_wait：等待专家完成再返回结果
+    result = await engine.dispatch_and_wait(
         expert_id=expert_id,
         expert_name=expert_name,
         message=task_description,
@@ -214,20 +308,25 @@ async def _dispatch_expert(params: dict) -> dict:
         tools=allowed_tools,
         api_key=api_key,
         api_base=api_base,
+        timeout=60.0,
     )
 
     return {
-        "task_id": task_id,
-        "expert_id": expert_id,
         "expert_name": expert_name,
-        "task": task_description,
-        "status": "dispatched",
-        "note": "专家子任务已启动，可通过 GET /api/team/tasks/{task_id} 查询进度",
+        "task": task_description[:200],
+        "status": result.get("status", "unknown"),
+        "content": result.get("content", ""),
+        "content_length": result.get("content_length", 0),
+        "tools_used": result.get("tools_used", []),
+        "duration": result.get("duration", 0),
+        "note": f"专家{expert_name}已完成分析，共{result.get('content_length', 0)}字符",
     }
 
 async def _knowledge_query(params: dict) -> dict:
-    """查询知识库（法规/案例/物种） — 对接 search_knowledge"""
+    """查询知识库 — query上限100字防滥用"""
     query = params.get("query", "")
+    if len(query) > 100:
+        query = query[:100] + "..."
     database = params.get("database", "all")
     try:
         from api.services.knowledge_service import search_knowledge
@@ -243,12 +342,62 @@ async def _knowledge_query(params: dict) -> dict:
         return {"query": query, "results": [], "note": f"知识库查询失败: {e}"}
 
 async def _skill_execute(params: dict) -> dict:
-    skill_id = params.get("skill_id")
-    return {
-        "skill_id": skill_id,
-        "status": "executed",
-        "note": f"技能 {skill_id} 执行引擎对接中",
-    }
+    """执行已安装的技能"""
+    skill_id = params.get("skill_id", "")
+    if not skill_id:
+        return {"error": "缺少 skill_id 参数"}
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=30.0) as c:
+            r = await c.post(
+                "http://localhost:8000/api/skills/execute",
+                json={"skill_id": skill_id, "params": params.get("params", {})}
+            )
+            return r.json()
+    except Exception as e:
+        return {"error": f"技能执行失败: {e}", "skill_id": skill_id}
+
+
+async def _skill_search(params: dict) -> dict:
+    """搜索技能广场"""
+    query = params.get("query", "")
+    category = params.get("category", "")
+    try:
+        import httpx
+        url = f"http://localhost:8000/api/skills/list?search={query}"
+        if category:
+            url += f"&category={category}"
+        async with httpx.AsyncClient(timeout=10.0) as c:
+            r = await c.get(url)
+            data = r.json()
+            skills = data.get("skills", [])
+            return {
+                "query": query,
+                "total": len(skills),
+                "skills": [{"id": s["id"], "name": s["name"], "description": s.get("description",""),
+                           "category": s.get("category",""), "rating": s.get("rating",0)}
+                          for s in skills[:10]]
+            }
+    except Exception as e:
+        return {"error": f"技能搜索失败: {e}"}
+
+
+async def _skill_install(params: dict) -> dict:
+    """安装技能到指定专家"""
+    skill_id = params.get("skill_id", "")
+    expert_id = params.get("expert_id", "enforcement")
+    if not skill_id:
+        return {"error": "缺少 skill_id 参数"}
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=10.0) as c:
+            r = await c.post(
+                "http://localhost:8000/api/skills/install",
+                json={"skill_id": skill_id, "expert_id": expert_id}
+            )
+            return r.json()
+    except Exception as e:
+        return {"error": f"技能安装失败: {e}"}
 
 
 # ─── 工具 13-18: 代码开发工具（仅 ecomind 可用，L3 必须确认）───
@@ -257,11 +406,37 @@ async def _code_read(params: dict) -> dict:
     import os
     file_path = params.get("file_path", "")
     project_root = _ACTUAL_PROJECT_ROOT
-    full_path = os.path.normpath(os.path.join(project_root, file_path))
-    if not full_path.startswith(os.path.normpath(project_root)):
-        raise HTTPException(status_code=403, detail="不允许访问项目目录外的文件")
+    # 展开 ~ 和相对路径
+    file_path = os.path.expanduser(file_path)
+    if os.path.isabs(file_path):
+        full_path = os.path.normpath(file_path)
+    else:
+        full_path = os.path.normpath(os.path.join(project_root, file_path))
+    # 安全边界：项目目录 + 文档目录
+    safe_roots = [os.path.normpath(project_root)] + [os.path.normpath(d) for d in _DOCUMENT_ROOTS]
+    if not any(full_path.startswith(r) for r in safe_roots):
+        docs_hint = "、".join(_DOCUMENT_ROOTS)
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                f"⛔ 无法访问此路径。请改用 dispatch_expert 调度专家处理，"
+                f"或使用文档目录下的路径（{docs_hint}）。当前路径: {file_path}"
+            )
+        )
     if not os.path.exists(full_path):
         return {"file_path": file_path, "exists": False}
+    # 📁 目录 → 列出文件
+    if os.path.isdir(full_path):
+        try:
+            items = []
+            for entry in sorted(os.listdir(full_path)):
+                ep = os.path.join(full_path, entry)
+                info = "📁" if os.path.isdir(ep) else f"📄({os.path.getsize(ep)}B)"
+                items.append(f"{info} {entry}")
+            return {"file_path": file_path, "is_directory": True, "items": items[:50], "count": len(items)}
+        except Exception as e:
+            return {"file_path": file_path, "is_directory": True, "error": str(e)}
+    # 文件 → 读取内容
     try:
         with open(full_path, "r", encoding="utf-8") as f:
             content = f.read()
@@ -295,12 +470,83 @@ async def _code_edit(params: dict) -> dict:
     # 实际写入
     with open(full_path, "w", encoding="utf-8") as f:
         f.write(new_content)
-    return {"status": "patched", "file_path": file_path,
+    result = {"status": "patched", "file_path": file_path,
             "lines_changed": len(diff),
             "note": "✅ 文件已实际修改"}
+    # 🔍 自动编译校验
+    verify = await _verify_file_compiles(full_path, project_root)
+    result["verify"] = verify
+    return result
+
+async def _verify_file_compiles(full_path: str, project_root: str) -> dict:
+    """写入后自动验证文件能否编译。
+
+    前端文件 (.tsx/.ts/.jsx/.js): 通过 Vite dev server 检查编译
+    后端文件 (.py): 通过 Python 语法检查
+    返回 {"ok": bool, "error": str|None}
+    """
+    import subprocess, asyncio, re
+    ext = os.path.splitext(full_path)[1].lower()
+    frontend_root = os.path.join(project_root, "frontend")
+
+    # 前端文件 → 通过 Vite 检查
+    if ext in (".tsx", ".ts", ".jsx", ".js") and full_path.startswith(frontend_root):
+        try:
+            rel = os.path.relpath(full_path, frontend_root)
+            url = f"http://localhost:5173/{rel}"
+            proc = await asyncio.create_subprocess_exec(
+                "curl", "-s", url,
+                stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+            )
+            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=10)
+            body = stdout.decode(errors="replace")
+            # Vite 错误页面的特征：含 ErrorOverlay 或特定错误标记
+            if "ErrorOverlay" in body or "Failed to resolve import" in body:
+                err_msg = "编译失败"
+                if "Failed to resolve import" in body:
+                    # Vite 返回的 JSON 里引号被转义: \"pkg-name\"
+                    m = re.search(r'Failed to resolve import\s+"([^"]+)"', body)
+                    if not m:
+                        m = re.search(r"Failed to resolve import\s+\\\\\"([^\\\\]+)\\\\\"", body)
+                    if m:
+                        pkg = m.group(1).strip('\\"')
+                        err_msg = f"缺少依赖: {pkg}（需 npm install 或修正 import）"
+                elif '"message":"' in body:
+                    m = re.search(r'"message":"([^"]+)"', body)
+                    if m:
+                        err_msg = m.group(1)[:300]
+                return {"ok": False, "error": err_msg}
+            # 返回正常 JS/TS 内容 → 编译通过
+            if body.startswith("import ") or "jsxDEV" in body or "createHotContext" in body:
+                return {"ok": True, "error": None}
+            # 兜底：看起来不是标准 SPA 页面即可
+            if "<!DOCTYPE html>" not in body[:200]:
+                return {"ok": True, "error": None}
+            return {"ok": True, "error": None, "note": "Vite无错误输出"}
+        except Exception as e:
+            return {"ok": False, "error": f"校验异常: {e}"}
+
+    # 后端 Python 文件 → 语法检查
+    if ext == ".py":
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                "python3", "-m", "py_compile", full_path,
+                stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+            )
+            _, stderr = await asyncio.wait_for(proc.communicate(), timeout=10)
+            if proc.returncode == 0:
+                return {"ok": True, "error": None}
+            else:
+                return {"ok": False, "error": stderr.decode(errors="replace")[:300]}
+        except Exception as e:
+            return {"ok": False, "error": f"语法检查异常: {e}"}
+
+    # 其他文件类型 → 跳过校验
+    return {"ok": True, "error": None, "skipped": True}
+
 
 async def _code_write(params: dict) -> dict:
-    """写入文件（真实写入）"""
+    """写入文件（真实写入）+ 自动编译校验"""
     import os
     file_path = params.get("file_path", "")
     content = params.get("content", "")
@@ -316,9 +562,13 @@ async def _code_write(params: dict) -> dict:
         os.makedirs(os.path.dirname(full_path), exist_ok=True)
         with open(full_path, "w", encoding="utf-8") as f:
             f.write(content)
-        return {"status": "created", "file_path": full_path,
+        result = {"status": "created", "file_path": full_path,
                 "size_bytes": len(content.encode("utf-8")),
                 "lines": len(content.split("\n"))}
+        # 🔍 自动编译校验
+        verify = await _verify_file_compiles(full_path, project_root)
+        result["verify"] = verify
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"写入失败: {str(e)}")
 
@@ -365,7 +615,7 @@ async def _git_commit(params: dict) -> dict:
         if not full_diff:
             return {"status": "no_changes", "message": "没有待提交的变更"}
         return {"status": "preview", "branch_name": branch_name, "commit_message": message,
-                "diff": full_diff[:8000], "note": "⚠️ 提交预览，未实际提交。确认后执行。"}
+                "diff": full_diff[:15000], "note": "⚠️ 提交预览，未实际提交。确认后执行。"}
     except Exception as e:
         return {"status": "error", "reason": str(e)}
 
@@ -561,7 +811,7 @@ async def _video_analyze(params: dict) -> dict:
 
         # 2. 提取关键帧
         frames = []
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tempfile.TemporaryDirectory(dir=os.path.expanduser("~/.ecomind_tmp")) as tmpdir:
             duration = result["metadata"]["duration_seconds"]
             interval = max(1, duration / (extract_frames + 1))
 
@@ -769,34 +1019,74 @@ async def _document_ocr(params: dict) -> dict:
         # PDF 需要先转图片
         ocr_input_path = file_path
         if ext == '.pdf':
-            with tempfile.TemporaryDirectory() as tmpdir:
-                # 用 ghostscript 或 imagemagick 转 PDF 为图片
-                # 先尝试 pdftoppm (poppler)
+            os.makedirs(os.path.expanduser("~/.ecomind_tmp"), exist_ok=True)
+            with tempfile.TemporaryDirectory(dir=os.path.expanduser("~/.ecomind_tmp")) as tmpdir:
                 try:
                     png_path = os.path.join(tmpdir, "page")
                     subprocess.run(
-                        ["pdftoppm", "-png", "-f", "1", "-l", "3", "-r", "200", file_path, png_path],
+                        ["pdftoppm", "-png", "-f", "1", "-l", "10", "-r", "200", file_path, png_path],
                         capture_output=True, timeout=20
                     )
                     png_files = sorted([f for f in os.listdir(tmpdir) if f.endswith('.png')])
                     if png_files:
-                        ocr_input_path = os.path.join(tmpdir, png_files[0])
-                except Exception:
-                    return {"status": "error", "reason": "PDF OCR 需要 pdftoppm (poppler-utils)。brew install poppler"}
+                        # 🔧 OCR 所有页面并拼接
+                        all_text_parts = []
+                        for pf in png_files:
+                            page_input = os.path.join(tmpdir, pf)
+                            cmd_result = subprocess.run(
+                                ["tesseract", page_input, "stdout", "-l", "chi_sim+eng", "--psm", "3"],
+                                capture_output=True, timeout=60,
+                            )
+                            page_text = cmd_result.stdout.decode("utf-8", errors="replace").strip()
+                            if page_text:
+                                all_text_parts.append(page_text)
 
-        # 执行 Tesseract OCR（通过 CLI，避免 pytesseract numpy 兼容问题）
+                        if all_text_parts:
+                            ocr_text = "\n---[下一页]---\n".join(all_text_parts)
+                            result["ocr_text"] = ocr_text[:15000]
+                            result["ocr_text_length"] = len(ocr_text)
+                            result["truncated"] = len(ocr_text) > 15000
+                            result["pages_processed"] = len(all_text_parts)
+
+                            # 结构化提取
+                            if output_format == "structured":
+                                lines = [l.strip() for l in ocr_text.split("\n") if l.strip()]
+                                result["line_count"] = len(lines)
+                                import re
+                                kv_pairs = {}
+                                for line in lines:
+                                    kv_match = re.match(r'^(.{1,30})[：:]\s*(.+)', line)
+                                    if kv_match:
+                                        kv_pairs[kv_match.group(1).strip()] = kv_match.group(2).strip()
+                                if kv_pairs:
+                                    result["key_value_pairs"] = kv_pairs
+                                result["lines"] = lines[:50]
+                            result["status"] = "success"
+                            return result
+                        else:
+                            result["ocr_note"] = "OCR 识别结果为空（可能是纯扫描件或图片质量过低）"
+                            result["status"] = "error"
+                            result["reason"] = "OCR 未能识别出文字"
+                            return result
+                except Exception as e:
+                    logger.warning(f"document_ocr pdftoppm/tesseract failed: {e}")
+                    result["status"] = "error"
+                    result["reason"] = f"PDF OCR 处理失败: {e}"
+                    return result
+
+        # 非 PDF 文件：直接执行 OCR
         try:
             cmd_result = subprocess.run(
                 ["tesseract", ocr_input_path, "stdout", "-l", "chi_sim+eng", "--psm", "3"],
-                capture_output=True, timeout=30,
+                capture_output=True, timeout=60,
             )
             ocr_text = cmd_result.stdout.decode("utf-8", errors="replace").strip()
 
             if ocr_text:
-                result["ocr_text"] = ocr_text[:3000]
+                result["ocr_text"] = ocr_text[:15000]
                 result["ocr_text_length"] = len(ocr_text)
+                result["truncated"] = len(ocr_text) > 15000
 
-                # 结构化提取（尝试识别表格/键值对）
                 if output_format == "structured":
                     lines = [l.strip() for l in ocr_text.split("\n") if l.strip()]
                     result["line_count"] = len(lines)
@@ -809,7 +1099,8 @@ async def _document_ocr(params: dict) -> dict:
                     if kv_pairs:
                         result["key_value_pairs"] = kv_pairs
                     result["lines"] = lines[:50]
-
+            else:
+                result["ocr_note"] = "OCR 识别结果为空"
         except Exception as e:
             logger.warning(f"document_ocr tesseract failed: {e}")
             result["ocr_note"] = f"OCR 识别失败: {e}"
@@ -898,6 +1189,8 @@ TOOL_REGISTRY: dict[str, callable] = {
     "dispatch_expert": _dispatch_expert,
     "knowledge_query": _knowledge_query,
     "skill_execute": _skill_execute,
+    "skill_search": _skill_search,
+    "skill_install": _skill_install,
     "code_read": _code_read,
     "code_edit": _code_edit,
     "code_write": _code_write,

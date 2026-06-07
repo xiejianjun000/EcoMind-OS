@@ -1,314 +1,399 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+/**
+ * CommandCockpit — 指挥驾驶舱 (QClaw CommandCockpit + WorkBuddy Dashboard 对应)
+ *
+ * 全景指挥面板，集成:
+ * - 实时态势感知 (Real-time Situation Awareness)
+ * - 智能体调度状态 (Agent Orchestration)
+ * - 执法/监控告警流 (Alert Stream)
+ * - 关键指标仪表盘 (KPI Dashboard)
+ * - 快速操作入口 (Quick Actions)
+ */
+import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Row, Col, Card, Statistic, Table, List, Tag, Typography, Spin,
+  Card, Tag, Button, Typography, Row, Col, Space, Badge,
+  Statistic, Progress, Timeline, List, Tooltip, Tabs,
+  Skeleton, Segmented, Avatar,
 } from 'antd';
 import {
-  DashboardOutlined, EnvironmentOutlined, SafetyCertificateOutlined,
-  ThunderboltOutlined, AlertOutlined, TeamOutlined, CloudOutlined,
-  ExperimentOutlined, BarChartOutlined,
+  ThunderboltOutlined, SafetyOutlined, GlobalOutlined,
+  AlertOutlined, CheckCircleOutlined, SyncOutlined,
+  ClockCircleOutlined, TeamOutlined, RobotOutlined,
+  DashboardOutlined, WarningOutlined, FireOutlined,
+  EnvironmentOutlined, ExperimentOutlined, CloudOutlined,
+  ApiOutlined, SettingOutlined, BellOutlined,
+  ReloadOutlined, ArrowUpOutlined, ArrowDownOutlined,
+  LineChartOutlined, FundOutlined, AppstoreOutlined,
 } from '@ant-design/icons';
-import ReactEChartsCore from 'echarts-for-react/lib/core';
-import * as echarts from 'echarts/core';
-import { LineChart, BarChart, GaugeChart } from 'echarts/charts';
-import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/components';
-import { CanvasRenderer } from 'echarts/renderers';
-import { useAppStore } from '@/store';
-import StatusBadge from '@/components/StatusBadge';
-import HunanMapChart from '@/components/HunanMapChart';
-import { environmentApi } from '@/services/api';
-import type { EnvRealtimeItem, EnvRankingItem, EnvForecastItem } from '@/services/api';
-
-echarts.use([LineChart, BarChart, GaugeChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer]);
+import { useExpertStore, useAgentStore, useAutomationStore } from '@/store';
 
 const { Title, Text } = Typography;
 
-interface AlertItem {
-  id: string; severity: 'high' | 'medium' | 'low'; title: string; desc: string; time: string;
+// ─── 模拟实时数据 ───
+
+interface KPIData {
+  label: string;
+  value: number;
+  unit: string;
+  trend: 'up' | 'down' | 'stable';
+  change: number;
+  icon: React.ReactNode;
+  color: string;
 }
 
-const SEV_COLORS: Record<string, string> = {
-  high: '#DC2626', medium: '#F59E0B', low: '#10B981',
-};
+interface AlertItem {
+  id: string;
+  level: 'critical' | 'warning' | 'info';
+  title: string;
+  message: string;
+  source: string;
+  time: string;
+  acknowledged: boolean;
+}
 
-const MOCK_AGENTS = [
-  { id: '1', name: '执法办案智能体', dept: '生态环境执法局', status: 'online' as const, tasks: 156, successRate: '97%' },
-  { id: '2', name: '监测分析智能体', dept: '生态环境监测处', status: 'online' as const, tasks: 432, successRate: '99%' },
-  { id: '3', name: '环评审批智能体', dept: '环评与排放管理处', status: 'online' as const, tasks: 89, successRate: '95%' },
-  { id: '4', name: '大气治理智能体', dept: '大气与气候变化处', status: 'busy' as const, tasks: 201, successRate: '98%' },
-  { id: '5', name: '水环境治理智能体', dept: '水生态环境处', status: 'online' as const, tasks: 178, successRate: '96%' },
+interface AgentStatus {
+  id: string;
+  name: string;
+  role: string;
+  status: 'online' | 'busy' | 'idle' | 'offline';
+  currentTask?: string;
+  load: number; // 0-100
+  sessions: number;
+}
+
+const KPI_DATA: KPIData[] = [
+  { label: 'AQI 指数', value: 62, unit: '', trend: 'down', change: 8, icon: <CloudOutlined />, color: '#52c41a' },
+  { label: '水质达标率', value: 94.2, unit: '%', trend: 'up', change: 2.1, icon: <ExperimentOutlined />, color: '#1677ff' },
+  { label: '执法案卷数', value: 1287, unit: '件', trend: 'up', change: 12, icon: <SafetyOutlined />, color: '#722ed1' },
+  { label: '在线设备', value: 4856, unit: '台', trend: 'up', change: 54, icon: <ApiOutlined />, color: '#13c2c2' },
+  { label: '预警处置率', value: 87.5, unit: '%', trend: 'up', change: 3.2, icon: <AlertOutlined />, color: '#fa8c16' },
+  { label: '专家响应', value: 0.8, unit: 's', trend: 'down', change: 0.2, icon: <RobotOutlined />, color: '#52c41a' },
 ];
 
+const ALERTS: AlertItem[] = [
+  { id: 'a1', level: 'critical', title: 'PM2.5 超标预警', message: '开福区监测站 PM2.5 已达 158μg/m³，超过二级标准', source: '空气质量监测', time: '2 分钟前', acknowledged: false },
+  { id: 'a2', level: 'warning', title: '污水处理厂排放异常', message: '岳麓污水处理厂 COD 排放浓度持续偏高', source: '污水监测', time: '15 分钟前', acknowledged: false },
+  { id: 'a3', level: 'info', title: '月报生成完成', message: '2026年5月环境执法月报已自动生成，待审核', source: '系统任务', time: '30 分钟前', acknowledged: true },
+  { id: 'a4', level: 'warning', title: '噪声投诉激增', message: '天心区夜间施工噪声投诉较上月增长 45%', source: '信访系统', time: '1 小时前', acknowledged: false },
+  { id: 'a5', level: 'info', title: '设备离线通知', message: '望城区 3 号监测站数据中断超过 30 分钟', source: '设备管理', time: '2 小时前', acknowledged: true },
+];
+
+const AGENT_STATUSES: AgentStatus[] = [
+  { id: 'zhang_chufa_01', name: '张处长', role: '执法监察', status: 'busy', currentTask: '审核案卷 EJ-2026-0582', load: 72, sessions: 12 },
+  { id: 'li_engineer_02', name: '李工程师', role: '环境监测', status: 'online', currentTask: '水质分析报告', load: 45, sessions: 8 },
+  { id: 'wang_analyst_03', name: '王分析师', role: '数据分析', status: 'idle', load: 15, sessions: 3 },
+  { id: 'zhao_lawyer_04', name: '赵律师', role: '法规合规', status: 'online', currentTask: '审核新规草案', load: 60, sessions: 5 },
+];
+
+// ─── 主组件 ───
+
 const CommandCockpit: React.FC = () => {
-  const store = useAppStore();
-  const [realtime, setRealtime] = useState<EnvRealtimeItem[]>([]);
-  const [ranking, setRanking] = useState<EnvRankingItem[]>([]);
-  const [forecast, setForecast] = useState<EnvForecastItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [rt, rk, fc] = await Promise.all([
-        environmentApi.getRealtime(),
-        environmentApi.getRanking(),
-        environmentApi.getForecast(),
-      ]);
-      setRealtime(rt.filter((d) => d.city !== '全省'));
-      setRanking(rk.filter((d) => d.city !== '全省'));
-      setForecast(fc);
-    } catch (e) {
-      console.warn('环境数据获取失败，使用缓存', e);
-    }
-    setLoading(false);
-  }, []);
+  // 获取 store 数据
+  const experts = useExpertStore(s => s.experts);
+  const activeAgentId = useAgentStore((s: any) => s.activeAgentId);
+  const automationTasks = useAutomationStore((s: any) => s.tasks);
 
+  // 模拟数据加载
   useEffect(() => {
-    fetchData();
-    const timer = setInterval(fetchData, 300000); // 5分钟刷新
-    return () => clearInterval(timer);
-  }, [fetchData]);
+    const timer = setTimeout(() => setLoading(false), 800);
+    return () => clearTimeout(timer);
+  }, [refreshKey]);
 
-  // 从实时数据计算KPI
-  const kpiCards = useMemo(() => {
-    const cities = realtime.filter((d) => d.city !== '全省');
-    const total = cities.length;
-    const good = cities.filter((d) => d.level === '优').length;
-    const goodLight = cities.filter((d) => d.level === '优' || d.level === '良').length;
-    const avgAqi = total > 0 ? Math.round(cities.reduce((s, d) => s + d.aqi, 0) / total) : 0;
-    const goodRate = total > 0 ? Math.round((good / total) * 100) : 0;
-    const goodLightRate = total > 0 ? Math.round((goodLight / total) * 100) : 0;
-    const bestCity = cities.length > 0
-      ? cities.reduce((a, b) => (a.aqi < b.aqi ? a : b))
-      : { city: '--', aqi: 0 };
+  const handleRefresh = () => {
+    setLoading(true);
+    setRefreshKey(k => k + 1);
+  };
 
-    return [
-      { key: 'avgAqi', title: '全省平均AQI', value: String(avgAqi), delta: `${bestCity.city}最优`, color: avgAqi <= 50 ? '#10B981' : avgAqi <= 100 ? '#F59E0B' : '#DC2626', icon: <CloudOutlined /> },
-      { key: 'goodRate', title: '空气质量为优城市', value: `${good}/${total}`, delta: `优良率${goodLightRate}%`, color: '#3B82F6', icon: <ExperimentOutlined /> },
-      { key: 'bestCity', title: '空气质量最佳', value: bestCity.city, delta: `AQI ${bestCity.aqi}`, color: '#00A86B', icon: <BarChartOutlined /> },
-      { key: 'dataTime', title: '数据更新时间', value: realtime[0]?.time?.substring(11, 16) || '--', delta: '湖南省站实时', color: '#8B5CF6', icon: <SafetyCertificateOutlined /> },
-    ];
-  }, [realtime]);
+  // KPI 卡片
+  const renderKPICard = (kpi: KPIData) => (
+    <Col xs={12} sm={8} md={4} key={kpi.label}>
+      <Card size="small" bordered={false} style={{ background: '#fafafa', height: '100%' }}>
+        {loading ? <Skeleton active paragraph={{ rows: 1 }} /> : (
+          <Statistic
+            title={
+              <Space size={4}>
+                {kpi.icon}
+                <Text type="secondary" style={{ fontSize: 12 }}>{kpi.label}</Text>
+              </Space>
+            }
+            value={kpi.value}
+            suffix={kpi.unit}
+            valueStyle={{ fontSize: 24, color: kpi.color }}
+            precision={kpi.value % 1 !== 0 ? 1 : 0}
+          />
+        )}
+        {!loading && (
+          <div style={{ marginTop: 4 }}>
+            <Text type={kpi.trend === 'down' && (kpi.label.includes('AQI') || kpi.label.includes('响应')) ? 'success' : kpi.trend === 'up' ? 'success' : 'secondary'} style={{ fontSize: 11 }}>
+              {kpi.trend === 'up' ? <ArrowUpOutlined /> : kpi.trend === 'down' ? <ArrowDownOutlined /> : '—'}
+              {' '}{kpi.change}{kpi.unit || '%'} vs 上周
+            </Text>
+          </div>
+        )}
+      </Card>
+    </Col>
+  );
 
-  // 动态告警
-  const alerts: AlertItem[] = useMemo(() => {
-    const list: AlertItem[] = [];
-    const alarmCities = realtime.filter((d) => d.level !== '优' && d.level !== '良' && d.city !== '全省');
-    alarmCities.forEach((d) => {
-      list.push({ id: d.city, severity: 'high', title: `${d.city}空气污染`, desc: `AQI ${d.aqi} ${d.level}`, time: d.time?.substring(11, 16) || '' });
-    });
-    const lightCities = realtime.filter((d) => d.level === '良' && d.city !== '全省');
-    lightCities.slice(0, 3).forEach((d) => {
-      list.push({ id: d.city + '_light', severity: 'medium', title: `${d.city}空气质量良`, desc: `AQI ${d.aqi}`, time: d.time?.substring(11, 16) || '' });
-    });
-    if (list.length === 0) {
-      list.push({ id: 'all_good', severity: 'low', title: '全省空气质量优良', desc: '所有市州AQI达标', time: realtime[0]?.time?.substring(11, 16) || '' });
-    }
-    return list.slice(0, 5);
-  }, [realtime]);
+  // 告警列表
+  const renderAlertItem = (alert: AlertItem) => (
+    <List.Item
+      key={alert.id}
+      style={{
+        padding: '8px 12px',
+        background: alert.level === 'critical' ? '#fff1f0' : alert.level === 'warning' ? '#fff7e6' : undefined,
+        borderRadius: 6,
+        marginBottom: 4,
+        borderLeft: `3px solid ${
+          alert.level === 'critical' ? '#ff4d4f' : alert.level === 'warning' ? '#faad14' : '#1677ff'
+        }`,
+      }}
+    >
+      <List.Item.Meta
+        avatar={
+          <Tag color={
+            alert.level === 'critical' ? 'red' : alert.level === 'warning' ? 'orange' : 'blue'
+          } style={{ margin: 0 }}>
+            {alert.level === 'critical' ? '紧急' : alert.level === 'warning' ? '警告' : '通知'}
+          </Tag>
+        }
+        title={
+          <Space size={4}>
+            {!alert.acknowledged && <Badge status="processing" />}
+            <Text strong style={{ fontSize: 13 }}>{alert.title}</Text>
+          </Space>
+        }
+        description={
+          <div>
+            <Text type="secondary" style={{ fontSize: 11 }}>{alert.message}</Text>
+            <br />
+            <Text type="secondary" style={{ fontSize: 10 }}>
+              <ClockCircleOutlined /> {alert.time} · {alert.source}
+            </Text>
+          </div>
+        }
+      />
+    </List.Item>
+  );
 
-  const gaugeOption = useMemo(() => {
-    const goodCount = realtime.filter((d) => d.level === '优' && d.city !== '全省').length;
-    const total = realtime.filter((d) => d.city !== '全省').length;
-    const ratio = total > 0 ? Math.round((goodCount / total) * 100) : 0;
-    const avgAqi = total > 0 ? Math.round(realtime.filter((d) => d.city !== '全省').reduce((s, d) => s + d.aqi, 0) / total) : 0;
-    return {
-      series: [
-        { type: 'gauge', startAngle: 200, endAngle: -20, center: ['25%', '55%'], radius: '70%',
-          min: 0, max: 100, splitNumber: 10, axisLine: { show: true,
-            lineStyle: { width: 12, color: [[0.3, '#DC2626'], [0.5, '#F59E0B'], [0.7, '#3B82F6'], [1, '#10B981']] } },
-          pointer: { length: '60%', width: 6 }, detail: { fontSize: 18, offsetCenter: [0, '70%'], formatter: '{value}%' },
-          data: [{ value: ratio, name: '优率' }] },
-        { type: 'gauge', startAngle: 200, endAngle: -20, center: ['50%', '55%'], radius: '70%',
-          min: 0, max: 300, splitNumber: 10, axisLine: { show: true,
-            lineStyle: { width: 12, color: [[0.3, '#10B981'], [0.5, '#3B82F6'], [0.7, '#F59E0B'], [1, '#DC2626']] } },
-          pointer: { length: '60%', width: 6 }, detail: { fontSize: 18, offsetCenter: [0, '70%'], formatter: '{value}' },
-          data: [{ value: avgAqi, name: '均AQI' }] },
-        { type: 'gauge', startAngle: 200, endAngle: -20, center: ['75%', '55%'], radius: '70%',
-          min: 0, max: 100, splitNumber: 10, axisLine: { show: true,
-            lineStyle: { width: 12, color: [[0.8, '#DC2626'], [0.9, '#F59E0B'], [1, '#10B981']] } },
-          pointer: { length: '60%', width: 6 }, detail: { fontSize: 18, offsetCenter: [0, '70%'], formatter: '{value}%' },
-          data: [{ value: 99.2, name: '安全率' }] },
-      ],
+  // 智能体状态
+  const renderAgentCard = (agent: AgentStatus) => {
+    const statusColor = {
+      online: '#52c41a',
+      busy: '#faad14',
+      idle: '#d9d9d9',
+      offline: '#ff4d4f',
     };
-  }, [realtime]);
+    const statusLabel = {
+      online: '在线',
+      busy: '忙碌',
+      idle: '空闲',
+      offline: '离线',
+    };
 
-  const trendOption = useMemo(() => ({
-    tooltip: { trigger: 'axis' },
-    grid: { left: 40, right: 20, top: 10, bottom: 30 },
-    xAxis: { type: 'category', data: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月'], axisLabel: { fontSize: 10 } },
-    yAxis: { type: 'value', axisLabel: { fontSize: 10 }, splitLine: { lineStyle: { type: 'dashed' } } },
-    series: [
-      { name: 'PM2.5', type: 'line', data: [52, 48, 42, 38, 35, 32, 30, 28], smooth: true, lineStyle: { color: '#DC2626' }, itemStyle: { color: '#DC2626' } },
-      { name: '优良天数', type: 'line', data: [72, 76, 80, 84, 87, 89, 91, 92], smooth: true, lineStyle: { color: '#10B981' }, itemStyle: { color: '#10B981' } },
-    ],
-  }), []);
+    return (
+      <Card
+        key={agent.id}
+        size="small"
+        hoverable
+        style={{ borderRadius: 8, marginBottom: 8 }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ position: 'relative' }}>
+            <Avatar size={36} style={{ background: statusColor[agent.status] }}>
+              <RobotOutlined />
+            </Avatar>
+            <div style={{
+              position: 'absolute',
+              bottom: -2,
+              right: -2,
+              width: 12,
+              height: 12,
+              borderRadius: '50%',
+              background: statusColor[agent.status],
+              border: '2px solid white',
+            }} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text strong style={{ fontSize: 13 }}>{agent.name}</Text>
+              <Tag color={agent.status === 'online' ? 'success' : agent.status === 'busy' ? 'warning' : agent.status === 'offline' ? 'error' : 'default'} style={{ fontSize: 10 }}>
+                {statusLabel[agent.status]}
+              </Tag>
+            </div>
+            <Text type="secondary" style={{ fontSize: 11 }}>{agent.role}</Text>
+            {agent.currentTask && (
+              <div style={{ marginTop: 4 }}>
+                <Text style={{ fontSize: 11 }}>📋 {agent.currentTask}</Text>
+              </div>
+            )}
+            <div style={{ marginTop: 4 }}>
+              <Progress percent={agent.load} size="small" showInfo={false}
+                strokeColor={agent.load > 70 ? '#ff4d4f' : agent.load > 40 ? '#faad14' : '#52c41a'}
+              />
+              <Space size={8}>
+                <Text type="secondary" style={{ fontSize: 10 }}>负载 {agent.load}%</Text>
+                <Text type="secondary" style={{ fontSize: 10 }}>会话 {agent.sessions}</Text>
+              </Space>
+            </div>
+          </div>
+        </div>
+      </Card>
+    );
+  };
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <Title level={4} style={{ margin: 0 }}>
-          <DashboardOutlined style={{ marginRight: 8, color: '#00A86B' }} />
-          湖南省生态环境 AI 指挥驾驶舱
-        </Title>
-        <Text type="secondary">
-          数据刷新: {new Date().toLocaleString('zh-CN')} &nbsp;
-          <Tag color={store.wsConnected ? 'green' : 'red'}>
-            {store.wsConnected ? '● 实时连接' : '○ 未连接'}
-          </Tag>
-        </Text>
+    <div className="p-4 md:p-6" style={{ height: '100%', overflow: 'auto' }}>
+      {/* 顶部标题栏 */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <div>
+          <Title level={3} style={{ margin: 0 }}>
+            <DashboardOutlined /> 指挥驾驶舱
+          </Title>
+          <Text type="secondary">实时态势感知 · 智能体调度 · 告警监控</Text>
+        </div>
+        <Space>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            数据刷新: {new Date().toLocaleTimeString('zh-CN')}
+          </Text>
+          <Button icon={<ReloadOutlined />} onClick={handleRefresh} loading={loading}>刷新</Button>
+        </Space>
       </div>
 
-      {/* KPI Row */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-        {kpiCards.map((kpi) => (
-          <Col xs={12} sm={6} key={kpi.key}>
-            <Card hoverable size="small" style={{ borderTop: `3px solid ${kpi.color}` }}>
-              <Statistic
-                title={<Text type="secondary" style={{ fontSize: 13 }}>{kpi.title}</Text>}
-                value={kpi.value}
-                valueStyle={{ color: kpi.color, fontSize: 28, fontWeight: 700 }}
-              />
-              <Text type="secondary" style={{ fontSize: 12 }}>
-                <Text type="secondary" style={{ fontSize: 11 }}>{kpi.delta}</Text>
-              </Text>
-            </Card>
-          </Col>
-        ))}
+      {/* KPI 指标行 */}
+      <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>
+        {KPI_DATA.map(renderKPICard)}
       </Row>
 
-      {/* Map + Alerts row */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-        <Col xs={24} lg={16}>
-          <Card
-            title={<><EnvironmentOutlined style={{ color: '#00A86B' }} /> 湖南省环境质量一张图</>}
-            size="small"
-            bodyStyle={{ padding: 8, height: 380 }}
-            extra={<Tag color="blue">14市州 AQI 热力图</Tag>}
-          >
-            <HunanMapChart
-              aqiData={realtime.map(d => ({ city: d.city, aqi: d.aqi, level: d.level }))}
-              forecastData={forecast}
-              rankingData={ranking}
-            />
-          </Card>
-        </Col>
-
-        <Col xs={24} lg={8}>
-          <Card
-            title={<><AlertOutlined style={{ color: '#F59E0B' }} /> 实时告警</>}
-            size="small"
-            bodyStyle={{ padding: '8px 12px', height: 380, overflow: 'auto' }}
-            extra={<Tag color="red">{alerts.length} 条</Tag>}
-          >
-            <List
-              size="small"
-              dataSource={alerts}
-              renderItem={(item) => (
-                <List.Item style={{ padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
-                  <div style={{ width: '100%' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>
-                        <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', backgroundColor: SEV_COLORS[item.severity], marginRight: 6 }} />
-                        <Text strong style={{ fontSize: 13 }}>{item.title}</Text>
-                      </span>
-                      <Text type="secondary" style={{ fontSize: 11 }}>{item.time}</Text>
-                    </div>
-                    <Text type="secondary" style={{ fontSize: 12, marginLeft: 12 }}>{item.desc}</Text>
-                  </div>
-                </List.Item>
-              )}
-            />
-          </Card>
-        </Col>
-      </Row>
-
-      {/* Charts + Tables row */}
+      {/* 三栏布局 */}
       <Row gutter={[16, 16]}>
-        <Col xs={24} lg={12}>
-          <Card title={<><CloudOutlined style={{ color: '#3B82F6' }} /> 全省PM2.5趋势 & 优良天数</>} size="small">
-            <ReactEChartsCore echarts={echarts} option={trendOption} style={{ height: 220 }} />
-          </Card>
-        </Col>
-
-        <Col xs={24} lg={12}>
-          <Card title={<><SafetyCertificateOutlined style={{ color: '#8B5CF6' }} /> 综合评分仪表盘</>} size="small">
-            <ReactEChartsCore echarts={echarts} option={gaugeOption} style={{ height: 220 }} />
-          </Card>
-        </Col>
-      </Row>
-
-      <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+        {/* 左栏: 实时告警 */}
         <Col xs={24} lg={8}>
           <Card
-            title={<><TeamOutlined style={{ color: '#00A86B' }} /> Agent 运行状态</>}
+            title={<Space><BellOutlined /><span>实时告警</span></Space>}
+            extra={<Badge count={ALERTS.filter(a => !a.acknowledged).length} />}
             size="small"
-            extra={<Tag color="green">{MOCK_AGENTS.filter(a => a.status === 'online').length} 在线</Tag>}
+            style={{ height: '100%' }}
+            bodyStyle={{ maxHeight: 500, overflow: 'auto' }}
           >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {MOCK_AGENTS.map((agent) => (
-                <div key={agent.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <Text strong style={{ fontSize: 13 }}>{agent.name}</Text>
-                    <br />
-                    <Text type="secondary" style={{ fontSize: 11 }}>{agent.dept}</Text>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <StatusBadge status={agent.status} pulse={agent.status === 'busy'} />
-                    <br />
-                    <Text type="secondary" style={{ fontSize: 11 }}>任务{agent.tasks} | 成功率{agent.successRate}</Text>
-                  </div>
-                </div>
-              ))}
+            {loading ? (
+              <Skeleton active paragraph={{ rows: 4 }} />
+            ) : (
+              <List
+                dataSource={ALERTS}
+                renderItem={renderAlertItem}
+                split={false}
+              />
+            )}
+          </Card>
+        </Col>
+
+        {/* 中栏: 智能体调度 */}
+        <Col xs={24} lg={9}>
+          <Card
+            title={<Space><RobotOutlined /><span>智能体调度</span></Space>}
+            extra={<Tag color="green">{AGENT_STATUSES.filter(a => a.status !== 'offline').length} 在线</Tag>}
+            size="small"
+            style={{ height: '100%' }}
+          >
+            {loading ? (
+              <Skeleton active paragraph={{ rows: 4 }} />
+            ) : (
+              <div style={{ maxHeight: 500, overflow: 'auto' }}>
+                {AGENT_STATUSES.map(renderAgentCard)}
+              </div>
+            )}
+            <div style={{ marginTop: 8, textAlign: 'center' }}>
+              <Button type="dashed" size="small" block>
+                <TeamOutlined /> 调度新智能体
+              </Button>
             </div>
           </Card>
         </Col>
 
-        <Col xs={24} lg={10}>
-          <Card title="14市州空气质量排名" size="small" extra={<Tag color="green">{ranking[0]?.date?.substring(0, 10) || ''}</Tag>}>
-            <Table
-              dataSource={ranking}
-              rowKey="city"
+        {/* 右栏: 系统概览 + 快捷操作 */}
+        <Col xs={24} lg={7}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {/* 系统健康度 */}
+            <Card
+              title={<Space><FundOutlined /><span>系统健康度</span></Space>}
               size="small"
-              pagination={false}
-              loading={loading}
-              columns={[
-                { title: '#', key: 'rank', width: 40, render: (_, r: EnvRankingItem) => (
-                  <Tag color={r.rank <= 3 ? 'gold' : 'default'}>{r.rank}</Tag>
-                )},
-                { title: '市州', dataIndex: 'city', key: 'city', width: 80 },
-                { title: 'AQI', dataIndex: 'aqi', key: 'aqi', width: 50,
-                  render: (v: number) => <Text style={{ color: v > 75 ? '#DC2626' : v > 50 ? '#F59E0B' : '#10B981', fontWeight: 700 }}>{v}</Text> },
-                { title: '等级', dataIndex: 'level', key: 'level', width: 50,
-                  render: (v: string) => <Tag color={v === '优' ? 'green' : v === '良' ? 'blue' : 'orange'}>{v}</Tag> },
-                { title: '首要', dataIndex: 'primary', key: 'primary', width: 55,
-                  render: (v: string) => <Text style={{ fontSize: 11 }}>{v || '-'}</Text> },
-              ]}
-            />
-          </Card>
-        </Col>
-
-        <Col xs={24} lg={6}>
-          <Card title="待审批列表" size="small" extra={<Tag color="orange">12 件</Tag>}>
-            <List
-              size="small"
-              dataSource={[
-                { id: 'AP-001', title: '排污许可变更', dept: '长沙XX公司', level: 'L2' },
-                { id: 'AP-002', title: '环评报告审批', dept: '岳阳XX项目', level: 'L3' },
-                { id: 'AP-003', title: '辐射安全许可', dept: '衡阳XX医院', level: 'L2' },
-              ]}
-              renderItem={(item) => (
-                <List.Item style={{ padding: '6px 0' }}>
-                  <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <Text style={{ fontSize: 13 }}>{item.title}</Text>
-                      <br/><Text type="secondary" style={{ fontSize: 11 }}>{item.dept}</Text>
+            >
+              {loading ? <Skeleton active /> : (
+                <div>
+                  <div style={{ marginBottom: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Text style={{ fontSize: 12 }}>API 网关</Text>
+                      <Text type="success" style={{ fontSize: 12 }}>99.9%</Text>
                     </div>
-                    <Tag color={item.level === 'L3' ? 'red' : 'orange'}>{item.level}</Tag>
+                    <Progress percent={99.9} size="small" showInfo={false} strokeColor="#52c41a" />
                   </div>
-                </List.Item>
+                  <div style={{ marginBottom: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Text style={{ fontSize: 12 }}>LLM 服务</Text>
+                      <Text type="success" style={{ fontSize: 12 }}>正常</Text>
+                    </div>
+                    <Progress percent={95} size="small" showInfo={false} strokeColor="#1677ff" />
+                  </div>
+                  <div style={{ marginBottom: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Text style={{ fontSize: 12 }}>模型推理</Text>
+                      <Text style={{ fontSize: 12, color: '#faad14' }}>轻微延迟</Text>
+                    </div>
+                    <Progress percent={78} size="small" showInfo={false} strokeColor="#faad14" />
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Text style={{ fontSize: 12 }}>数据同步</Text>
+                      <Text type="success" style={{ fontSize: 12 }}>正常</Text>
+                    </div>
+                    <Progress percent={100} size="small" showInfo={false} strokeColor="#52c41a" />
+                  </div>
+                </div>
               )}
-            />
-          </Card>
+            </Card>
+
+            {/* 任务概览 */}
+            <Card
+              title={<Space><ClockCircleOutlined /><span>任务概览</span></Space>}
+              size="small"
+            >
+              {loading ? <Skeleton active /> : (
+                <Row gutter={[8, 8]}>
+                  <Col span={8}>
+                    <Statistic title="运行中" value={automationTasks?.filter((t: any) => t.status === 'active').length || 3} valueStyle={{ fontSize: 18, color: '#1677ff' }} suffix="个" />
+                  </Col>
+                  <Col span={8}>
+                    <Statistic title="已暂停" value={automationTasks?.filter((t: any) => t.status === 'paused').length || 1} valueStyle={{ fontSize: 18, color: '#faad14' }} suffix="个" />
+                  </Col>
+                  <Col span={8}>
+                    <Statistic title="已归档" value={automationTasks?.filter((t: any) => t.status === 'ended').length || 5} valueStyle={{ fontSize: 18 }} suffix="个" />
+                  </Col>
+                </Row>
+              )}
+            </Card>
+
+            {/* 专家分布 */}
+            <Card
+              title={<Space><TeamOutlined /><span>专家在岗</span></Space>}
+              size="small"
+            >
+              {loading ? <Skeleton active /> : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {experts.slice(0, 5).map((expert: any) => (
+                    <div key={expert.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Space size={4}>
+                        <Badge status={expert.status === 'online' ? 'success' : 'default'} />
+                        <Text style={{ fontSize: 12 }}>{expert.name}</Text>
+                      </Space>
+                      <Tag style={{ fontSize: 10 }}>{expert.domain}</Tag>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </div>
         </Col>
       </Row>
     </div>

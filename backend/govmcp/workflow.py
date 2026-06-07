@@ -288,7 +288,7 @@ class ApprovalWorkflow:
         
         return decision
 
-    async def cancel(self, request_id: str, requester_id: str):
+    async def cancel(self, request_id: str, _requester_id: str):
         """取消请求"""
         request = self._requests.get(request_id)
         if not request:

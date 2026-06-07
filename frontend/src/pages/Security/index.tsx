@@ -1,13 +1,14 @@
 /**
- * 安全治理页面 — VERIFY 幻觉检测、国密证书与审批流
+ * 安全治理页面 — 安全事件 / 审批 / 审计 / 内容安全 (v6.5 合并 SecurityAudit)
  */
 import React, { useState } from 'react';
 import { Tabs, Button, Space, Typography } from 'antd';
-import { ReloadOutlined } from '@ant-design/icons';
+import { ReloadOutlined, SafetyOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import SecurityEventsTab from './components/SecurityEventsTab';
 import ApprovalQueueTab from './components/ApprovalQueueTab';
 import AuditLogTab from './components/AuditLogTab';
+import ContentAuditTab from './components/ContentAuditTab';
 
 const { Title, Text } = Typography;
 
@@ -34,6 +35,11 @@ const SecurityPage: React.FC = () => {
       key: 'audit',
       label: '审计日志',
       children: <AuditLogTab />,
+    },
+    {
+      key: 'content-audit',
+      label: <span><SafetyOutlined /> 内容审计</span>,
+      children: <ContentAuditTab />,
     },
   ];
 

@@ -15,6 +15,7 @@ EcoMind Agent Loop — 自建 Agent 对话循环引擎。
   - max_tokens: 单次 API 调用最大 token 数
   - temperature: 控制创造性
   - 每轮通过回调通知 WebSocket 推送进度
+  - explore_limit: 5 次只读探索后强制移除只读工具
 """
 
 from __future__ import annotations
@@ -67,6 +68,7 @@ class AgentConfig:
 
     # 验证开关
     verify_enabled: bool = True           # 是否启用输出验证
+    expert_id: str = ""                   # 当前 Agent ID（用于权限拦截）
 
     def to_dict(self) -> dict:
         return {
@@ -115,6 +117,10 @@ class EcoAgentEngine:
             print(chunk, end="")
     """
 
+    # 只读探索工具 — 超过限制后从 tool_schemas 中移除
+    _READ_ONLY_TOOLS = {"search_files", "code_read", "knowledge_search", "read_file"}
+    _EXPLORE_LIMIT = 5
+
     def __init__(
         self,
         config: AgentConfig,
@@ -128,7 +134,11 @@ class EcoAgentEngine:
         self.tool_registry = tool_registry or get_tool_registry()
         self.on_progress = on_progress
 
-        # API 配置 — 优先使用传入参数，其次环境变量
+        # 🔄 使用 ModelManager 解析 API 配置（支持多模型+降级）
+        self._model_manager = None  # 延迟初始化
+        self._current_model_id = config.model  # 当前使用的模型ID
+
+        # Fallback：如果传了直接的 api_key/api_base 就用，否则从环境变量取
         self.api_key = api_key or self._get_api_key(config.provider)
         self.api_base = api_base or self._get_api_base(config.provider)
 
@@ -168,7 +178,8 @@ class EcoAgentEngine:
         )
 
     async def run_stream(
-        self, task: str, system_message: Optional[str] = None
+        self, task: str, system_message: Optional[str] = None,
+        history_messages: Optional[list[dict[str, Any]]] = None,
     ) -> AsyncIterator[str]:
         """
         流式执行 Agent 任务
@@ -191,8 +202,14 @@ class EcoAgentEngine:
         # 构建消息
         messages = self._build_messages(task, system_message)
 
+        # 注入历史消息（标准 OpenAI 格式，非拼接字符串）
+        if history_messages:
+            # 在 system 和 user 之间插入历史
+            messages = [messages[0]] + history_messages + [messages[1]]
+
         iteration = 0
         tools_used: list[str] = []
+        explore_count = 0  # 只读探索工具调用计数
 
         while iteration < self.config.max_iterations:
             iteration += 1
@@ -200,6 +217,19 @@ class EcoAgentEngine:
 
             # 获取可用工具 schema
             tool_schemas = self.tool_registry.get_openai_schemas(self.config.tools)
+
+            # 🔴 探索限制：超过 EXPLORE_LIMIT 次只读探索后，强制移除只读工具
+            if explore_count >= self._EXPLORE_LIMIT:
+                tool_schemas = [
+                    t for t in tool_schemas
+                    if t.get("function", {}).get("name") not in self._READ_ONLY_TOOLS
+                ]
+                if explore_count == self._EXPLORE_LIMIT:  # 只记一次日志
+                    remaining = [t["function"]["name"] for t in tool_schemas]
+                    logger.warning(
+                        f"🔴 已调用 {explore_count} 次探索工具，强制移除只读工具。"
+                        f"剩余可用: {remaining}"
+                    )
 
             try:
                 # 调 LLM API
@@ -213,6 +243,11 @@ class EcoAgentEngine:
                         if not tool_calls:
                             continue
 
+                        # 统计探索工具调用
+                        for tc in tool_calls:
+                            if tc["name"] in self._READ_ONLY_TOOLS:
+                                explore_count += 1
+
                         # 并行执行所有工具调用
                         async def _exec_tool(tc):
                             tool_name = tc["name"]
@@ -224,24 +259,50 @@ class EcoAgentEngine:
                                     "name": tool_name,
                                     "result": f"[参数解析失败] JSON格式错误: {e}. 原始参数: {tc.get('arguments', '')[:200]}",
                                 }
+                            call_id = tc.get("id", str(uuid.uuid4()))
                             self._emit_progress("tool_call", {
-                                "name": tool_name, "arguments": tool_args, "iteration": iteration,
+                                "name": tool_name, "arguments": tool_args,
+                                "iteration": iteration, "call_id": call_id,
                             })
                             try:
+                                # 🔒 ecomind 拦截：禁止直接用只读工具探索用户文件
+                                if self.config.expert_id == "ecomind" and tool_name in ("code_read", "search_files"):
+                                    file_path = tool_args.get("file_path", tool_args.get("path", ""))
+                                    # 检查是否在文档目录（非项目文件）
+                                    import os as _os
+                                    _proj = _os.path.expanduser("~/EcoMind-OS")
+                                    _docs = _os.path.expanduser("~/Documents")
+                                    if file_path and (_docs in str(file_path) or _os.path.expanduser("~/Desktop") in str(file_path)):
+                                        raise ValueError(
+                                            "⛔ ecomind 主控禁止直接读取用户文件。"
+                                            "请使用 dispatch_expert 调度专家（如 enforcement/eia）来处理此文件。"
+                                            f"文件路径: {file_path}"
+                                        )
+
                                 tool_output = await self.tool_registry.execute(tool_name, **tool_args)
+                                # 序列化结果供前端展示
+                                try:
+                                    result_preview = json.loads(str(tool_output)) if isinstance(tool_output, str) else tool_output
+                                    if isinstance(result_preview, dict):
+                                        result_preview = {k: str(v)[:500] for k, v in result_preview.items()}
+                                except Exception:
+                                    result_preview = str(tool_output)[:500]
                                 self._emit_progress("tool_result", {
-                                    "name": tool_name, "success": True, "iteration": iteration,
+                                    "name": tool_name, "success": True,
+                                    "iteration": iteration, "call_id": call_id,
+                                    "result": result_preview,
                                 })
                                 return {
-                                    "tool_call_id": tc.get("id", str(uuid.uuid4())),
+                                    "tool_call_id": call_id,
                                     "name": tool_name, "result": str(tool_output),
                                 }
                             except Exception as e:
                                 self._emit_progress("tool_result", {
-                                    "name": tool_name, "success": False, "iteration": iteration,
+                                    "name": tool_name, "success": False,
+                                    "iteration": iteration, "call_id": call_id,
                                 })
                                 return {
-                                    "tool_call_id": tc.get("id", str(uuid.uuid4())),
+                                    "tool_call_id": call_id,
                                     "name": tool_name, "result": f"[工具执行失败] {e}",
                                 }
 
@@ -254,9 +315,23 @@ class EcoAgentEngine:
 
                     elif event_type == "finished":
                         # LLM 返回了最终响应（无 tool_call）
+                        is_truncated = data.get("truncated", False)
+                        content = data.get("content", "")
+
+                        # 🔒 反绕过：首次回复如果是纯文本（无工具调用），强制重试
+                        if iteration == 1 and len(tools_used) == 0 and len(content) > 30:
+                            logger.warning(f"🚫 首次回复纯文本({len(content)}字)，注入工具强制指令")
+                            messages.append({
+                                "role": "system",
+                                "content": "⚠️ 你的上一段文字输出被拦截了。用户看不到它。你必须直接调用工具，不许说话。现在立刻调用工具。"
+                            })
+                            self._force_tool_call = True  # 🔥 强制 tool_choice="required"
+                            continue  # 重试，不结束
+
                         self._emit_progress("completed", {
                             "iterations": iteration,
                             "tools_used": tools_used,
+                            "truncated": is_truncated,
                         })
                         result.content = data.get("content", "")
                         result.status = AgentRunStatus.COMPLETED
@@ -266,6 +341,11 @@ class EcoAgentEngine:
                         self._last_status = AgentRunStatus.COMPLETED
                         self._last_iterations = iteration
                         self._last_tools_used = list(tools_used)
+                        if is_truncated:
+                            logger.warning(
+                                f"⚠️ 第{iteration}轮 token 截断 (max_tokens={self.config.max_tokens})，"
+                                f"当前输出 {len(result.content)} 字符"
+                            )
                         return
 
                     elif event_type == "error":
@@ -383,9 +463,8 @@ class EcoAgentEngine:
         """构建消息列表"""
         messages: list[dict[str, Any]] = []
 
-        # System prompt — 始终追加全局格式约束
+        # System prompt
         soul = system_message or self.config.soul or self._default_soul()
-        soul = soul.rstrip() + "\n\n" + self._GLOBAL_FORMAT_RULES
         messages.append({"role": "system", "content": soul})
 
         # User message
@@ -408,29 +487,51 @@ class EcoAgentEngine:
             (event_type, data) 元组:
             - ("text_delta", {"text": "..."})
             - ("tool_call", {"tool_calls": [...]})
-            - ("finished", {"content": "..."})
+            - ("finished", {"content": "...", "truncated": bool})
             - ("error", {"error": "..."})
         """
+        # Resolve model via ModelManager for multi-model/fallback support
+        actual_model = self.config.model
+        actual_base = self.api_base
+        actual_key = self.api_key
+        try:
+            from .model_manager import get_model_manager
+            import asyncio as _aio_mgr
+            mgr = await _aio_mgr.wait_for(get_model_manager(), timeout=5.0)
+            model_info = mgr.get_model(self.config.model)
+            if model_info:
+                actual_model = model_info.id
+                base, key = mgr.get_provider_config(model_info)
+                actual_base = base or actual_base
+                actual_key = key or actual_key
+        except Exception as e:
+            logger.warning(f"ModelManager init skip: {e}")
+
         payload = {
-            "model": self.config.model,
+            "model": actual_model,
             "messages": messages,
             "temperature": self.config.temperature,
             "max_tokens": self.config.max_tokens,
             "stream": True,
-            "frequency_penalty": 2.0,
-            "presence_penalty": 1.5,
+            "frequency_penalty": 0.3,
+            "presence_penalty": 0.1,
         }
 
         if tools:
             payload["tools"] = tools
-            payload["tool_choice"] = "auto"
+            # 🔒 拦截重试时强制 tool_choice="required"，禁止模型选纯文本
+            if getattr(self, "_force_tool_call", False):
+                payload["tool_choice"] = "required"
+                self._force_tool_call = False  # 用完即重置
+            else:
+                payload["tool_choice"] = "auto"
 
         headers = {
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {self.api_key}",
+            "Authorization": f"Bearer {actual_key}",
         }
 
-        url = f"{self.api_base}/chat/completions"
+        url = f"{actual_base}/chat/completions"
 
         self._emit_progress("thinking", {"iteration": "start"})
 
@@ -495,11 +596,16 @@ class EcoAgentEngine:
                                 "tool_calls": list(tool_calls_accumulator.values()),
                             })
                             return
-                        elif finish_reason == "stop":
-                            yield ("finished", {"content": accumulated_content})
+                        elif finish_reason in ("stop", "length"):
+                            # length = 达到 max_tokens 上限，内容被截断
+                            is_truncated = finish_reason == "length"
+                            yield ("finished", {
+                                "content": accumulated_content,
+                                "truncated": is_truncated,
+                            })
                             return
 
-                    # 流结束
+                    # 流结束（无 finish_reason 时兜底）
                     if tool_calls_accumulator:
                         yield ("tool_call", {
                             "tool_calls": list(tool_calls_accumulator.values()),

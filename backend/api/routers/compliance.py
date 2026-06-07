@@ -8,12 +8,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from api.services.compliance_service import ComplianceService, get_compliance_service
 
-router = APIRouter(tags=["compliance"])
+router = APIRouter(prefix="/api/compliance", tags=["compliance"])
 
 
 # ─── 合规检查 ───
 
-@router.get("/api/compliance/checks", summary="合规检查列表")
+@router.get("/checks", summary="合规检查列表")
 async def list_checks(
     category: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
@@ -25,7 +25,7 @@ async def list_checks(
     return [r.to_dict() for r in records]
 
 
-@router.post("/api/compliance/checks", status_code=201, summary="创建合规检查")
+@router.post("/checks", status_code=201, summary="创建合规检查")
 async def create_check(
     request: dict,
     service: ComplianceService = Depends(get_compliance_service),
@@ -34,7 +34,7 @@ async def create_check(
     return record.to_dict()
 
 
-@router.get("/api/compliance/checks/{check_id}", summary="合规检查详情")
+@router.get("/checks/{check_id}", summary="合规检查详情")
 async def get_check(
     check_id: str,
     service: ComplianceService = Depends(get_compliance_service),
@@ -45,7 +45,7 @@ async def get_check(
     return record.to_dict()
 
 
-@router.post("/api/compliance/checks/{check_id}/run", summary="执行合规检查")
+@router.post("/checks/{check_id}/run", summary="执行合规检查")
 async def run_check(
     check_id: str,
     service: ComplianceService = Depends(get_compliance_service),

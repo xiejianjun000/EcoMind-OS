@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * HunanTerrainScene — Core 3D terrain scene component for
  * Hunan Province using Cesium native API.

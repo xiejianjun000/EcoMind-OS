@@ -11,7 +11,7 @@ import {
   FileSearchOutlined,
   SafetyCertificateOutlined,
   BugOutlined,
-  SecurityScannerOutlined,
+  SecurityScanOutlined,
   AuditOutlined,
   BankOutlined,
   CloudOutlined,

@@ -28,7 +28,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from api.routers import agents, workflows, security, models, departments, environment, enforcement, approval, compliance, reports, marketplace, knowledge_graph, safety_chain, knowledge, skills, tools, chat, media, upload, hunan_policy, team
+from api.routers import agents, workflows, security, models, departments, environment, enforcement, approval, compliance, reports, marketplace, knowledge_graph, safety_chain, knowledge, skills, tools, chat, media, upload, hunan_policy, team, calendar
 from api.agent_heartbeat import router as heartbeat_router
 from api.websocket.manager import WebSocketManager
 
@@ -42,14 +42,33 @@ ws_manager = WebSocketManager()
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """应用生命周期管理：启动时初始化资源，关闭时清理资源。"""
     logger.info("EcoMind OS API 启动中...")
+    # 数据库迁移
+    try:
+        from engine.migrations import run_migrations
+        run_migrations()
+    except Exception as e:
+        logger.warning(f"数据库迁移跳过: {e}")
     # 启动时：初始化 EventBus 订阅、Agent 服务等
     ws_manager.start_background_broadcaster()
     # 启动 Agent 自动心跳（每30秒刷新，防止预注册Agent全部掉线）
     from api.agent_heartbeat import start_auto_heartbeat, stop_auto_heartbeat
     start_auto_heartbeat()
     logger.info("EcoMind OS API 已启动 ✓")
+    # 启动配置热加载
+    try:
+        from engine.config_watcher import setup_config_watcher
+        watcher = setup_config_watcher()
+        await watcher.start(interval=30.0)
+        logger.info("🔄 配置热加载已启动")
+    except Exception as e:
+        logger.warning(f"配置热加载启动失败: {e}")
     yield
-    # 关闭时：清理 WebSocket 连接 + 停止自动心跳
+    # 关闭时：清理 WebSocket 连接 + 停止自动心跳 + 停止配置监控
+    try:
+        from engine.config_watcher import ConfigWatcher
+        await ConfigWatcher.get_instance().stop()
+    except Exception:
+        pass
     stop_auto_heartbeat()
     await ws_manager.disconnect_all()
     logger.info("EcoMind OS API 已关闭")
@@ -234,6 +253,9 @@ def create_app() -> FastAPI:
 
     # ─── 湖南生态环境政策 MCP ───
     application.include_router(hunan_policy.router, prefix="/api/hunan-policy", tags=["Hunan Policy MCP"])
+
+    # ─── 日历服务 ───
+    application.include_router(calendar.router)
 
     # ─── 专家团队引擎 ───
     application.include_router(team.router, prefix="/api/team", tags=["Expert Team"])

@@ -163,13 +163,69 @@ async def get_ranking(date: str = "") -> list[dict]:
     return result
 
 
+# 县级市/县 → 地级市映射（湖南省环境监测站仅覆盖14地级市，县级市回退到所属地级市数据）
+_COUNTY_TO_CITY: dict[str, str] = {
+    "冷水江": "娄底市", "冷水江市": "娄底市",
+    "涟源": "娄底市", "涟源市": "娄底市",
+    "新化": "娄底市", "新化县": "娄底市",
+    "双峰": "娄底市", "双峰县": "娄底市",
+    "浏阳": "长沙市", "浏阳市": "长沙市",
+    "宁乡": "长沙市", "宁乡市": "长沙市",
+    "耒阳": "衡阳市", "耒阳市": "衡阳市",
+    "常宁": "衡阳市", "常宁市": "衡阳市",
+    "衡阳县": "衡阳市", "衡南": "衡阳市", "衡南县": "衡阳市",
+    "衡东": "衡阳市", "衡东县": "衡阳市",
+    "祁东": "衡阳市", "祁东县": "衡阳市",
+    "武冈": "邵阳市", "武冈市": "邵阳市",
+    "邵东": "邵阳市", "邵东市": "邵阳市",
+    "洞口": "邵阳市", "洞口县": "邵阳市",
+    "隆回": "邵阳市", "隆回县": "邵阳市",
+    "新宁": "邵阳市", "新宁县": "邵阳市",
+    "汨罗": "岳阳市", "汨罗市": "岳阳市",
+    "临湘": "岳阳市", "临湘市": "岳阳市",
+    "平江": "岳阳市", "平江县": "岳阳市",
+    "华容": "岳阳市", "华容县": "岳阳市",
+    "津市": "常德市", "津市市": "常德市",
+    "沅江": "益阳市", "沅江市": "益阳市",
+    "桃江": "益阳市", "桃江县": "益阳市",
+    "安化": "益阳市", "安化县": "益阳市",
+    "资兴": "郴州市", "资兴市": "郴州市",
+    "洪江": "怀化市", "洪江市": "怀化市",
+    "韶山": "湘潭市", "韶山市": "湘潭市",
+    "湘乡": "湘潭市", "湘乡市": "湘潭市",
+    "醴陵": "株洲市", "醴陵市": "株洲市",
+    "攸县": "株洲市", "茶陵": "株洲市", "茶陵县": "株洲市", "炎陵": "株洲市", "炎陵县": "株洲市",
+    "吉首": "湘西州", "吉首市": "湘西州",
+    "凤凰": "湘西州", "凤凰县": "湘西州",
+    "永顺": "湘西州", "永顺县": "湘西州",
+}
+
+
+def _resolve_city(city_name: str) -> str:
+    """将县级市/县名解析为所属地级市名，用于匹配监测站数据"""
+    # 直接去掉"市""县"后缀后查找
+    for suffix in ("市", "县"):
+        if city_name.endswith(suffix):
+            short = city_name[:-1]
+            if short in _COUNTY_TO_CITY:
+                return _COUNTY_TO_CITY[short]
+    return _COUNTY_TO_CITY.get(city_name, city_name)
+
+
 async def get_city_hourly_detail(city_name: str) -> dict:
-    """获取指定城市的逐小时详细监测数据（含 PM2.5/PM10/O3/NO2/SO2/CO）"""
-    # 从批量 GetSortNow 中过滤，因为 GetCurHourlyDataByStn 需要站点编码
+    """获取指定城市的逐小时详细监测数据（含 PM2.5/PM10/O3/NO2/SO2/CO）
+
+    支持地级市名（如"娄底市""长沙"）和县级市名（如"冷水江市"→自动回退到"娄底市"数据）
+    """
     all_data = await get_realtime_aqi()
-    for d in all_data:
-        if d["city"] == city_name:
-            return d
+    resolved = _resolve_city(city_name)
+    # 模糊匹配：先尝试解析后的城市名，再尝试原名
+    for search_name in (resolved, city_name):
+        for d in all_data:
+            if search_name in d["city"] or d["city"] in search_name:
+                result = dict(d)
+                result["_resolved_from"] = city_name if search_name != city_name else None
+                return result
     return {"city": city_name, "aqi": 0, "level": "无数据", "primary": "", "time": "",
             "pm25": 0, "pm10": 0, "o3": 0, "no2": 0, "so2": 0, "co": 0.0,
             "lat": 0, "lng": 0}

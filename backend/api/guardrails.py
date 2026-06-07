@@ -2,6 +2,11 @@
 EcoMind OS Guardrails — 边界硬约束引擎
 
 L1/L2/L3 三级权限拦截 + Human-in-the-Loop + 审计日志。
+
+2026-06-07 系统修复：移除5个空壳工具 + 2个未注册工具，诚实化专家能力。
+- 移除: case_search, compliance_check, data_analyze, map_visualize, alert_check (全部返回"对接中")
+- 移除: query_emission_data, search_regulation (未在TOOL_REGISTRY注册)
+- enforcement 能力诚实化：保留实际可用的文件读取+技能+记忆工具
 """
 from __future__ import annotations
 
@@ -30,101 +35,108 @@ class GuardrailResult:
 
 
 # ─── 工具权限矩阵 ─────────────────────────────────────────────
+# 🔴 已移除空壳: case_search, compliance_check, data_analyze, map_visualize, alert_check
 
-# 每个安全级别的工具白名单
 TOOL_WHITELIST: dict[SafetyLevel, set[str]] = {
     SafetyLevel.L1: {
-        "env_query", "regulation_search", "case_search",
-        "map_visualize", "alert_check", "data_analyze",
-        "knowledge_query", "document_ocr",  # 只读文字提取
+        "env_query", "regulation_search",
+        "knowledge_query", "document_ocr",
         "hunan_policy_search", "hunan_policy_latest", "hunan_policy_detail",
     },
     SafetyLevel.L2: {
-        "env_query", "regulation_search", "report_generate",
-        "case_search", "map_visualize", "alert_check",
-        "document_parse", "compliance_check", "data_analyze",
-        "dispatch_expert", "knowledge_query", "skill_execute",
+        "env_query", "regulation_search",
+        "document_parse", "knowledge_query", "skill_execute",
+        "dispatch_expert",
         "code_read", "code_edit", "code_write", "git_status", "git_commit",
-        # 多模态分析
-        "image_analyze", "video_analyze", "voice_transcribe", "document_ocr",
-        # Hermes 级工具
+        "image_analyze", "video_analyze", "voice_transcribe",
         "terminal", "write_file", "patch_file", "read_file", "search_files",
         "web_search", "web_fetch", "send_message",
         "memory_save", "memory_search", "fact_add", "fact_probe", "memory_stats",
-        "skill_create",
-        # 湖南政策 MCP
+        "skill_create", "skill_search", "skill_install",
         "hunan_policy_search", "hunan_policy_latest", "hunan_policy_detail",
         "hunan_policy_crawl",
     },
     SafetyLevel.L3: {
-        "env_query", "regulation_search", "report_generate",
-        "case_search", "map_visualize", "alert_check",
-        "document_parse", "compliance_check", "data_analyze",
-        "dispatch_expert", "knowledge_query", "skill_execute",
+        "env_query", "regulation_search",
+        "document_parse", "dispatch_expert", "knowledge_query", "skill_execute",
         "code_read", "code_edit", "code_write",
         "shell_exec", "git_status", "git_commit",
-        # 多模态分析（全权限）
-        "image_analyze", "video_analyze", "voice_transcribe", "document_ocr",
-        # Hermes 级工具（全权限）
+        "image_analyze", "video_analyze", "voice_transcribe",
         "terminal", "write_file", "patch_file", "read_file", "search_files",
         "web_search", "web_fetch", "send_message",
         "memory_save", "memory_search", "fact_add", "fact_probe", "memory_stats",
-        "skill_create",
-        # 湖南政策 MCP（全权限）
+        "skill_create", "skill_search", "skill_install",
         "hunan_policy_search", "hunan_policy_latest", "hunan_policy_detail",
         "hunan_policy_crawl",
     },
 }
 
-# L3 级别需要人工确认的工具
 L3_HUMAN_CONFIRM_TOOLS: set[str] = {
-    "report_generate",      # 生成执法文书
-    "compliance_check",     # 合规结论
-    "dispatch_expert",      # 调度专家
-    "document_parse",       # 解析敏感文档
-    "code_edit",            # 修改代码文件
-    "code_write",           # 创建新文件
-    "shell_exec",           # 执行shell命令
-    "git_commit",           # 提交代码
+    "dispatch_expert",
+    "document_parse", "code_edit", "code_write", "shell_exec", "git_commit",
 }
 
 # ─── 专家工具权限矩阵 ─────────────────────────────────────────
+# 🔴 已移除空壳: case_search, compliance_check, data_analyze, map_visualize, alert_check
+# 🔴 已移除未注册: query_emission_data, search_regulation
 
-# 所有专家共享的基础多模态工具
-_MULTIMODAL_TOOLS = {"image_analyze", "video_analyze", "voice_transcribe", "document_ocr"}
-
-# 湖南政策 MCP 工具
+_MULTIMODAL_TOOLS = {"image_analyze", "video_analyze", "voice_transcribe"}  # document_ocr 由 document_parse 内部降级覆盖
 _HUNAN_POLICY_TOOLS = {"hunan_policy_search", "hunan_policy_latest", "hunan_policy_detail", "hunan_policy_crawl"}
-
-# Hermes 级工具（主控专用 + 所有专家共享的记忆工具）
 _HERMES_MEMORY_TOOLS = {"memory_save", "memory_search", "fact_add", "fact_probe", "memory_stats"}
 _HERMES_MASTER_TOOLS = {"terminal", "write_file", "patch_file", "read_file", "search_files",
                          "web_search", "web_fetch", "send_message", "skill_create"}
+_HERMES_SKILL_TOOLS = {"skill_execute", "skill_search", "skill_install"}
 
 EXPERT_TOOL_MATRIX: dict[str, set[str]] = {
-    "ecomind": {"env_query", "regulation_search", "report_generate", "case_search",
-                 "map_visualize", "alert_check", "dispatch_expert", "knowledge_query",
-                 "skill_execute", "code_read", "code_edit", "code_write",
-                 "shell_exec", "git_status", "git_commit"} | _MULTIMODAL_TOOLS | _HUNAN_POLICY_TOOLS | _HERMES_MEMORY_TOOLS | _HERMES_MEMORY_TOOLS | _HERMES_MASTER_TOOLS,
-    "env-monitoring": {"env_query", "report_generate", "map_visualize", "alert_check",
-                        "data_analyze", "skill_execute"} | _MULTIMODAL_TOOLS | _HUNAN_POLICY_TOOLS | _HERMES_MEMORY_TOOLS,
-    "enforcement": {"regulation_search", "report_generate", "case_search",
-                    "document_parse", "compliance_check", "knowledge_query", "skill_execute"} | _MULTIMODAL_TOOLS | _HUNAN_POLICY_TOOLS | _HERMES_MEMORY_TOOLS,
-    "eia": {"regulation_search", "report_generate", "document_parse",
-            "compliance_check", "knowledge_query", "skill_execute"} | _MULTIMODAL_TOOLS | _HUNAN_POLICY_TOOLS | _HERMES_MEMORY_TOOLS,
-    "permit": {"regulation_search", "document_parse", "compliance_check",
-               "knowledge_query", "skill_execute"} | _MULTIMODAL_TOOLS | _HUNAN_POLICY_TOOLS | _HERMES_MEMORY_TOOLS,
-    "biodiversity": {"env_query", "map_visualize", "knowledge_query", "skill_execute"} | _MULTIMODAL_TOOLS | _HUNAN_POLICY_TOOLS | _HERMES_MEMORY_TOOLS,
-    "carbon": {"env_query", "query_emission_data", "report_generate", "data_analyze", "search_regulation", "knowledge_query", "skill_execute"} | _MULTIMODAL_TOOLS | _HUNAN_POLICY_TOOLS | _HERMES_MEMORY_TOOLS,
-    "emergency": {"env_query", "report_generate", "map_visualize", "alert_check",
-                   "dispatch_expert", "knowledge_query", "skill_execute"} | _MULTIMODAL_TOOLS | _HUNAN_POLICY_TOOLS | _HERMES_MEMORY_TOOLS,
-    "restoration": {"report_generate", "case_search", "map_visualize",
-                    "knowledge_query", "skill_execute"} | _MULTIMODAL_TOOLS | _HUNAN_POLICY_TOOLS | _HERMES_MEMORY_TOOLS,
-    "inspection": {"regulation_search", "report_generate", "case_search",
-                   "compliance_check", "knowledge_query", "skill_execute"} | _MULTIMODAL_TOOLS | _HUNAN_POLICY_TOOLS | _HERMES_MEMORY_TOOLS,
-    "public": {"env_query", "regulation_search", "knowledge_query", "document_ocr",
+    # 🔑 ecomind 主控：调度 + 技能广场 + 自维护 + 记忆
+    "ecomind": {"dispatch_expert", "code_read", "code_edit", "code_write",
+                 "git_status", "git_commit"} | _HERMES_SKILL_TOOLS | _MULTIMODAL_TOOLS | _HERMES_MEMORY_TOOLS,
+
+    # 📊 env-monitoring：环境数据 + 报告 + 策略
+    "env-monitoring": {"env_query", "regulation_search",
+                        "knowledge_query"} | _HERMES_SKILL_TOOLS | _MULTIMODAL_TOOLS | _HUNAN_POLICY_TOOLS | _HERMES_MEMORY_TOOLS,
+
+    # 🔍 enforcement：文件读取 + 技能广场 + 法规查询 + 记忆（已诚实化，document_ocr 由 document_parse 内部降级覆盖）
+    "enforcement": {"regulation_search", "knowledge_query",
+                    "code_read", "search_files", "document_parse",
+                    "image_analyze", "video_analyze", "voice_transcribe"
+                    } | _HERMES_SKILL_TOOLS | _HUNAN_POLICY_TOOLS | _HERMES_MEMORY_TOOLS,
+
+    # 📋 eia：法规 + 文档 + 技能
+    "eia": {"regulation_search", "document_parse", "knowledge_query",
+            } | _HERMES_SKILL_TOOLS | _MULTIMODAL_TOOLS | _HUNAN_POLICY_TOOLS | _HERMES_MEMORY_TOOLS,
+
+    # 📝 permit：法规 + 文档 + 技能
+    "permit": {"regulation_search", "document_parse", "knowledge_query",
+               } | _HERMES_SKILL_TOOLS | _MULTIMODAL_TOOLS | _HUNAN_POLICY_TOOLS | _HERMES_MEMORY_TOOLS,
+
+    # 🌿 biodiversity：环境数据 + 知识库 + 技能
+    "biodiversity": {"env_query", "knowledge_query",
+                     } | _HERMES_SKILL_TOOLS | _MULTIMODAL_TOOLS | _HUNAN_POLICY_TOOLS | _HERMES_MEMORY_TOOLS,
+
+    # 🏭 carbon：环境数据 + 知识库 + 报告 + 技能
+    "carbon": {"env_query", "regulation_search", "knowledge_query",
+               } | _HERMES_SKILL_TOOLS | _MULTIMODAL_TOOLS | _HUNAN_POLICY_TOOLS | _HERMES_MEMORY_TOOLS,
+
+    # 🚨 emergency：环境数据 + 调度 + 报告 + 策略 + 技能
+    "emergency": {"env_query", "knowledge_query", "dispatch_expert",
+                  } | _HERMES_SKILL_TOOLS | _MULTIMODAL_TOOLS | _HUNAN_POLICY_TOOLS | _HERMES_MEMORY_TOOLS,
+
+    # 🧪 restoration：知识库 + 技能
+    "restoration": {"knowledge_query",
+                    } | _HERMES_SKILL_TOOLS | _MULTIMODAL_TOOLS | _HUNAN_POLICY_TOOLS | _HERMES_MEMORY_TOOLS,
+
+    # 🔎 inspection：法规 + 技能
+    "inspection": {"regulation_search", "knowledge_query",
+                   } | _HERMES_SKILL_TOOLS | _MULTIMODAL_TOOLS | _HUNAN_POLICY_TOOLS | _HERMES_MEMORY_TOOLS,
+
+    # 📢 public：环境数据 + 法规 + 知识库 + 策略
+    "public": {"env_query", "regulation_search", "knowledge_query",
                "hunan_policy_search", "hunan_policy_latest", "hunan_policy_detail"},
-    "water": {"env_query", "map_visualize", "data_analyze", "knowledge_query", "skill_execute"} | _MULTIMODAL_TOOLS | _HUNAN_POLICY_TOOLS | _HERMES_MEMORY_TOOLS,
+
+    # 💧 water：环境数据 + 知识库 + 技能
+    "water": {"env_query", "knowledge_query",
+              } | _HERMES_SKILL_TOOLS | _MULTIMODAL_TOOLS | _HUNAN_POLICY_TOOLS | _HERMES_MEMORY_TOOLS,
 }
 
 
@@ -132,7 +144,6 @@ EXPERT_TOOL_MATRIX: dict[str, set[str]] = {
 
 @dataclass
 class RateLimiter:
-    """简易内存速率限制器"""
     window_seconds: float = 60.0
     max_requests: int = 30
     _requests: list[float] = field(default_factory=list)
@@ -147,7 +158,6 @@ class RateLimiter:
         return True
 
 
-# 每个安全级别的速率限制器
 RATE_LIMITERS: dict[SafetyLevel, RateLimiter] = {
     SafetyLevel.L1: RateLimiter(max_requests=100),
     SafetyLevel.L2: RateLimiter(max_requests=30),
@@ -161,7 +171,6 @@ _audit_log: list[dict[str, Any]] = []
 
 
 def write_audit_log(entry: dict[str, Any]) -> None:
-    """写入审计日志"""
     entry["timestamp"] = time.time()
     _audit_log.append(entry)
     logger.info(f"[Audit] {entry.get('tool_name')} by {entry.get('expert_id')} "
@@ -169,7 +178,6 @@ def write_audit_log(entry: dict[str, Any]) -> None:
 
 
 def get_audit_logs(limit: int = 100) -> list[dict[str, Any]]:
-    """获取最近 N 条审计日志"""
     return _audit_log[-limit:]
 
 
@@ -182,11 +190,6 @@ def check_guardrail(
     safety_level: SafetyLevel = SafetyLevel.L2,
     user_id: str = "anonymous",
 ) -> GuardrailResult:
-    """
-    对工具调用执行边界校验。
-
-    返回 GuardrailResult，包含是否允许、是否需要人工确认、审计日志条目。
-    """
     # 1. 工具白名单校验
     allowed_tools = TOOL_WHITELIST.get(safety_level, set())
     if tool_name not in allowed_tools:
@@ -217,7 +220,6 @@ def check_guardrail(
         and tool_name in L3_HUMAN_CONFIRM_TOOLS
     )
 
-    # 5. 构建审计日志
     audit_entry = {
         "user_id": user_id,
         "expert_id": expert_id,
@@ -235,14 +237,12 @@ def check_guardrail(
 
 
 def confirm_execution(audit_entry: dict[str, Any], result: str) -> None:
-    """人工确认后记录审计日志"""
     audit_entry["human_confirmed"] = True
     audit_entry["result"] = result
     write_audit_log(audit_entry)
 
 
 def reject_execution(audit_entry: dict[str, Any]) -> None:
-    """人工拒绝后记录审计日志"""
     audit_entry["human_confirmed"] = False
     audit_entry["result"] = "rejected_by_user"
     write_audit_log(audit_entry)

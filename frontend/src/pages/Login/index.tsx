@@ -29,12 +29,15 @@ const LoginPage: React.FC = () => {
   const { login } = useAuthStore();
   const [loading, setLoading] = useState(false);
 
+  /** All roles land on the main chat page */
+  const getRedirectPath = (): string => '/chat'
+
   const handleLogin = async (values: { username: string; password: string }) => {
     setLoading(true);
     try {
       await login(values.username, values.password);
       message.success('登录成功');
-      navigate('/command-cockpit', { replace: true });
+      navigate(getRedirectPath(), { replace: true });
     } catch (err: any) {
       message.error(err.message || '登录失败');
     } finally {
@@ -47,7 +50,7 @@ const LoginPage: React.FC = () => {
     try {
       await login(username, '123456');
       message.success('登录成功');
-      navigate('/command-cockpit', { replace: true });
+      navigate(getRedirectPath(), { replace: true });
     } catch (err: any) {
       message.error(err.message || '登录失败');
     } finally {

@@ -1,27 +1,39 @@
-/** Base list query parameters */
-export interface ListParams {
-  limit?: number;
-  offset?: number;
+/** Department Agent configuration — v6.5 */
+
+export interface AgentMessageResponse {
+  id: string;
+  content: string;
+  agentId: string;
+  timestamp: string;
+  /** Extended fields for SendMessageModal */
+  message?: string;
+  iterations?: number;
+  tools_used?: string[];
+  hallucination_risk?: number;
 }
 
-/** Deployment mode */
-export type DeployMode = 'local' | 'cloud' | 'hybrid';
+export interface DeptAgentConfig {
+  deptId: string;
+  deptName: string;
+  department: string;
+  agentKey: string;
+  agentId: string;
+  agentName: string;
+  icon: string;
+  priority: 'P0' | 'P1' | 'P2' | 'P3';
+  capabilities: string[];
+  skills: string[];
+  model: string;
+  modelTier: 'opus' | 'sonnet' | 'haiku';
+  safetyLevel: 'L1' | 'L2' | 'L3';
+  cities: string[];
+}
 
-// ============================================================
-// Agent Types
-// ============================================================
+// ─── Agent Management ───
 
-export type AgentStatus = 'running' | 'stopped' | 'paused' | 'error';
-export type AgentTier = 'opus' | 'sonnet' | 'haiku';
-export type AgentProvider = 'deepseek' | 'qwen' | 'glm' | 'openai' | 'anthropic';
-/** 19个部门名称 */
-export type DepartmentName =
-  | '办公室' | '综合协调处' | '法规与标准处' | '科技与财务处' | '宣传教育与对外合作处'
-  | '生态环境执法局' | '生态环境监测处' | '环境影响评价与排放管理处'
-  | '大气环境与应对气候变化处' | '水生态环境处' | '土壤生态环境处'
-  | '省生态环境保护督察办公室' | '生态环境保护督察二处' | '生态环境保护督察三处'
-  | '固体废物与化学品处' | '核与辐射管理处' | '自然生态保护处'
-  | '人事处' | '厅直属机关党委';
+export type AgentProvider = 'qwen' | 'deepseek' | 'glm' | 'openai' | 'anthropic' | 'kimi' | 'yi' | 'local_vllm' | 'local_sglang';
+
+export type AgentStatus = 'running' | 'paused' | 'stopped' | 'error';
 
 export interface AgentCreateRequest {
   name: string;
@@ -31,76 +43,165 @@ export interface AgentCreateRequest {
   soul?: string;
   temperature?: number;
   max_tokens?: number;
-  max_iterations?: number;
-  tier?: AgentTier;
   taiji_verify_enabled?: boolean;
-  tools?: string[];
-  metadata?: Record<string, unknown>;
-  /** 🆕 部门绑定 */
-  department?: DepartmentName;
 }
 
 export interface AgentResponse {
   agent_id: string;
   name: string;
   description?: string;
+  provider: string;
   status: AgentStatus;
-  provider: AgentProvider;
   model: string;
+  taiji_verify_enabled: boolean;
   soul?: string;
   temperature?: number;
   max_tokens?: number;
-  max_iterations?: number;
-  tier?: AgentTier;
-  taiji_verify_enabled?: boolean;
-  tools?: string[];
-  metadata?: Record<string, unknown>;
+  tools: string[];
   created_at: string;
-  updated_at: string;
-  /** 🆕 部门绑定 */
-  department?: DepartmentName;
-  /** 🆕 绑定的技能 */
+  updated_at?: string;
+}
+
+// ─── Approval & Audit ───
+
+export type ApprovalStatus =
+  | 'draft'
+  | 'pending'
+  | 'in_review'
+  | 'approved'
+  | 'rejected'
+  | 'returned'
+  | 'cancelled'
+  | 'completed';
+
+export interface ApprovalResponse {
+  approval_id: string;
+  title: string;
+  requester: string;
+  department?: string;
+  status: ApprovalStatus;
+  current_step: number;
+  steps: string[];
+  created_at: string;
+}
+
+export interface ApprovalActionRequest {
+  approver_id: string;
+  comment: string;
+}
+
+export interface AuditRecordResponse {
+  record_id: string;
+  timestamp: string;
+  user_id: string;
+  action: string;
+  resource: string;
+  success: boolean;
+  details: Record<string, unknown>;
+}
+
+// ─── Department ───
+
+export type DepartmentName =
+  | '生态环境执法局'
+  | '生态环境监测处'
+  | '环境影响评价与排放管理处'
+  | '大气环境与应对气候变化处'
+  | '水生态环境处'
+  | '土壤生态环境处';
+
+/** Simplified binding used by deptStore — structurally compatible with DeptAgentConfig */
+export interface DepartmentAgentBinding {
+  department: DepartmentName;
+  agentId: string;
+  agentName?: string;
+  agentKey?: string;
+  model?: string;
   skills?: string[];
+  priority?: string;
 }
 
-export interface AgentListResponse {
-  agents: AgentResponse[];
-  total: number;
+// ─── Model Management ───
+
+export type ModelTier = 'opus' | 'sonnet' | 'haiku';
+
+export type ModelStatus = 'online' | 'offline' | 'loading' | 'error';
+
+export interface ModelInfo {
+  model_id: string;
+  model_name: string;
+  provider: string;
+  tier: ModelTier | null;
+  status: ModelStatus;
+  latency_ms: number;
+  cost_per_1k_tokens: number;
+  max_tokens: number;
+  supports_streaming: boolean;
+  supports_tools: boolean;
 }
 
-export interface AgentMessageRequest {
-  message: string;
-  session_id?: string;
-  system_message?: string;
-  /** 🆕 部门上下文 */
-  department?: DepartmentName;
+export interface ModelRouteResponse {
+  routed_model: string;
+  provider: string;
+  tier: ModelTier;
+  api_base?: string;
+  reason?: string;
+  fallback?: string;
 }
 
-export interface AgentMessageResponse {
-  agent_id: string;
-  message: string;
-  iterations?: number;
-  tools_used?: string[];
-  hallucination_risk?: number;
-  status: string;
-  session_id?: string;
+export interface ModelHealthResponse {
+  healthy: boolean;
+  models: Array<{ status: string; [key: string]: unknown }>;
 }
 
-export interface AgentUpdateStatusRequest {
-  status: AgentStatus;
+// ─── Security Events ───
+
+export type SecurityEventType =
+  | 'hallucination'
+  | 'unauthorized_access'
+  | 'data_leak'
+  | 'injection'
+  | 'policy_violation'
+  | 'rate_limit'
+  | 'compliance'
+  | 'encryption';
+
+export type SecurityEventSeverity = 'critical' | 'high' | 'medium' | 'low';
+
+export interface SecurityEventResponse {
+  event_id: string;
+  created_at: string;
+  event_type: SecurityEventType;
+  severity: SecurityEventSeverity;
+  title: string;
+  description: string;
+  source: string;
+  resolved: boolean;
 }
 
-// ============================================================
-// Workflow Types
-// ============================================================
+// ─── Workflow ───
 
-export type WorkflowStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+export type WorkflowStatus = 'pending' | 'running' | 'paused' | 'completed' | 'failed' | 'cancelled';
+
+export interface WorkflowNodeDefinition {
+  name: string;
+  node_type: 'action' | 'decision' | 'subflow';
+  config: Record<string, unknown>;
+}
+
+export interface WorkflowEdgeDefinition {
+  source: string;
+  target: string;
+  condition: string | null;
+}
 
 export interface WorkflowCreateRequest {
   name: string;
   description?: string;
-  nodes?: unknown[];
-  edges?: unknown[];
+  max_iterations?: number;
+  timeout_seconds?: number;
+  nodes: WorkflowNodeDefinition[];
+  edges: WorkflowEdgeDefinition[];
 }
 
 export interface WorkflowResponse {
@@ -108,287 +209,115 @@ export interface WorkflowResponse {
   name: string;
   description?: string;
   status: WorkflowStatus;
-  nodes?: unknown[];
-  edges?: unknown[];
+  nodes: WorkflowNodeDefinition[];
+  edges: WorkflowEdgeDefinition[];
+  current_node: string | null;
+  max_iterations: number;
+  timeout_seconds: number;
   created_at: string;
   updated_at: string;
+  history: Record<string, unknown>[];
+  errors: string[];
 }
 
-export interface WorkflowListResponse {
-  workflows: WorkflowResponse[];
-  total: number;
-}
+// ─── Default Department Agent Configs ───
 
-export interface WorkflowExecuteRequest {
-  initial_state?: Record<string, unknown>;
-}
-
-export interface WorkflowExecuteResponse {
-  workflow_id: string;
-  status: WorkflowStatus;
-  result?: unknown;
-}
-
-// ============================================================
-// Security Types
-// ============================================================
-
-export type SecurityEventType = 'intrusion' | 'malware' | 'policy_violation' | 'anomaly' | 'data_leak' | 'other';
-export type SecuritySeverity = 'low' | 'medium' | 'high' | 'critical';
-
-export interface SecurityEvent {
-  id: string;
-  eventType: SecurityEventType;
-  severity: SecuritySeverity;
-  description: string;
-  timestamp: string;
-}
-
-export interface SecurityEventListResponse {
-  events: SecurityEvent[];
-  total: number;
-}
-
-// ─── Approval Types ───
-
-export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
-
-export interface ApprovalResponse {
-  approval_id: string;
-  title: string;
-  applicant: string;
-  type: string;
-  level: 'L1' | 'L2' | 'L3';
-  status: ApprovalStatus;
-  submitted_at: string;
-  resolved_at?: string;
-}
-
-export interface ApprovalListResponse {
-  approvals: ApprovalResponse[];
-  total: number;
-}
-
-export interface ApprovalActionRequest {
-  comment?: string;
-}
-
-// ─── Audit Types ───
-
-export interface AuditTrailResponse {
-  records: AuditRecord[];
-  total: number;
-}
-
-export interface AuditRecord {
-  id: string;
-  timestamp: string;
-  operator: string;
-  action: string;
-  detail: string;
-  result: 'success' | 'failure' | 'warning';
-  level: string;
-}
-
-// ============================================================
-// Model Types
-// ============================================================
-
-export type ModelProvider = 'deepseek' | 'qwen' | 'glm' | 'yi' | 'openai';
-export type ModelTier = 'opus' | 'sonnet' | 'haiku';
-
-export interface ModelInfo {
-  name: string;
-  provider: ModelProvider;
-  tier: ModelTier;
-  status: 'active' | 'inactive' | 'error';
-  avg_latency_ms?: number;
-  success_rate?: number;
-}
-
-export interface ModelListResponse {
-  models: ModelInfo[];
-  active_count: number;
-  total_count: number;
-}
-
-export interface ModelHealthResponse {
-  models: ModelInfo[];
-}
-
-export interface ModelRouteRequest {
-  task: string;
-  tier?: ModelTier;
-  provider?: ModelProvider;
-}
-
-export interface ModelRouteResponse {
-  model: string;
-  provider: string;
-  tier: ModelTier;
-  reason: string;
-}
-
-export interface ModelConfigResponse {
-  active_provider: string;
-  available_models: string[];
-  tier_configs: Record<string, { model: string; temperature: number }>;
-}
-
-// ============================================================
-// Department & Agent Binding Types
-// ============================================================
-
-/** 部门智能体绑定信息 */
-export interface DepartmentAgentBinding {
-  department: DepartmentName;
-  agentName: string;
-  agentKey: string;
-  priority: 'P0' | 'P1' | 'P2' | 'P3';
-  skills: string[];
-  model: string;
-}
-
-/** 所有19个部门的智能体默认绑定 */
-export const DEFAULT_DEPT_AGENTS: DepartmentAgentBinding[] = [
-  // P0
-  { department: '生态环境执法局', agentName: '执法办案智能体', agentKey: 'enforcement-agent', priority: 'P0', skills: ['enforcement-decision', 'environment-monitoring', 'report-generation'], model: 'deepseek-671B' },
-  { department: '生态环境监测处', agentName: '监测分析智能体', agentKey: 'monitoring-agent', priority: 'P0', skills: ['environment-monitoring', 'report-generation', 'security-audit'], model: 'deepseek-671B' },
-  { department: '环境影响评价与排放管理处', agentName: '环评审批智能体', agentKey: 'eia-approval-agent', priority: 'P0', skills: ['approval-workflow', 'security-audit'], model: 'deepseek-671B' },
-  { department: '大气环境与应对气候变化处', agentName: '大气治理智能体', agentKey: 'air-climate-agent', priority: 'P0', skills: ['carbon-emission', 'environment-monitoring', 'report-generation'], model: 'deepseek-671B' },
-  { department: '水生态环境处', agentName: '水环境治理智能体', agentKey: 'water-agent', priority: 'P0', skills: ['environment-monitoring', 'report-generation'], model: 'deepseek-671B' },
-  { department: '土壤生态环境处', agentName: '土壤治理智能体', agentKey: 'soil-agent', priority: 'P0', skills: ['environment-monitoring', 'report-generation'], model: 'deepseek-671B' },
-  // P1
-  { department: '办公室', agentName: '政务综合智能体', agentKey: 'office-agent', priority: 'P1', skills: ['report-generation', 'approval-workflow'], model: 'deepseek-671B' },
-  { department: '综合协调处', agentName: '综合协调智能体', agentKey: 'coordination-agent', priority: 'P1', skills: ['environment-monitoring', 'report-generation'], model: 'deepseek-671B' },
-  { department: '法规与标准处', agentName: '法规标准智能体', agentKey: 'regulation-agent', priority: 'P1', skills: ['enforcement-decision', 'approval-workflow', 'security-audit'], model: 'deepseek-671B' },
-  { department: '科技与财务处', agentName: '科技财务智能体', agentKey: 'tech-finance-agent', priority: 'P1', skills: ['report-generation'], model: 'deepseek-671B' },
-  { department: '宣传教育与对外合作处', agentName: '宣传合作智能体', agentKey: 'education-agent', priority: 'P1', skills: ['report-generation'], model: 'deepseek-671B' },
-  // P2
-  { department: '省生态环境保护督察办公室', agentName: '督察一智能体', agentKey: 'inspection-1-agent', priority: 'P2', skills: ['enforcement-decision', 'report-generation'], model: 'deepseek-671B' },
-  { department: '生态环境保护督察二处', agentName: '督察二智能体', agentKey: 'inspection-2-agent', priority: 'P2', skills: ['enforcement-decision', 'report-generation'], model: 'deepseek-671B' },
-  { department: '生态环境保护督察三处', agentName: '督察三智能体', agentKey: 'inspection-3-agent', priority: 'P2', skills: ['enforcement-decision', 'report-generation'], model: 'deepseek-671B' },
-  { department: '固体废物与化学品处', agentName: '固废管理智能体', agentKey: 'solidwaste-agent', priority: 'P2', skills: ['environment-monitoring', 'approval-workflow'], model: 'deepseek-671B' },
-  { department: '核与辐射管理处', agentName: '核辐射安全智能体', agentKey: 'nuclear-agent', priority: 'P2', skills: ['security-audit', 'approval-workflow'], model: 'deepseek-671B' },
-  { department: '自然生态保护处', agentName: '生态保护智能体', agentKey: 'ecology-agent', priority: 'P2', skills: ['environment-monitoring', 'report-generation'], model: 'deepseek-671B' },
-  // P3
-  { department: '人事处', agentName: '人事管理智能体', agentKey: 'hr-agent', priority: 'P3', skills: ['report-generation'], model: 'deepseek-671B' },
-  { department: '厅直属机关党委', agentName: '党建智能体', agentKey: 'party-agent', priority: 'P3', skills: ['report-generation'], model: 'deepseek-671B' },
+/** Full department agent configs used by RoleSwitcher + ChiefDashboard */
+export const DEFAULT_DEPT_AGENTS: DeptAgentConfig[] = [
+  {
+    deptId: 'dept_enforcement',
+    deptName: '生态环境执法局',
+    department: '生态环境执法局',
+    agentKey: 'enforcement',
+    agentId: 'enforcement',
+    agentName: '执法监察专家',
+    icon: 'SafetyCertificateOutlined',
+    priority: 'P0',
+    capabilities: ['取证辅助', '违规判定', '处罚建议', '文书生成'],
+    skills: ['智能取证', '违规自动判定', '文书一键生成'],
+    model: 'qwen-max',
+    modelTier: 'opus',
+    safetyLevel: 'L3',
+    cities: ['长沙市', '株洲市', '湘潭市'],
+  },
+  {
+    deptId: 'dept_monitoring',
+    deptName: '生态环境监测处',
+    department: '生态环境监测处',
+    agentKey: 'monitoring',
+    agentId: 'env-monitoring',
+    agentName: '环境监测专家',
+    icon: 'LineChartOutlined',
+    priority: 'P0',
+    capabilities: ['实时数据解读', '异常分析', '趋势预测', '报告生成'],
+    skills: ['污染溯源', '趋势预警', '自动报告'],
+    model: 'deepseek-chat',
+    modelTier: 'sonnet',
+    safetyLevel: 'L2',
+    cities: ['长沙市', '衡阳市', '邵阳市', '岳阳市'],
+  },
+  {
+    deptId: 'dept_eia',
+    deptName: '环境影响评价与排放管理处',
+    department: '环境影响评价与排放管理处',
+    agentKey: 'eia',
+    agentId: 'eia',
+    agentName: '环评审批专家',
+    icon: 'FileTextOutlined',
+    priority: 'P0',
+    capabilities: ['技术审查', '合规校验', '报告生成'],
+    skills: ['自动审查', '合规比对', '报告稽核'],
+    model: 'qwen-plus',
+    modelTier: 'opus',
+    safetyLevel: 'L3',
+    cities: ['长沙市', '常德市', '郴州市'],
+  },
+  {
+    deptId: 'dept_air',
+    deptName: '大气环境与应对气候变化处',
+    department: '大气环境与应对气候变化处',
+    agentKey: 'air',
+    agentId: 'carbon',
+    agentName: '碳排放专家',
+    icon: 'CloudOutlined',
+    priority: 'P1',
+    capabilities: ['排放计算', '减排方案', '碳足迹分析'],
+    skills: ['碳核算', '减排路径规划'],
+    model: 'glm-4',
+    modelTier: 'sonnet',
+    safetyLevel: 'L2',
+    cities: ['长沙市', '株洲市', '湘潭市', '娄底市'],
+  },
+  {
+    deptId: 'dept_water',
+    deptName: '水生态环境处',
+    department: '水生态环境处',
+    agentKey: 'water',
+    agentId: 'water',
+    agentName: '水资源专家',
+    icon: 'DropboxOutlined',
+    priority: 'P1',
+    capabilities: ['水质分析', '水量预测', '污染溯源'],
+    skills: ['水质建模', '污染扩散模拟'],
+    model: 'gpt-4o-mini',
+    modelTier: 'sonnet',
+    safetyLevel: 'L2',
+    cities: ['长沙市', '岳阳市', '常德市', '益阳市'],
+  },
+  {
+    deptId: 'dept_soil',
+    deptName: '土壤生态环境处',
+    department: '土壤生态环境处',
+    agentKey: 'soil',
+    agentId: 'soil',
+    agentName: '土壤治理专家',
+    icon: 'ExperimentOutlined',
+    priority: 'P1',
+    capabilities: ['土壤检测', '污染评估', '修复方案'],
+    skills: ['土壤污染评估', '修复方案推荐'],
+    model: 'ecomind-14b-v3',
+    modelTier: 'sonnet',
+    safetyLevel: 'L2',
+    cities: ['长沙市', '衡阳市', '郴州市'],
+  },
 ];
-
-// ============================================================
-
-// ============================================================
-// Approval Types
-// ============================================================
-
-export type ApprovalType = '环评报告' | '排污许可' | '竣工验收';
-export type ApprovalLevel = 'L1-科员' | 'L2-处长' | 'L3-厅领导';
-export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'returned';
-
-export interface ApprovalItem {
-  id: string;
-  approval_number: string;
-  title: string;
-  approval_type: ApprovalType;
-  status: ApprovalStatus;
-  level: ApprovalLevel;
-  applicant: string;
-  department: string;
-  enterprise_name: string;
-  credit_code?: string;
-  content: string;
-  attachments: Array<{ name: string; url: string }>;
-  timeline: Array<{ event: string; timestamp: string; status: string; level: string }>;
-  audit_log: Array<{ action: string; timestamp: string }>;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface ApprovalCreateRequest {
-  title: string;
-  approval_type: ApprovalType;
-  applicant: string;
-  department: string;
-  enterprise_name: string;
-  credit_code?: string;
-  content: string;
-}
-
-export interface ApprovalTransitionRequest {
-  action: 'approve' | 'reject' | 'return';
-  comment?: string;
-  operator: string;
-}
-
-// ============================================================
-// Enforcement Case Types
-// ============================================================
-
-export type CaseStage = '线索' | '受理' | '立案' | '调查' | '告知' | '决定' | '执行' | '归档';
-
-export type CaseSource = '在线监测' | '群众举报' | '日常巡查' | '上级交办' | '其他';
-
-export type CaseSeverity = '高' | '中' | '低';
-
-export interface TimelineEntry {
-  id: string;
-  time: string;
-  stage: CaseStage;
-  operator: string;
-  action: string;
-  comment?: string;
-}
-
-export interface Attachment {
-  id: string;
-  name: string;
-  type: string;
-  size: number;
-  uploaded_at: string;
-}
-
-export interface EnforcementCase {
-  id: string;
-  case_number: string;
-  title: string;
-  source: CaseSource;
-  stage: CaseStage;
-  severity: CaseSeverity;
-  enterprise_name: string;
-  credit_code: string;
-  legal_person: string;
-  violation: string;
-  city: string;
-  officers: string[];
-  timeline: TimelineEntry[];
-  created_at: string;
-  updated_at: string;
-}
-
-export interface EnforcementCaseCreateRequest {
-  title: string;
-  source: CaseSource;
-  severity: CaseSeverity;
-  enterprise_name: string;
-  credit_code?: string;
-  legal_person?: string;
-  violation: string;
-  city: string;
-  officers?: string[];
-}
-
-export interface EnforcementCaseTransitionRequest {
-  target_stage: CaseStage;
-  comment?: string;
-  operator: string;
-}
-
-export interface EnforcementCaseListParams {
-  stage?: CaseStage;
-  severity?: CaseSeverity;
-  city?: string;
-  keyword?: string;
-  limit?: number;
-  offset?: number;
-}

@@ -287,12 +287,12 @@ export default function ChatPage() {
     setMessages((prev) => [...prev, userMsg, assistantMsg])
     setInputValue("")
     setIsLoading(true)
-    // 安全兜底：5 分钟后强制清除 loading 状态，防止"思考中"卡死
+    // 安全兜底：120 秒后强制清除 loading，防止 SSE 连接异常时永久"思考中"
     const safetyTimer = setTimeout(() => {
-      console.warn('[Chat] 安全兜底：5分钟未收到 onDone/onError，强制清除 loading')
+      console.warn('[Chat] 安全兜底：120秒未收到 onDone/onError，强制清除 loading')
       setIsLoading(false)
-      setLastError('响应超时，请重试')
-    }, 300_000)
+      setLastError('响应超时（SSE 连接可能断开），请刷新页面重试')
+    }, 120_000)
     if (attachedFiles.length > 0) {
       setAttachedFiles([])
     }
@@ -315,28 +315,7 @@ export default function ChatPage() {
       })
     }
 
-    // 📚 资料库上下文：自动匹配用户查询中的关键词
-    const knowledgeSummary = knowledgeSummaryRef.current
-    let knowledgeFiles: Array<{ name: string; content: string; path: string }> = []
-    try {
-      const searchResults = await searchKnowledgeFiles(userMsg.content).catch(() => [])
-      // 读取前 3 个匹配文件的内容（仅文本文件）
-      const readableFiles = searchResults.filter(f =>
-        ['.md', '.txt', '.csv', '.json'].includes(f.extension)
-      ).slice(0, 3)
-      for (const f of readableFiles) {
-        try {
-          const fileData = await readKnowledgeFile(f.path)
-          if (fileData.readable && fileData.content) {
-            knowledgeFiles.push({
-              name: f.name,
-              content: fileData.content.slice(0, 2000), // 限制每文件 2000 字
-              path: f.path,
-            })
-          }
-        } catch { /* 跳过无法读取的文件 */ }
-      }
-    } catch { /* 搜索失败不影响对话 */ }
+    // 📚 资料库上下文（仅在 ecomind 主控时加载）\n    const knowledgeSummary = selectedExpert === 'ecomind' ? knowledgeSummaryRef.current : ''\n    let knowledgeFiles: Array<{ name: string; content: string; path: string }> = []
 
     // 🔥 先抓取真实环境数据（await 完成后再启动 LLM，确保 envContext 可用）
     // 显示"正在获取数据"的提示
@@ -555,6 +534,21 @@ export default function ChatPage() {
             description: `工具 ${getToolLabel(toolName)} 执行完成: ${summary}`,
           })
         }
+      },
+      // 🎯 专家消息：将专家分析结果渲染为独立对话气泡
+      onExpertMessage: (expertId, expertName, content, toolsUsed, duration) => {
+        const expertLabel = EXPERT_MAP[expertId]?.name || expertName
+        const expertIcon = EXPERT_MAP[expertId]?.icon || '🤖'
+        const expertMsgId = `expert-${expertId}-${Date.now()}`
+        setMessages(prev => [...prev, {
+          id: expertMsgId,
+          type: 'assistant' as const,
+          role: 'assistant' as const,
+          content: `**${expertIcon} ${expertLabel}**（耗时 ${(duration/1000).toFixed(1)}s，使用 ${toolsUsed.length} 个工具）\n\n${content}`,
+          timestamp: new Date().toISOString(),
+          expertId,
+          expertName: expertLabel,
+        }])
       },
       onDone: (fullContent) => {
         clearTimeout(safetyTimer)

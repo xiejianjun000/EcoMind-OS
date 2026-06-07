@@ -208,7 +208,22 @@ async def feishu_send(message: str, target: str = "home") -> dict:
         return {"success": False, "error": str(e)}
 
 
+
+async def _forward_to_tools(tool_name: str, params: dict) -> dict:
+    from api.routers.tools import TOOL_REGISTRY
+    handler = TOOL_REGISTRY.get(tool_name)
+    if not handler:
+        return {"error": f"工具 {tool_name} 不存在"}
+    return await handler(params)
+
+
 # ─── 7. 文件读取 ───────────────────────────────────
+async def code_read_handler(file_path: str = "") -> dict:
+    """读取文件或列出目录（~ 展开 + 目录列表 + 安全边界）"""
+    from api.routers.tools import _code_read
+    return await _code_read({"file_path": file_path})
+
+
 async def file_read(path: str, offset: int = 1, limit: int = 500) -> dict:
     """读取文件内容"""
     abs_path = os.path.abspath(os.path.expanduser(path))
@@ -315,14 +330,31 @@ async def skill_create_handler(
     display_name: str = "",
     category: str = "general",
     steps_text: str = "",
+    user_message: str = "",
+    assistant_response: str = "",
+    tools_used_text: str = "",
 ) -> dict:
-    """手动创建技能（自动技能由 AutoSkillEngine 在后台生成）"""
+    """创建技能。如果提供了对话上下文(user_message+assistant_response)，则使用LLM提炼高质量技能"""
+    from engine.auto_skill import AutoSkill, SKILLS_DIR, get_auto_skill_engine
+    import time
+
+    engine = get_auto_skill_engine()
+
+    # LLM 提炼模式：提供了对话上下文
+    if user_message and assistant_response:
+        tools = [t.strip() for t in tools_used_text.split(",") if t.strip()] if tools_used_text else []
+        return await engine.distill_and_create(
+            expert_id="ecomind",
+            expert_name="EcoMind主控",
+            user_message=user_message,
+            assistant_response=assistant_response,
+            tools_used=tools,
+        )
+
+    # 手动模式
     name = skill_name
     if not name or not display_name:
-        return {"error": "name 和 display_name 必填"}
-
-    from engine.auto_skill import AutoSkill, SKILLS_DIR
-    import time
+        return {"error": "name 和 display_name 必填（或提供 user_message + assistant_response 进行自动提炼）"}
 
     skill = AutoSkill(
         id=name,
@@ -341,9 +373,6 @@ async def skill_create_handler(
 
     filepath = SKILLS_DIR / f"{name}.md"
     filepath.write_text(skill.to_markdown(), encoding="utf-8")
-
-    from engine.auto_skill import get_auto_skill_engine
-    engine = get_auto_skill_engine()
     engine._skills[skill.id] = skill
 
     return {"skill_id": skill.id, "display_name": skill.display_name, "status": "created"}
@@ -376,6 +405,16 @@ def register_hermes_tools(registry):
             parameters={
                 "path": {"type": "string", "description": "文件路径"},
                 "content": {"type": "string", "description": "文件内容"},
+            },
+        ),
+        EcoTool(
+            name="code_read",
+            description="读取文件内容或列出目录。支持 ~ 展开、目录列表、安全边界校验。传入目录路径可列出文件。",
+            handler=code_read_handler,
+            permission_level=1,
+            category="hermes",
+            parameters={
+                "file_path": {"type": "string", "description": "文件或目录路径（支持 ~）"},
             },
         ),
         EcoTool(
@@ -512,6 +551,20 @@ def register_hermes_tools(registry):
                 "category": {"type": "string", "description": "分类: enforcement/eia/carbon/water/..."},
                 "steps_text": {"type": "string", "description": "操作步骤，每行一个步骤"},
             },
+        ),
+        EcoTool(
+            name='skill_search',
+            description='在技能广场搜索可用技能',
+            handler=lambda **kw: _forward_to_tools('skill_search', kw),
+            permission_level=1, category='hermes',
+            parameters={'query': {'type': 'string', 'description': '搜索关键词'}},
+        ),
+        EcoTool(
+            name='skill_install',
+            description='从技能广场安装技能到专家',
+            handler=lambda **kw: _forward_to_tools('skill_install', kw),
+            permission_level=2, category='hermes',
+            parameters={'skill_id': {'type': 'string', 'description': '技能ID'}},
         ),
     ]
 

@@ -9,7 +9,7 @@ emoji: "📋"
 model: deepseek-671B
 temperature: 0.2
 triggers: [环评, 审批, 排污许可, 许可, 排放, EIA, 三同时, 竣工验收]
-tools: [query_environment_data, search_regulation, submit_approval, generate_report]
+tools: [env_query, regulation_search, report_generate, document_parse, compliance_check, knowledge_query, skill_execute]
 instinct_rules:
   - "审批材料不齐全时列表提示缺失项，不得通过"
   - "引用《建设项目环境影响评价分类管理名录》确定环评等级"

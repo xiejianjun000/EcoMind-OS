@@ -44,28 +44,28 @@ export const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
     label: '厅领导',
     icon: '🏛️',
     menuGroups: ['group-command-cockpit', 'group-agents', 'group-enforcement', 'group-security', 'group-models'],
-    homePath: '/command-cockpit',
+    homePath: '/chat',
   },
   chief: {
     role: 'chief',
     label: '处长',
     icon: '👔',
     menuGroups: ['group-chief-dashboard', 'group-agents', 'group-enforcement'],
-    homePath: '/chief-dashboard',
+    homePath: '/chat',
   },
   city: {
     role: 'city',
     label: '市州',
     icon: '🏙️',
     menuGroups: ['group-city-dashboard', 'group-city-monitoring', 'group-city-reports'],
-    homePath: '/city-dashboard',
+    homePath: '/chat',
   },
   admin: {
     role: 'admin',
     label: '管理员',
     icon: '🛡️',
     menuGroups: ['group-security', 'group-models', 'group-agents'],
-    homePath: '/security',
+    homePath: '/chat',
   },
 };
 

@@ -50,7 +50,7 @@ ALLOWED_EXTENSIONS = {
     ".mp3", ".wav", ".m4a", ".flac", ".ogg",
     ".mp4", ".avi", ".mov", ".mkv",
 }
-MAX_FILE_SIZE = 50 * 1024 * 1024
+MAX_FILE_SIZE = 200 * 1024 * 1024  # 200MB，支持大型案卷PDF
 
 
 class UploadResponse(BaseModel):

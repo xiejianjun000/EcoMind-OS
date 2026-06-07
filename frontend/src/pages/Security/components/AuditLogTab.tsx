@@ -2,7 +2,7 @@
  * 审计日志组件
  */
 import React, { useEffect, useState } from 'react';
-import { Table, Tag, Typography, Card } from 'antd';
+import { Table, Tag, Typography, Card, Space } from 'antd';
 import { securityApi, safeCall } from '@/services/api';
 import type { AuditRecordResponse } from '@/services/types';
 

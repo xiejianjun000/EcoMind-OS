@@ -46,6 +46,7 @@ class GovMCPServer:
         self._register_workflow_tools()
         self._register_audit_tools()
         self._register_gov_tools()
+        self._register_hunan_policy_tools()
         logger.info(f"GovMCP Server registered {len(self._tools)} tools")
 
     def _register_crypto_tools(self):
@@ -659,6 +660,99 @@ class GovMCPServer:
         start = datetime.strptime(start_date, "%Y-%m-%d").date()
         result_date = self._gov_tools.calendar.add_workdays(start, days)
         return json.dumps({"start_date": start_date, "days": days, "result_date": result_date.strftime("%Y-%m-%d")}, ensure_ascii=False)
+
+    # ── 湖南生态环境政策 MCP 工具 ───────────────────────────
+
+    def _register_hunan_policy_tools(self):
+        """注册湖南省生态环境厅政策抓取/检索工具"""
+        self._tools["hunan_policy_search"] = {
+            "name": "hunan_policy_search",
+            "description": "搜索湖南省生态环境厅最新政策法规（规范性文件/政策解读/通知公告/环保动态），数据源 https://sthjt.hunan.gov.cn/",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "搜索关键词（如大气污染防治、排放标准）"},
+                    "section": {"type": "string", "description": "板块过滤: gfxwj|zcfgjd|tzgg_tz|tzgg_gg|zxdt|hjyw"},
+                    "limit": {"type": "integer", "description": "返回条数，默认10", "default": 10},
+                },
+                "required": ["query"],
+            },
+            "handler": self._handle_hunan_policy_search,
+        }
+        self._tools["hunan_policy_latest"] = {
+            "name": "hunan_policy_latest",
+            "description": "获取湖南省生态环境厅最新发布的政策文件列表",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "days": {"type": "integer", "description": "最近天数，默认7", "default": 7},
+                    "section": {"type": "string", "description": "板块过滤"},
+                    "limit": {"type": "integer", "description": "返回条数，默认20", "default": 20},
+                },
+            },
+            "handler": self._handle_hunan_policy_latest,
+        }
+        self._tools["hunan_policy_detail"] = {
+            "name": "hunan_policy_detail",
+            "description": "查看指定湖南省生态环境政策文件的完整内容",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "article_id": {"type": "string", "description": "文章ID（从搜索结果中获取）"},
+                },
+                "required": ["article_id"],
+            },
+            "handler": self._handle_hunan_policy_detail,
+        }
+        self._tools["hunan_policy_crawl"] = {
+            "name": "hunan_policy_crawl",
+            "description": "从湖南省生态环境厅官网实时抓取最新政策文件",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "sections": {"type": "array", "items": {"type": "string"}, "description": "板块列表，空=全部"},
+                    "days_back": {"type": "integer", "description": "回溯天数，默认7", "default": 7},
+                    "max_pages": {"type": "integer", "description": "每板块最大页数，默认3", "default": 3},
+                },
+            },
+            "handler": self._handle_hunan_policy_crawl,
+        }
+        self._tools["hunan_policy_stats"] = {
+            "name": "hunan_policy_stats",
+            "description": "获取湖南省生态环境政策数据库统计信息",
+            "input_schema": {"type": "object", "properties": {}},
+            "handler": self._handle_hunan_policy_stats,
+        }
+
+    def _get_hunan_server(self):
+        """懒加载 HunanEnvPolicyMCPServer"""
+        from .hunan_env_policy import get_hunan_policy_server
+        return get_hunan_policy_server()
+
+    async def _handle_hunan_policy_search(self, query: str, section: str = None, limit: int = 10, **kwargs) -> str:
+        server = self._get_hunan_server()
+        result = await server._handle_search({"query": query, "section": section, "limit": limit})
+        return json.dumps(result, ensure_ascii=False, default=str)
+
+    async def _handle_hunan_policy_latest(self, days: int = 7, section: str = None, limit: int = 20, **kwargs) -> str:
+        server = self._get_hunan_server()
+        result = await server._handle_latest({"days": days, "section": section, "limit": limit})
+        return json.dumps(result, ensure_ascii=False, default=str)
+
+    async def _handle_hunan_policy_detail(self, article_id: str, **kwargs) -> str:
+        server = self._get_hunan_server()
+        result = await server._handle_detail({"article_id": article_id})
+        return json.dumps(result, ensure_ascii=False, default=str)
+
+    async def _handle_hunan_policy_crawl(self, sections: list = None, days_back: int = 7, max_pages: int = 3, **kwargs) -> str:
+        server = self._get_hunan_server()
+        result = await server._handle_crawl({"sections": sections, "days_back": days_back, "max_pages": max_pages})
+        return json.dumps(result, ensure_ascii=False, default=str)
+
+    async def _handle_hunan_policy_stats(self, **kwargs) -> str:
+        server = self._get_hunan_server()
+        result = await server._handle_stats({})
+        return json.dumps(result, ensure_ascii=False, default=str)
 
     def get_tools(self) -> list[dict[str, Any]]:
         """获取所有工具列表（MCP 协议格式）"""

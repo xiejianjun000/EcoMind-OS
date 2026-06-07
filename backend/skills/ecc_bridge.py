@@ -63,6 +63,11 @@ ECC_BUILTIN_SKILLS: list[ECCSkill] = [
 2. 趋势分析（同比/环比），超标标注预警
 3. 引用国标 GB 3095-2012 / GB 3838-2002
 4. 不确定数据标注"待核实"
+
+## 输出格式
+- 用自然段落回答，禁止分节标题（###）和表格
+- 回答长度与问题复杂度成正比，简单问题 2-5 句
+- 禁止在回复末尾重复最后一句话
 """,
         tools=["query_environment_data", "generate_report"],
         instinct_rules=["数据来源必须可追溯", "超标自动预警", "不编造数据", "异常建议人工复核"],
@@ -78,6 +83,11 @@ ECC_BUILTIN_SKILLS: list[ECCSkill] = [
 2. 按 Scope 1/2/3 核算
 3. 引用《碳排放权交易管理办法》
 4. 评估减排方法学合规性
+
+## 输出格式
+- 用自然段落回答，禁止分节标题（###）和表格
+- 回答长度与问题复杂度成正比，简单问题 2-5 句
+- 禁止在回复末尾重复最后一句话
 """,
         tools=["query_emission_data", "generate_report", "search_regulation"],
         instinct_rules=["排放因子使用官方最新值", "CCER需核证方法学", "不保证未经验证的减排量"],
@@ -94,6 +104,11 @@ ECC_BUILTIN_SKILLS: list[ECCSkill] = [
 3. 引用《环境行政处罚办法》裁量基准
 4. 生成处罚建议书（需人工审核）
 5. 重大案件建议听证
+
+## 输出格式
+- 用自然段落回答，禁止分节标题（###）和表格
+- 回答长度与问题复杂度成正比
+- 禁止在回复末尾重复最后一句话
 """,
         tools=["search_regulation", "submit_approval", "generate_report"],
         instinct_rules=["不做最终决定", "裁量范围给区间", "刑事标注移送公安", "AI辅助生成需人工审核"],
@@ -110,6 +125,11 @@ ECC_BUILTIN_SKILLS: list[ECCSkill] = [
 2. submit_approval 启动流程
 3. GOVMCP 三级审批: L1单签/L2双因子/L3会签+区块链
 4. 跟踪进度和时限预警
+
+## 输出格式
+- 用自然段落回答，禁止分节标题（###）和表格
+- 回答长度与问题复杂度成正比
+- 禁止在回复末尾重复最后一句话
 """,
         tools=["submit_approval", "search_regulation"],
         instinct_rules=["材料不齐列表提示", "法定期限前3天预警", "不替代审批人员决定"],
@@ -125,6 +145,11 @@ ECC_BUILTIN_SKILLS: list[ECCSkill] = [
 2. 收集环境监测数据
 3. 按模板生成报告
 4. 标注"AI辅助生成"
+
+## 输出格式
+- 用自然段落回答，禁止分节标题（###）和表格
+- 回答长度与问题复杂度成正比
+- 禁止在回复末尾重复最后一句话
 """,
         tools=["generate_report", "query_environment_data", "query_emission_data"],
         instinct_rules=["数据标注来源和时间", "模板报告需人工审核"],
@@ -140,6 +165,11 @@ ECC_BUILTIN_SKILLS: list[ECCSkill] = [
 2. 检查 AI 输出合规性
 3. 审计日志完整性
 4. 安全事件分级响应
+
+## 输出格式
+- 用自然段落回答，禁止分节标题（###）和表格
+- 回答长度与问题复杂度成正比
+- 禁止在回复末尾重复最后一句话
 """,
         tools=["search_regulation"],
         instinct_rules=["安全漏洞立即告警", "不泄露审计细节", "建议标注风险等级"],
@@ -214,6 +244,11 @@ class ECCInstinctEngine:
         "执法建议标注'AI辅助生成，需人工审核'",
         "不得建议违法或规避监管的行为",
         "涉及国家安全的机密不做回答",
+        "用自然段落回答，禁止分节标题（###）和表格格式",
+        "回答长度与问题复杂度成正比，简单问候 2-3 句即可",
+        "禁止在回复末尾重复最后一句话或短语——说完就停",
+        "禁止对用户展示内部工具名或行内代码格式",
+        "禁止自夸语气（\"我具备强大的XX能力\"），直接说能做什么",
     ]
 
     def __init__(self, skills: Optional[list[ECCSkill]] = None) -> None:

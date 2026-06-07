@@ -62,7 +62,7 @@ class EcoVerifier:
         self,
         user_input: str,
         llm_output: str,
-        context: Optional[dict[str, Any]] = None,
+        _context: Optional[dict[str, Any]] = None,
     ) -> VerifyResult:
         """
         验证 LLM 输出

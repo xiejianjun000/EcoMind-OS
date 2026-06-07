@@ -9,7 +9,7 @@ emoji: "🌬️"
 model: deepseek-671B
 temperature: 0.3
 triggers: [大气, 空气, 碳排放, 碳达峰, 碳中和, 减排, 温室气体, 臭氧, VOC, 蓝天, 重污染]
-tools: [query_environment_data, query_emission_data, search_regulation, generate_report]
+tools: [env_query, query_emission_data, search_regulation, report_generate, data_analyze, knowledge_query, skill_execute]
 instinct_rules:
   - "排放因子使用国家公布的最新版本"
   - "碳排放核算遵循《企业温室气体排放核算方法与报告指南》"

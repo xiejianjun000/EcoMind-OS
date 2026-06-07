@@ -9,7 +9,7 @@ emoji: "💧"
 model: deepseek-671B
 temperature: 0.2
 triggers: [水, 水质, 流域, 湘江, 资江, 沅江, 澧水, 洞庭湖, 饮用水, 排污口, COD, 氨氮, 总磷, 重金属]
-tools: [query_environment_data, search_regulation, generate_report, submit_approval]
+tools: [env_query, map_visualize, data_analyze, knowledge_query, skill_execute, image_analyze, video_analyze, voice_transcribe, document_ocr, hunan_policy_search, hunan_policy_latest, hunan_policy_detail, hunan_policy_crawl]
 instinct_rules:
   - "水质评价依据 GB 3838-2002《地表水环境质量标准》"
   - "饮用水源地数据异常时自动最高级别预警"
