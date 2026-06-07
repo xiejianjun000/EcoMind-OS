@@ -10,10 +10,10 @@ import type { ContextData } from "@/layouts/ChatLayout"
 import {
   X, Scale, Gavel, AlertTriangle, FileText,
   Activity, Sparkles, Search, ExternalLink,
-  Globe, Eye, Braces, PanelRight,
+  Globe, Eye, Braces, PanelRight, ImageIcon, Download, ZoomIn, ZoomOut,
 } from "lucide-react"
 
-type PanelView = "context" | "browser" | "markdown"
+type PanelView = "context" | "browser" | "markdown" | "image"
 
 interface Props {
   open: boolean
@@ -28,7 +28,7 @@ interface Props {
   onMarkdownContentChange?: (content: string) => void
 }
 
-export function ContextPanel({ open, data, onOpenChange, className, browserUrl, onBrowserUrlChange, markdownContent, onMarkdownContentChange }: Props) {
+export function ContextPanel({ open, data, onOpenChange, className, browserUrl, onBrowserUrlChange, markdownContent, onMarkdownContentChange, imageUrls, onImageClick }: Props & { imageUrls?: string[]; onImageClick?: (url: string) => void }) {
   const [view, setView] = useState<PanelView>("context")
 
   if (!open) return <div className={cn(className)} />
@@ -40,6 +40,7 @@ export function ContextPanel({ open, data, onOpenChange, className, browserUrl, 
         <ViewTab active={view === "context"} onClick={() => setView("context")} label="上下文" icon={<Eye className="h-3.5 w-3.5" />} />
         <ViewTab active={view === "browser"} onClick={() => setView("browser")} label="浏览器" icon={<Globe className="h-3.5 w-3.5" />} />
         <ViewTab active={view === "markdown"} onClick={() => setView("markdown")} label="预览" icon={<Braces className="h-3.5 w-3.5" />} />
+        <ViewTab active={view === "image"} onClick={() => setView("image")} label="图片" icon={<ImageIcon className="h-3.5 w-3.5" />} />
         <div className="flex-1" />
         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none" onClick={() => onOpenChange(false)}>
           <X className="h-3.5 w-3.5" />
@@ -50,6 +51,7 @@ export function ContextPanel({ open, data, onOpenChange, className, browserUrl, 
       {view === "context" && <ContextView data={data} />}
       {view === "browser" && <BrowserView url={browserUrl} onUrlChange={onBrowserUrlChange} />}
       {view === "markdown" && <MarkdownView content={markdownContent} />}
+      {view === "image" && <ImageView urls={imageUrls} onImageClick={onImageClick} />}
     </div>
   )
 }
@@ -195,6 +197,61 @@ function MiniCityCard({ city, aqi, level, primary }: { city: string; aqi: number
     <div className="bg-background rounded-lg border p-2.5 flex items-center justify-between">
       <div><span className="text-xs font-medium">{city}</span><p className="text-[10px] text-muted-foreground">{primary}</p></div>
       <div className="flex items-center gap-2"><span className="text-xs font-bold">{aqi}</span><Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">{level}</Badge><div className={cn("w-2 h-2 rounded-full", c)} /></div>
+    </div>
+  )
+}
+
+// ─── Image View ────────────────────────────────────────
+function ImageView({ urls, onImageClick }: { urls?: string[]; onImageClick?: (url: string) => void }) {
+  const [selectedIdx, setSelectedIdx] = useState(0)
+  if (!urls || urls.length === 0) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="text-center">
+          <ImageIcon className="h-8 w-8 mx-auto mb-2 text-muted-foreground/30" />
+          <p className="text-xs text-muted-foreground">对话中的图片将在此显示</p>
+          <p className="text-[10px] text-muted-foreground/60 mt-1">支持点击查看、缩放、分享</p>
+        </div>
+      </div>
+    )
+  }
+  return (
+    <div className="flex flex-col flex-1">
+      {/* Main image */}
+      <div className="flex-1 flex items-center justify-center bg-black/5 dark:bg-white/5 p-4">
+        <img
+          src={urls[selectedIdx]}
+          alt={`图片 ${selectedIdx + 1}`}
+          className="max-w-full max-h-full object-contain rounded cursor-pointer hover:opacity-90 transition-opacity"
+          onClick={() => onImageClick?.(urls[selectedIdx])}
+        />
+      </div>
+      {/* Thumbnail strip */}
+      {urls.length > 1 && (
+        <div className="flex gap-1.5 p-2 border-t overflow-x-auto">
+          {urls.map((url, i) => (
+            <img
+              key={i}
+              src={url}
+              alt={`缩略图 ${i + 1}`}
+              onClick={() => setSelectedIdx(i)}
+              className={cn(
+                "w-12 h-12 object-cover rounded cursor-pointer border-2 flex-shrink-0 transition-all",
+                i === selectedIdx ? "border-primary" : "border-transparent hover:border-muted-foreground"
+              )}
+            />
+          ))}
+        </div>
+      )}
+      {/* Action bar */}
+      <div className="flex items-center justify-between px-3 py-2 border-t bg-background/50">
+        <span className="text-[10px] text-muted-foreground">{selectedIdx + 1} / {urls.length}</span>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setSelectedIdx(Math.max(0, selectedIdx - 1))} disabled={selectedIdx === 0}><ZoomOut className="h-3 w-3" /></Button>
+          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setSelectedIdx(Math.min(urls.length - 1, selectedIdx + 1))} disabled={selectedIdx === urls.length - 1}><ZoomIn className="h-3 w-3" /></Button>
+          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => window.open(urls[selectedIdx], "_blank")}><Download className="h-3 w-3" /></Button>
+        </div>
+      </div>
     </div>
   )
 }
