@@ -532,10 +532,10 @@ docker compose build && docker compose up -d
 - i18n 双语 + 亮/暗主题
 - 后端 API 骨架 + WebSocket
 
-### Phase 1B（🔶 进行中）
-- Cesium 3D 场景
-- 前后端联调
-- 本地推理部署
+### Phase 1B（✅ 已完成）
+- Cesium 3D 场景（含湖南地形/监测站点/图层面板/弹窗等 6 组件）
+- 前后端联调（Vite 代理 100% 通过，21 个路由模块全可用）
+- 本地推理部署（vLLM DeepSeek-671B + Qwen3-72B，Docker 容器化）
 
 ### v2.0（✅ 已完成）
 - **自建 Agent 引擎** — 切断全部 TAIJI-AGENT 依赖
