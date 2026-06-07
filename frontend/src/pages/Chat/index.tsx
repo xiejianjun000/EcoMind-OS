@@ -42,7 +42,6 @@ const EXPERT_MAP: Record<string, { id: string; name: string }> = {
   restoration: { id: "restoration", name: "生态修复专家" },
   inspection: { id: "inspection", name: "生态督察专家" },
   public: { id: "public", name: "公众服务专家" },
-  water: { id: "water", name: "水资源专家" },
 }
 
 function getExpertName(id: string) { return EXPERT_MAP[id]?.name || id }

@@ -22,7 +22,7 @@ import type { KnowledgeFile } from "@/services/knowledgeService"
 
 // ── Expert quick-switch icons ──
 const EXPERT_QUICK = [
-  { id: "ecomind", label: "主控", emoji: "🧠" },
+  { id: "ecomind", label: "助手", emoji: "🧠" },
   { id: "env-monitoring", label: "监测", emoji: "📡" },
   { id: "enforcement", label: "执法", emoji: "⚖️" },
   { id: "eia", label: "环评", emoji: "📋" },
