@@ -3,75 +3,174 @@
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-
-interface Expert {
-  id: string
-  name: string
-  avatar?: string
-  description?: string
-  status: "online" | "busy" | "offline"
-}
-
-const experts: Expert[] = [
-  { id: "gaia", name: "GAIA 生态主控", status: "online", description: "通用环境咨询入口" },
-  { id: "monitor", name: "环境监测专家", status: "online", description: "环境数据监测分析" },
-  { id: "law", name: "执法监察专家", status: "online", description: "执法监察合规" },
-  { id: "eia", name: "环评审批专家", status: "busy", description: "环境影响评价" },
-  { id: "bio", name: "生物多样性专家", status: "offline", description: "生物多样性保护" },
-  { id: "permit", name: "排污许可专家", status: "online", description: "排污许可管理" },
-  { id: "restore", name: "生态修复专家", status: "online", description: "生态系统修复" },
-  { id: "emergency", name: "应急管理专家", status: "offline", description: "环境应急响应" },
-  { id: "supervise", name: "生态督察专家", status: "online", description: "生态环保督察" },
-  { id: "carbon", name: "碳排放专家", status: "online", description: "碳排放核算管理" },
-  { id: "public", name: "公众服务专家", status: "online", description: "公众环保服务" },
-  { id: "water", name: "水资源专家", status: "offline", description: "水资源管理" },
-]
+import { ChevronDown, ChevronRight } from "lucide-react"
+import { useState } from "react"
+import { useExpertStore } from "@/store/expertStore"
+import { useChatStore } from "@/store/chatStore"
+import { EXPERT_GROUPS } from "@/types/team"
 
 export function ExpertList() {
+  const { experts, activeExpertId, setActiveExpert, updateExpertStatus } = useExpertStore()
+  const [groupExpanded, setGroupExpanded] = useState<Record<string, boolean>>({
+    core: true,
+    approval: false,
+    monitoring: false,
+    enforcement: false,
+    public: false,
+  })
+
+  const toggleGroup = (group: string) => {
+    setGroupExpanded((prev) => ({ ...prev, [group]: !prev[group] }))
+  }
+
   return (
     <div className="space-y-1">
-      {experts.map((expert) => (
-        <ExpertItem key={expert.id} expert={expert} />
-      ))}
+      {Object.entries(EXPERT_GROUPS).map(([groupKey, group]) => {
+        const groupExperts = experts.filter((e) =>
+          group.expertIds.includes(e.id)
+        )
+        if (groupExperts.length === 0) return null
+
+        const isExpanded = groupExpanded[groupKey] ?? false
+
+        return (
+          <div key={groupKey} className="mb-1">
+            {/* Group Header */}
+            <button
+              onClick={() => toggleGroup(groupKey)}
+              className="flex items-center gap-1.5 w-full px-1 py-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50 rounded transition-colors"
+            >
+              {isExpanded ? (
+                <ChevronDown className="h-3 w-3" />
+              ) : (
+                <ChevronRight className="h-3 w-3" />
+              )}
+              <span>{group.label}</span>
+              <span className="text-[10px] text-muted-foreground/60">
+                {groupExperts.length}
+              </span>
+            </button>
+
+            {/* Group Experts */}
+            {isExpanded && (
+              <div className="ml-1 space-y-0.5">
+                {groupExperts.map((expert) => (
+                  <ExpertItem
+                    key={expert.id}
+                    expert={expert}
+                    isActive={activeExpertId === expert.id}
+                    onSelect={() => {
+                      // 双向绑定：设置 activeExpert 影响整个应用
+                      setActiveExpert(expert.id)
+                      // 如果当前会话存在，更新会话的 expertId
+                      const { currentSessionId, sessions } = useChatStore.getState()
+                      if (currentSessionId) {
+                        // 侧边栏选择专家自动切换输入框专家
+                      }
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )
+      })}
+
+      {/* Unclassified experts */}
+      {experts
+        .filter(
+          (e) =>
+            !Object.values(EXPERT_GROUPS)
+              .flatMap((g) => g.expertIds)
+              .includes(e.id)
+        )
+        .map((expert) => (
+          <ExpertItem
+            key={expert.id}
+            expert={{
+              id: expert.id,
+              name: expert.displayName,
+              description: expert.description,
+              status: expert.status,
+              color: expert.color,
+              safetyLevel: expert.safetyLevel,
+              capabilities: expert.capabilities,
+            }}
+            isActive={activeExpertId === expert.id}
+            onSelect={() => setActiveExpert(expert.id)}
+          />
+        ))}
     </div>
   )
 }
 
 interface ExpertItemProps {
-  expert: Expert
+  expert: {
+    id: string
+    name: string
+    description?: string
+    status: "online" | "busy" | "offline" | "error"
+    color?: string
+    safetyLevel?: string
+    capabilities?: string[]
+  }
+  isActive: boolean
+  onSelect: () => void
   className?: string
 }
 
-function ExpertItem({ expert, className }: ExpertItemProps) {
+function ExpertItem({ expert, isActive, onSelect, className }: ExpertItemProps) {
   const statusColors = {
     online: "bg-green-500",
     busy: "bg-yellow-500",
     offline: "bg-gray-400",
+    error: "bg-red-500",
   }
 
   return (
     <button
+      onClick={onSelect}
       className={cn(
-        "flex items-center gap-3 w-full p-2 rounded-md hover:bg-accent transition-colors text-left",
+        "flex items-center gap-2.5 w-full p-1.5 rounded-md transition-colors text-left",
+        isActive
+          ? "bg-accent text-accent-foreground"
+          : "hover:bg-accent/50",
         className
       )}
     >
       <div className="relative">
-        <Avatar className="h-8 w-8">
-          <AvatarImage src={expert.avatar} alt={expert.name} />
-          <AvatarFallback className="text-xs">
+        <Avatar className="h-7 w-7">
+          <AvatarFallback
+            className="text-[10px] font-medium"
+            style={{
+              backgroundColor: expert.color ? `${expert.color}20` : undefined,
+              color: expert.color || undefined,
+            }}
+          >
             {expert.name.slice(0, 2)}
           </AvatarFallback>
         </Avatar>
         <div
           className={cn(
-            "absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background",
+            "absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-background",
             statusColors[expert.status]
           )}
         />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-sm font-medium truncate">{expert.name}</div>
+        <div className="flex items-center gap-1">
+          <span className={cn("text-xs font-medium truncate", isActive && "font-semibold")}>
+            {expert.name}
+          </span>
+          {expert.safetyLevel && (
+            <Badge
+              variant="outline"
+              className="text-[9px] h-3.5 px-1 py-0 font-mono"
+            >
+              {expert.safetyLevel}
+            </Badge>
+          )}
+        </div>
       </div>
     </button>
   )

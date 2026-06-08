@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>EcoMind OS — 100% WorkBuddy 对标</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0f;--bg2:#0f0f17;--bg3:#15151f;--bg-hover:#1c1c2a;--bg-active:#1e1e30;
+  --bd:#1e1e30;--bd2:#2a2a40;--tx:#e4e4ec;--tx2:#9090a8;--tx3:#606078;
+  --grn:#10b981;--grn-bg:rgba(16,185,129,0.12);--blu:#3b82f6;--amb:#f59e0b;--red:#ef4444;--pur:#8b5cf6;
+  --r:8px;--rr:12px;
+}
+body{font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--tx);height:100vh;overflow:hidden}
+.app{display:flex;flex-direction:column;height:100vh}
+
+.topbar{height:38px;background:var(--bg2);border-bottom:1px solid var(--bd);display:flex;align-items:center;padding:0 10px;gap:8px;flex-shrink:0}
+.top-dot{width:7px;height:7px;border-radius:50%;background:var(--grn);box-shadow:0 0 8px rgba(16,185,129,0.4)}
+.top-logo{font-size:13px;font-weight:700;color:var(--grn)}
+.top-model{font-size:11px;padding:2px 10px;border-radius:10px;background:var(--grn-bg);color:var(--grn);margin-left:auto;font-weight:500}
+.top-user{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#4f46e5);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;cursor:pointer}
+.main{display:flex;flex:1;overflow:hidden}
+
+.sidebar{width:48px;min-width:48px;background:var(--bg2);border-right:1px solid var(--bd);display:flex;flex-direction:column;align-items:center;padding:8px 0;gap:4px;flex-shrink:0;transition:width 0.2s;z-index:10}
+.sidebar:hover{width:185px}
+.sidebar:hover .nl{display:inline}
+.sidebar:hover .ni{justify-content:flex-start;padding:8px 10px;width:calc(100% - 6px)}
+.ni{width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:7px;cursor:pointer;color:var(--tx2);font-size:15px;transition:all 0.15s;white-space:nowrap;overflow:hidden;position:relative}
+.ni:hover{background:var(--bg-hover);color:var(--tx)}
+.ni.ac{background:var(--grn-bg);color:var(--grn)}
+.nl{font-size:12px;font-weight:500;margin-left:8px;display:none}
+.nb{position:absolute;top:2px;right:2px;width:6px;height:6px;border-radius:50%;background:var(--red)}
+.ns{width:20px;height:1px;background:var(--bd);margin:3px 0;flex-shrink:0}
+.sb{margin-top:auto}
+
+.sub{width:260px;min-width:260px;background:var(--bg3);border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden}
+.sh{padding:10px 14px;border-bottom:1px solid var(--bd);font-size:13px;font-weight:600;flex-shrink:0;display:flex;align-items:center;gap:6px}
+.ss{flex:1;overflow-y:auto;padding:6px}
+.ss::-webkit-scrollbar{width:4px}
+.ss::-webkit-scrollbar-thumb{background:var(--bd);border-radius:4px}
+
+.gt{font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:1.5px;padding:10px 6px 4px}
+.ei{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:7px;cursor:pointer;transition:all 0.15s;font-size:12px}
+.ei:hover{background:var(--bg-hover)}
+.ei.ac{background:var(--grn-bg);border:1px solid rgba(16,185,129,0.2)}
+.ea{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.eif{flex:1;min-width:0}
+.en{font-size:12px;font-weight:500}
+.er{font-size:10px;color:var(--tx2)}
+.lv{font-size:8px;padding:1px 5px;border-radius:8px;font-weight:600}
+.lv3{background:rgba(239,68,68,0.12);color:var(--red)}
+.lv2{background:rgba(245,158,11,0.12);color:var(--amb)}
+.lv1{background:rgba(16,185,129,0.12);color:var(--grn)}
+
+.tc{padding:8px;background:var(--bg2);border:1px solid var(--bd);border-radius:7px;margin:3px 0;cursor:pointer}
+.tc:hover{border-color:var(--blu)}
+.tcn{font-size:11px;font-weight:600;margin-bottom:2px}
+.tcd{display:flex;gap:2px;align-items:center}
+.tcdt{width:16px;height:16px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;color:#fff}
+.tcp{height:3px;background:var(--bd);border-radius:3px;margin-top:5px;overflow:hidden}
+.tcpb{height:100%;background:var(--grn);border-radius:3px}
+
+.qc{padding:10px;background:var(--bg2);border:1px solid var(--bd);border-radius:7px;margin:3px 0;cursor:pointer;transition:all 0.15s}
+.qc:hover{border-color:var(--grn)}
+.qct{font-size:11px;font-weight:600;margin-bottom:2px}
+.qcd{font-size:10px;color:var(--tx2)}
+
+.si{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:7px;cursor:pointer;font-size:11px;transition:all 0.15s}
+.si:hover{background:var(--bg-hover)}
+.sic{width:24px;height:24px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+
+.ai{padding:8px;background:var(--bg2);border:1px solid var(--bd);border-radius:7px;margin:3px 0}
+.an{font-size:11px;font-weight:600;display:flex;align-items:center;gap:4px}
+.as{font-size:9px;padding:1px 6px;border-radius:6px;margin-left:auto}
+.as.act{background:rgba(16,185,129,0.12);color:var(--grn)}
+.as.pau{background:rgba(245,158,11,0.12);color:var(--amb)}
+.asc{font-size:10px;color:var(--tx2);margin-top:2px}
+
+.note-item{padding:6px 8px;border-radius:6px;cursor:pointer;font-size:11px;transition:all 0.15s}
+.note-item:hover{background:var(--bg-hover)}
+.note-item .nt{font-weight:500}
+.note-item .nd{font-size:9px;color:var(--tx3)}
+
+.seti{display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer;font-size:12px;border-radius:6px;margin:2px 6px;transition:all 0.15s}
+.seti:hover{background:var(--bg-hover)}
+.setii{font-size:14px;color:var(--tx2);width:20px;text-align:center}
+.ucard{padding:12px 14px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:8px}
+.ua{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#4f46e5);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700}
+.un{font-size:13px;font-weight:600}
+.ue{font-size:10px;color:var(--tx2)}
+
+.hs{padding:8px;background:var(--bg2);border:1px solid var(--bd);border-radius:7px;margin-bottom:8px;display:flex;align-items:center;gap:4px}
+.hs input{flex:1;background:none;border:none;color:var(--tx);font-size:11px;outline:none;min-width:0}
+.hs input::placeholder{color:var(--tx3)}
+
+.chat{flex:1;display:flex;flex-direction:column;background:var(--bg);min-width:0}
+.cbar{height:40px;border-bottom:1px solid var(--bd);display:flex;align-items:center;padding:0 14px;gap:8px;flex-shrink:0}
+.ctitle{font-size:13px;font-weight:600}
+.csub{font-size:10px;color:var(--tx2);padding:2px 7px;background:var(--bg2);border-radius:6px}
+.cmodes{display:flex;margin-left:auto;gap:3px}
+.cm{padding:3px 10px;border-radius:5px;font-size:10px;cursor:pointer;border:1px solid var(--bd);background:var(--bg2);color:var(--tx2)}
+.cm:hover{color:var(--tx)}
+.cm.on{background:var(--grn-bg);border-color:rgba(16,185,129,0.3);color:var(--grn)}
+
+.cmsgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+.cmsgs::-webkit-scrollbar{width:4px}
+.cmsgs::-webkit-scrollbar-thumb{background:var(--bd);border-radius:4px}
+.msg{display:flex;gap:8px;max-width:85%;animation:fadeIn 0.3s}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.msg.u{align-self:flex-end;flex-direction:row-reverse}
+.ma{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
+.mb{padding:8px 12px;border-radius:9px;font-size:12px;line-height:1.6;background:var(--bg3);border:1px solid var(--bd)}
+.msg.u .mb{background:var(--bg2)}
+.mt{font-size:9px;color:var(--tx3);margin-top:3px}
+.thk{background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.15);border-radius:5px;padding:6px 10px;font-size:10px;color:var(--tx2);margin:5px 0}
+.thk summary{font-weight:600;color:var(--pur);font-size:9px;cursor:pointer}
+.hal{display:inline-flex;gap:3px;background:rgba(239,68,68,0.1);color:var(--red);font-size:9px;padding:2px 6px;border-radius:6px;margin-top:4px}
+
+.cinp{border-top:1px solid var(--bd);padding:8px 12px 10px;background:var(--bg2);flex-shrink:0}
+.ctl{display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap}
+.tb{padding:2px 8px;border-radius:5px;font-size:9px;cursor:pointer;border:1px solid var(--bd);background:var(--bg);color:var(--tx2);transition:all 0.15s}
+.tb:hover{color:var(--tx)}
+.tb.on{border-color:var(--grn);color:var(--grn);background:var(--grn-bg)}
+.cir{display:flex;gap:6px;align-items:flex-end}
+.ci{flex:1;min-height:34px;max-height:90px;padding:6px 10px;background:var(--bg);border:1px solid var(--bd);border-radius:8px;color:var(--tx);font-size:12px;font-family:inherit;resize:none;outline:none}
+.ci:focus{border-color:var(--grn)}
+.ci::placeholder{color:var(--tx3)}
+.cs{width:34px;height:34px;background:var(--grn);border:none;border-radius:8px;color:#fff;font-size:15px;cursor:pointer;flex-shrink:0}
+
+.right{width:320px;min-width:320px;background:var(--bg3);border-left:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+.rtabs{display:flex;border-bottom:1px solid var(--bd);flex-shrink:0}
+.rt{flex:1;padding:9px 0;text-align:center;font-size:10px;font-weight:500;color:var(--tx2);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;background:none;border-top:none;border-left:none;border-right:none}
+.rt:hover{color:var(--tx)}
+.rt.on{color:var(--grn);border-bottom-color:var(--grn)}
+.rc{flex:1;overflow-y:auto;padding:10px}
+.rc::-webkit-scrollbar{width:4px}
+.rc::-webkit-scrollbar-thumb{background:var(--bd);border-radius:4px}
+
+.rcard{padding:10px;background:var(--bg2);border:1px solid var(--bd);border-radius:7px;margin-bottom:7px}
+.rcard:hover{border-color:var(--bd2)}
+.rch{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.rci{width:26px;height:26px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.rct{font-size:11px;font-weight:600}
+.rcd{font-size:10px;color:var(--tx2);line-height:1.4}
+.rcm{display:flex;gap:10px;margin-top:5px;font-size:9px;color:var(--tx3)}
+.rcst{font-size:9px;padding:1px 5px;border-radius:5px;margin-left:auto}
+.rcst.done{background:rgba(16,185,129,0.1);color:var(--grn)}
+.rcst.run{background:rgba(59,130,246,0.1);color:var(--blu);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.rcprog{height:3px;background:var(--bd);border-radius:2px;margin-top:6px;overflow:hidden}
+.rcprogb{height:100%;background:var(--blu);border-radius:2px}
+
+.lg{padding:6px 0 6px 10px;border-left:2px solid var(--bd);margin-bottom:4px;font-size:10px}
+.lg.ok{border-left-color:var(--grn)}
+.lg.wn{border-left-color:var(--amb)}
+.lg.er{border-left-color:var(--red)}
+.lgt{font-size:9px;color:var(--tx3)}
+.lgtx{color:var(--tx2);margin-top:1px;line-height:1.4}
+
+.hist{padding:6px 8px;border-radius:5px;cursor:pointer;font-size:11px;margin-bottom:3px}
+.hist:hover{background:var(--bg-hover)}
+.hist .htt{font-weight:500}
+.hist .htm{font-size:9px;color:var(--tx3)}
+
+.ebar{font-size:9px;color:var(--tx3);padding:4px 12px;border-top:1px solid var(--bd);display:flex;gap:16px;background:var(--bg2);flex-shrink:0}
+.ebar span{display:flex;align-items:center;gap:3px}
+.ed{width:5px;height:5px;border-radius:50%;display:inline-block}
+.ed.g{background:var(--grn)}.ed.y{background:var(--amb)}.ed.r{background:var(--red)}
+</style>
+</head>
+<body>
+<div class="app">
+
+<div class="topbar">
+  <div class="top-dot"></div><span class="top-logo">EcoMind OS</span>
+  <span style="font-size:10px;color:var(--tx3)">GAIA-ECO v2.0</span>
+  <span class="top-model" id="topModel">Qwen3-14B</span>
+  <div class="top-user" onclick="nav('settings')" title="军哥" id="topAvatar">军</div>
+</div>
+
+<div class="main">
+
+<!-- Sidebar -->
+<nav class="sidebar" id="sidebar">
+  <div class="ni ac" onclick="nav('new-task')" data-nav="new-task">＋<span class="nl">新建任务</span></div>
+  <div class="ni" onclick="nav('assistant')" data-nav="assistant">💬<span class="nl">助理</span></div>
+  <div class="ns"></div>
+  <div class="ni" onclick="nav('experts')" data-nav="experts">👥<span class="nl">专家团队</span></div>
+  <div class="ni" onclick="nav('skills')" data-nav="skills">🔧<span class="nl">技能</span></div>
+  <div class="ni" onclick="nav('automation')" data-nav="automation">⏰<span class="nl">自动化</span></div>
+  <div class="ns"></div>
+  <div class="ni" onclick="nav('notes')" data-nav="notes">📚<span class="nl">资料库</span></div>
+  <div class="ni" onclick="nav('tasks')" data-nav="tasks">📋<span class="nl">任务</span><span class="nb" id="taskBadge"></span></div>
+  <div class="ni" onclick="nav('workspace')" data-nav="workspace">📁<span class="nl">空间</span></div>
+  <div class="sb"><div class="ns"></div>
+  <div class="ni" onclick="nav('settings')" data-nav="settings">⚙<span class="nl">设置</span></div></div>
+</nav>
+
+<!-- Sub Panel -->
+<aside class="sub" id="subPanel">
+  <div class="sh" id="subHeader">🆕 新建任务</div>
+  <div class="ss" id="subContent"></div>
+</aside>
+
+<!-- Center Chat -->
+<main class="chat">
+  <div class="cbar">
+    <div class="ea" style="background:linear-gradient(135deg,#10b981,#059669)">G</div>
+    <span class="ctitle">GAIA 生态大脑</span><span class="csub">Qwen3-14B</span>
+    <span style="font-size:9px;padding:2px 6px;border-radius:6px;background:rgba(16,185,129,0.12);color:var(--grn)">L3</span>
+    <div class="cmodes">
+      <button class="cm on" onclick="setMode('craft',this)">Craft</button>
+      <button class="cm" onclick="setMode('ask',this)">Ask</button>
+      <button class="cm" onclick="setMode('plan',this)">Plan</button>
+    </div>
+  </div>
+  <div class="cmsgs" id="chatMsgs"></div>
+  <div class="cinp">
+    <div class="ctl">
+      <button class="tb on" id="mdQwen">🧠 Qwen3</button>
+      <button class="tb" id="mdDeep">🔬 DeepSeek</button>
+      <button class="tb" id="mdGlm">🌐 GLM-4</button>
+      <span style="flex:1"></span>
+      <button class="tb" onclick="uploadFile()">📎 上传</button>
+      <button class="tb">👥 @专家</button>
+      <span style="font-size:9px;color:var(--tx3);margin-left:4px">安全:L3 | 📡:4/5</span>
+    </div>
+    <div class="cir">
+      <textarea class="ci" id="chatInput" placeholder="输入需求，或 @召唤专家..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"></textarea>
+      <button class="cs" onclick="sendMsg()">➤</button>
+    </div>
+  </div>
+</main>
+
+<!-- Right Panel -->
+<aside class="right" id="rightPanel">
+  <div class="rtabs">
+    <button class="rt on" data-rt="exec" onclick="rtab('exec',this)">📊 执行</button>
+    <button class="rt" data-rt="result" onclick="rtab('result',this)">📄 结果</button>
+    <button class="rt" data-rt="log" onclick="rtab('log',this)">📝 日志</button>
+    <button class="rt" data-rt="history" onclick="rtab('history',this)">🔍 历史</button>
+  </div>
+  <div class="rc" id="rightContent"></div>
+  <div class="ebar">
+    <span><span class="ed g"></span>L3-本地</span>
+    <span><span class="ed g"></span>API:42ms</span>
+    <span><span class="ed g"></span>WS:🟢</span>
+    <span style="margin-left:auto">GB/T 3565</span>
+  </div>
+</aside>
+
+</div></div>
+
+<script>
+// ============= STATE =============
+const S = {
+  nav: 'new-task', mode:'craft', rtab:'exec', model:'qwen3-14b',
+  experts: [
+    {id:'gaia',n:'GAIA 主控',r:'生态大脑总调度',l:3,c:'#10b981,#059669',g:'core'},
+    {id:'env-monitoring',n:'环境监测专家',r:'AQI/水质/土壤',l:2,c:'#06b6d4,#0891b2',g:'monitor'},
+    {id:'water',n:'水生态专家',r:'流域水质/排污口',l:2,c:'#3b82f6,#2563eb',g:'monitor'},
+    {id:'eia',n:'环评审批专家',r:'环评技术审核',l:3,c:'#8b5cf6,#7c3aed',g:'approval'},
+    {id:'permit',n:'排污许可专家',r:'许可证核发',l:3,c:'#f59e0b,#d97706',g:'approval'},
+    {id:'enforcement',n:'执法监察专家',r:'案件办理/法律',l:2,c:'#ef4444,#dc2626',g:'enforce'},
+    {id:'inspection',n:'生态督察专家',r:'督察整改',l:3,c:'#ec4899,#db2777',g:'enforce'},
+    {id:'biodiversity',n:'生物多样性专家',r:'物种/栖息地',l:1,c:'#22c55e,#16a34a',g:'special'},
+    {id:'carbon',n:'碳排放专家',r:'碳核算/碳交易',l:2,c:'#64748b,#475569',g:'special'},
+    {id:'emergency',n:'应急管理专家',r:'突发环境事件',l:1,c:'#f97316,#ea580c',g:'special'},
+    {id:'restoration',n:'生态修复专家',r:'矿山修复/污染治理',l:2,c:'#14b8a6,#0d9488',g:'special'},
+    {id:'public',n:'公众参与专家',r:'信息公开/信访',l:1,c:'#0ea5e9,#0284c7',g:'special'},
+  ],
+  teams: [{id:'t1',n:'环评审批团队',m:['gaia','eia','permit','water','carbon'],p:65}],
+  msgs: [
+    {type:'system',from:'GAIA 主控',color:'#10b981,#059669',text:'👋 我是GAIA生态大脑。可调度12位领域专家协同。输入需求或点击左侧<strong>专家团队</strong>召唤专项专家。',time:'15:06'},
+    {type:'user',from:'军哥',color:'#6366f1,#4f46e5',text:'帮我分析湖南煤业集团一平硐煤矿的废水排放和危废处置问题',time:'15:07'},
+    {type:'system',from:'GAIA 主控',color:'#10b981,#059669',text:'<details class="thk" open><summary>🧠 推理 (3步)</summary>1. 关键词匹配→执法监察+水生态+环境监测<br>2. 知识库检索→《水污染防治法》第83条<br>3. 维度确认→排放标准/执法依据/整改方案</details><strong>初步分析：</strong>pH 2.8-4.2属严重超标，废矿物油未规范贮存。建议启动<strong>5人专家团队</strong>协同研判。<span class="hal">⚠ 置信度82%</span>',time:'15:08'},
+  ],
+  logs: [
+    {lv:'ok',t:'15:11',tx:'✅ GAIA — 团队会议总结完成 (5项决议)'},
+    {lv:'ok',t:'15:10',tx:'✅ 生态督察专家 — 汇报材料框架建议已生成'},
+    {lv:'ok',t:'15:09',tx:'✅ 水生态专家 — 三阶段治理方案已输出'},
+    {lv:'wn',t:'15:09',tx:'⚠ 执法监察专家 — 法律依据匹配中'},
+    {lv:'ok',t:'15:08',tx:'✅ 环境监测专家 — 12个月水质数据汇总'},
+    {lv:'ok',t:'15:08',tx:'✅ GAIA — 团队会议开始，5人参会'},
+  ],
+  results: [
+    {icon:'🗂',c:'rgba(139,92,246,0.12)',color:'#8b5cf6',title:'执法取证清单 v3',desc:'12份照片+3份监测报告',meta:'2.4MB · 15分钟前',status:'done'},
+    {icon:'📊',c:'rgba(59,130,246,0.12)',color:'#3b82f6',title:'水质分析报告',desc:'pH/Fe/Mn监测数据分析',meta:'1.8MB · 1小时前',status:'done'},
+    {icon:'📋',c:'rgba(245,158,11,0.12)',color:'#f59e0b',title:'整改通知书草稿',desc:'责令改正决定书(初稿)',meta:'待审批 · 2小时前',status:'run'},
+  ],
+  history: [
+    {title:'一平硐煤矿废水分析',meta:'今天 15:08 · GAIA+4专家'},
+    {title:'湖南煤业监管汇报材料',meta:'今天 11:30 · 执法监察'},
+    {title:'谢平情况说明起草',meta:'昨天 16:45 · 公众参与'},
+    {title:'娄底锑都采购舞弊分析',meta:'昨天 10:20 · GAIA+执法'},
+  ],
+  automations: [
+    {id:'a1',n:'每日环境简报',s:'act',sc:'每天 08:00 · AQI+水质+舆情'},
+    {id:'a2',n:'周度执法数据报表',s:'act',sc:'每周一 09:00'},
+    {id:'a3',n:'督察整改到期提醒',s:'pau',sc:'每天 10:00'},
+  ],
+  skills: [
+    {cat:'文档处理',items:[{n:'PDF读写',ic:'📄',c:'rgba(59,130,246,0.12)',color:'#3b82f6',on:1},{n:'Word模板',ic:'📝',c:'rgba(59,130,246,0.12)',color:'#3b82f6',on:1},{n:'PPT生成',ic:'📊',c:'rgba(59,130,246,0.12)',color:'#3b82f6',on:1}]},
+    {cat:'数据处理',items:[{n:'Excel分析',ic:'📈',c:'rgba(16,185,129,0.12)',color:'#10b981',on:1},{n:'数据库查询',ic:'🗄',c:'rgba(16,185,129,0.12)',color:'#10b981',on:0}]},
+    {cat:'生态环境',items:[{n:'水质模型WASP',ic:'🌊',c:'rgba(139,92,246,0.12)',color:'#8b5cf6',on:1},{n:'排放核算工具',ic:'🏭',c:'rgba(139,92,246,0.12)',color:'#8b5cf6',on:1},{n:'法规检索',ic:'⚖',c:'rgba(139,92,246,0.12)',color:'#8b5cf6',on:1},{n:'GIS空间分析',ic:'🗺',c:'rgba(245,158,11,0.12)',color:'#f59e0b',on:0}]},
+    {cat:'通信协同',items:[{n:'公文生成',ic:'✉',c:'rgba(239,68,68,0.12)',color:'#ef4444',on:1}]},
+  ],
+  notes: [
+    {title:'《环境保护法》全文',date:'最新修订版'},
+    {title:'《水污染防治法》释义',date:'2026版'},
+    {title:'环境执法典型案例汇编',date:'2024-2026'},
+    {title:'生态环境监管汇报模板',date:'v3.0'},
+  ],
+  workspaces: [
+    {n:'一平硐煤矿项目',d:'湖南煤业集团金竹山矿业',ic:'🏔️'},
+    {n:'娄底锑都投资采购案',d:'湖南宜化资产处置调查',ic:'⚖️'},
+    {n:'生态法典培训材料',d:'2小时实操课程',ic:'📖'},
+  ],
+  tasks: [
+    {t:'一平硐煤矿废水分析',st:'进行中',d:'今天 15:08 · GAIA+4专家'},
+    {t:'湖南煤业监管汇报',st:'待审核',d:'今天 11:30'},
+    {t:'谢平情况说明',st:'已完成',d:'昨天 16:45'},
+    {t:'采购舞弊专项分析',st:'已完成',d:'昨天 10:20'},
+  ],
+  activeExpert: null,
+};
+
+// ============= RENDER =============
+function nav(target) {
+  S.nav = target;
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('ac'));
+  document.querySelector(`[data-nav="${target}"]`)?.classList.add('ac');
+  renderSub();
+}
+
+function rtab(target, el) {
+  S.rtab = target;
+  document.querySelectorAll('.rt').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  renderRight();
+}
+
+function setMode(m, el) {
+  S.mode = m;
+  document.querySelectorAll('.cm').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+}
+
+// Render Sub Panel
+function renderSub() {
+  const h = document.getElementById('subHeader');
+  const c = document.getElementById('subContent');
+  let html = '';
+  const t = S.nav;
+
+  if(t==='new-task') {
+    h.innerHTML = '🆕 新建任务';
+    html = '<div class="gt">快捷模板</div>';
+    [{t:'📋 环评报告审批',d:'GAIA+环评+排污许可+水生态'},{t:'🚨 环境应急响应',d:'应急+监测+GAIA+执法'},{t:'🔍 生态督察整改',d:'督察+执法+监测+GAIA'}].forEach(q=>{
+      html += `<div class="qc"><div class="qct">${q.t}</div><div class="qcd">${q.d}</div></div>`;
+    });
+    html += '<div class="gt">最近任务</div>';
+    S.tasks.slice(0,2).forEach(tk=>{html+=`<div class="note-item"><div class="nt">${tk.t}</div><div class="nd">${tk.d}</div></div>`;});
+  }
+  else if(t==='assistant') {
+    h.innerHTML = '💬 AI 助理';
+    html = '<div class="gt">对话模式</div>';
+    [{t:'💬 日常办公问答'},{t:'📝 文档写作助手'},{t:'📊 数据分析助手'}].forEach(s=>{
+      html += `<div class="seti"><span class="setii">${s.t[0]}</span>${s.t.slice(2)}</div>`;
+    });
+  }
+  else if(t==='experts') {
+    h.innerHTML = '👥 专家团队';
+    const groups = {core:'核心调度',monitor:'环境监测',approval:'审批合规',enforce:'执法监察',special:'专项领域'};
+    Object.entries(groups).forEach(([gid,gn])=>{
+      html += `<div class="gt">${gn}</div>`;
+      S.experts.filter(e=>e.g===gid).forEach(e=>{
+        html += `<div class="ei" onclick="selExpert('${e.id}')"><div class="ea" style="background:linear-gradient(135deg,${e.c})">${e.n[0]}</div><div class="eif"><div class="en">${e.n}</div><div class="er">${e.r}</div></div><span class="lv lv${e.l}">L${e.l}</span></div>`;
+      });
+    });
+    html += '<div class="gt">消息</div>';
+    html += '<div class="seti"><span class="setii">🟡</span>审批待办: 整改通知书需确认</div>';
+    html += '<div class="seti"><span class="setii">🔵</span>系统: IoT连接延迟升高</div>';
+  }
+  else if(t==='skills') {
+    h.innerHTML = '🔧 技能市场';
+    S.skills.forEach(cat=>{
+      html += `<div class="gt">${cat.cat}</div>`;
+      cat.items.forEach(s=>{
+        html += `<div class="si"><div class="sic" style="background:${s.c};color:${s.color}">${s.ic}</div>${s.n} · ${s.on?'已安装':'未安装'}</div>`;
+      });
+    });
+  }
+  else if(t==='automation') {
+    h.innerHTML = '⏰ 自动化';
+    html = '<div style="text-align:right;margin-bottom:6px"><button onclick="addAuto()" style="padding:4px 12px;border-radius:5px;font-size:10px;cursor:pointer;border:1px solid var(--grn);background:var(--grn-bg);color:var(--grn)">＋ 新建</button></div>';
+    S.automations.forEach(a=>{
+      html += `<div class="ai"><div class="an">${a.n}<span class="as ${a.s==='act'?'act':'pau'}">${a.s==='act'?'运行中':'已暂停'}</span></div><div class="asc">${a.sc}</div></div>`;
+    });
+  }
+  else if(t==='notes') {
+    h.innerHTML = '📚 资料库';
+    html = '<div class="hs"><span>🔍</span><input placeholder="搜索资料..." oninput="searchNotes(this.value)"></div>';
+    ['法规库','案例库','报告模板'].forEach(cat=>{
+      html += `<div class="gt">${cat}</div>`;
+      S.notes.forEach(n=>{html+=`<div class="note-item"><div class="nt">${n.title}</div><div class="nd">${n.date}</div></div>`;});
+    });
+  }
+  else if(t==='tasks') {
+    h.innerHTML = '📋 任务';
+    ['进行中','待审核','已完成'].forEach(st=>{
+      html += `<div class="gt">${st}</div>`;
+      S.tasks.filter(tk=>tk.st===st||tk.st.includes(st)||st==='已完成').slice(0,2).forEach(tk=>{
+        html+=`<div class="note-item"><div class="nt">${tk.t}</div><div class="nd">${tk.d}</div></div>`;
+      });
+    });
+    document.getElementById('taskBadge').style.display = S.tasks.filter(t=>t.st==='进行中').length>0?'block':'none';
+  }
+  else if(t==='workspace') {
+    h.innerHTML = '📁 工作空间';
+    html = '<div class="gt">当前空间</div>';
+    html += `<div class="seti"><span class="setii">📁</span>${S.workspaces[0].n} <span style="font-size:9px;color:var(--grn);margin-left:4px">● 活跃</span></div>`;
+    html += '<div class="gt">其他空间</div>';
+    S.workspaces.slice(1).forEach(w=>{html+=`<div class="seti"><span class="setii">📁</span>${w.n}</div>`;});
+    html += `<div class="gt"></div><div class="qc" onclick="addWorkspace()"><div class="qct">＋ 新建工作空间</div></div>`;
+  }
+  else if(t==='settings') {
+    h.innerHTML = '👤 用户设置';
+    html = '<div class="ucard"><div class="ua">军</div><div><div class="un">军哥</div><div class="ue">xiejianjun000@github</div></div></div>';
+    html += '<div class="gt">账户</div>';
+    [{i:'👤',t:'个人资料'},{i:'🔑',t:'修改密码'},{i:'🔐',t:'安全设置'}].forEach(s=>{
+      html += `<div class="seti"><span class="setii">${s.i}</span>${s.t}</div>`;
+    });
+    html += '<div class="gt">偏好</div>';
+    [{i:'🎨',t:'主题 · 暗色'},{i:'🌐',t:'语言 · 中文'},{i:'🔔',t:'通知设置'}].forEach(s=>{
+      html += `<div class="seti"><span class="setii">${s.i}</span>${s.t}</div>`;
+    });
+    html += '<div class="gt">系统</div>';
+    [{i:'📋',t:'关于 EcoMind OS'},{i:'🚪',t:'退出登录'}].forEach(s=>{
+      html += `<div class="seti"><span class="setii">${s.i}</span>${s.t}</div>`;
+    });
+  }
+  c.innerHTML = html;
+}
+
+// Render Right Panel
+function renderRight() {
+  const c = document.getElementById('rightContent');
+  let html = '';
+  if(S.rtab==='exec') {
+    html += `<div class="rcard"><div class="rch"><div class="rci" style="background:rgba(59,130,246,0.12);color:#3b82f6">🔍</div><span class="rct">正在执行：废水排放分析</span><span class="rcst run">进行中</span></div><div class="rcprog"><div class="rcprogb" style="width:65%"></div></div><div class="rcd" style="margin-top:6px">⚙ 环境监测专家 → 调取监测数据<br>⚙ 水生态专家 → pH异常分析<br>⏳ 执法监察专家 → 等待数据</div></div>`;
+    html += `<div class="rcard"><div class="rch"><div class="rci" style="background:rgba(16,185,129,0.12);color:#10b981">✅</div><span class="rct">环评审批团队会议</span><span class="rcst done">已完成</span></div><div class="rcd">5人团队协同完成一平硐煤矿分析</div><div class="rcm"><span>🕐 15:11</span><span>📊 5项决议</span></div></div>`;
+  }
+  else if(S.rtab==='result') {
+    S.results.forEach(r=>{
+      html += `<div class="rcard"><div class="rch"><div class="rci" style="background:${r.c};color:${r.color}">${r.icon}</div><span class="rct">${r.title}</span><span class="rcst ${r.status==='done'?'done':'run'}">${r.status==='done'?'已完成':'进行中'}</span></div><div class="rcd">${r.desc}</div><div class="rcm"><span>${r.meta}</span><span style="color:var(--blu);cursor:pointer">查看文件 →</span></div></div>`;
+    });
+  }
+  else if(S.rtab==='log') {
+    S.logs.forEach(l=>{
+      html += `<div class="lg ${l.lv==='ok'?'ok':l.lv==='wn'?'wn':'er'}"><div class="lgt">${l.t}</div><div class="lgtx">${l.tx}</div></div>`;
+    });
+  }
+  else if(S.rtab==='history') {
+    html = '<div class="hs"><span>🔍</span><input placeholder="搜索历史任务..."></div>';
+    S.history.forEach(h=>{
+      html += `<div class="hist"><div class="htt">${h.title}</div><div class="htm">${h.meta}</div></div>`;
+    });
+  }
+  c.innerHTML = html;
+}
+
+// Render Chat Messages
+function renderChat() {
+  const el = document.getElementById('chatMsgs');
+  let html = '';
+  S.msgs.forEach(m=>{
+    const isUser = m.type === 'user';
+    html += `<div class="msg ${isUser?'u':''}"><div class="ma" style="background:linear-gradient(135deg,${m.color})">${m.from[0]}</div><div><div class="mb">${m.text}</div><div class="mt">${m.time}</div></div></div>`;
+  });
+  el.innerHTML = html;
+  el.scrollTop = el.scrollHeight;
+}
+
+function sendMsg() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if(!text) return;
+  S.msgs.push({type:'user',from:'军哥',color:'#6366f1,#4f46e5',text,time:new Date().toLocaleTimeString('zh',{hour:'2-digit',minute:'2-digit'})});
+  input.value = '';
+  renderChat();
+  // Simulate response
+  setTimeout(()=>{
+    S.msgs.push({type:'system',from:'GAIA 主控',color:'#10b981,#059669',text:'收到。正在调度相关专家进行分析...<span class="hal">⚡ 实时处理中</span>',time:new Date().toLocaleTimeString('zh',{hour:'2-digit',minute:'2-digit'})});
+    renderChat();
+    S.logs.unshift({lv:'ok',t:new Date().toLocaleTimeString('zh',{hour:'2-digit',minute:'2-digit'}),tx:'✅ 用户 — 新消息已处理'});
+    renderRight();
+  },800);
+}
+
+function selExpert(id) {
+  S.activeExpert = id;
+  const e = S.experts.find(x=>x.id===id);
+  if(e) {
+    document.getElementById('chatInput').value = `@${e.n} `;
+    document.getElementById('chatInput').focus();
+  }
+  renderSub();
+}
+
+function uploadFile() { alert('📎 文件上传 (生产环境将对接后端API)'); }
+function addAuto() { alert('⏰ 新建自动化 (生产环境将对接 /api/automations)'); }
+function addWorkspace() { alert('📁 新建工作空间 (生产环境将对接 /api/workspaces)'); }
+function searchNotes(q) { console.log('搜索:',q); }
+
+// Model buttons
+document.querySelectorAll('.tb').forEach(b=>{
+  b.addEventListener('click',function(){
+    if(this.textContent.includes('Qwen')||this.textContent.includes('Deep')||this.textContent.includes('GLM')){
+      document.querySelectorAll('.tb').forEach(t=>{if(t.textContent.includes('Qwen')||t.textContent.includes('Deep')||t.textContent.includes('GLM'))t.classList.remove('on')});
+      this.classList.add('on');
+      S.model = this.textContent.includes('Qwen')?'qwen3-14b':this.textContent.includes('Deep')?'deepseek-r1':'glm-4-9b';
+      document.getElementById('topModel').textContent = this.textContent.replace('🧠 ','').replace('🔬 ','').replace('🌐 ','');
+    }
+  });
+});
+
+// Init
+renderSub();
+renderRight();
+renderChat();
+</script>
+</body>
+</html>
