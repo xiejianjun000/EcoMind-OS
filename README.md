@@ -1,381 +1,141 @@
+<p align="center">
+  <img src="docs/assets/screenshot-chat.png" alt="EcoMind OS" width="100%">
+</p>
+
 # 🌿 EcoMind OS
 
 <p align="center">
-  <img src="VI/logo-placeholder.png" alt="EcoMind OS Logo" width="200"/>
+  <strong>生态环境垂直领域 AI Agent 操作系统。</strong><br>
+  调度 11 个领域专家协同工作——从实时监测到执法办案，从法规检索到碳核算报告。<br>
+  部署在您自己的服务器上，数据不出内网，每一个决策都有法可依、有据可查。
 </p>
 
 <p align="center">
-  <strong>🌍 以智慧，哺育星球</strong><br/>
-  <em>Intelligence that Nurtures the Planet.</em>
-</p>
-
-<p align="center">
-  <a href="./backend"><img src="https://img.shields.io/badge/Backend-FastAPI-009688?style=flat-square"/></a>
-  <a href="./frontend"><img src="https://img.shields.io/badge/Frontend-React%2018-61DAFB?style=flat-square"/></a>
-  <a href="./backend/taiji-agent"><img src="https://img.shields.io/badge/Agent-TAIJI--AGENT%202.0-orange?style=flat-square"/></a>
-  <a href="./LICENSE"><img src="https://img.shields.io/badge/License-Apache--2.0-blue?style=flat-square"/></a>
-  <img src="https://img.shields.io/badge/Version-1.0.0-green?style=flat-square"/>
+  <a href="https://github.com/xiejianjun000/EcoMind-OS/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-Apache--2.0-blue?style=flat-square" alt="License"></a>
+  <a href="./backend"><img src="https://img.shields.io/badge/Backend-FastAPI-009688?style=flat-square" alt="FastAPI"></a>
+  <a href="./frontend"><img src="https://img.shields.io/badge/Frontend-React_18-61DAFB?style=flat-square" alt="React"></a>
+  <a href="README.zh-CN.md"><img src="https://img.shields.io/badge/中文-README-red?style=flat-square" alt="中文"></a>
 </p>
 
 ---
 
-## 🧠 什么是 EcoMind OS？
+## 30 秒跑起来
 
-**EcoMind OS** 是一个**全栈 AI Agent 智能管理平台**，核心理念为 **"会思考的生态大脑"（A Thinking Ecological Brain）**。
+```bash
+git clone git@github.com:xiejianjun000/EcoMind-OS.git && cd EcoMind-OS
+cd backend && pip install -r requirements.txt                  # 后端依赖
+export DEEPSEEK_API_KEY="sk-your-key"
+python -m uvicorn api.main:app --reload --port 8000            # http://localhost:8000/docs
 
-它融合了：
-- 🌿 **生态智能**：面向环保、政务、企业碳排放等场景
-- 🤖 **Agent 编排**：LangGraph + CrewAI 双引擎
-- 🛡️ **安全治理**：六层 VERIFY 验证 + 多层安全防护链
-- 🧠 **记忆系统**：Hermes + Mem0 + Graphiti + GraphRAG 四层记忆
-- 🏛️ **政务集成**：GOVMCP 政务模型协作协议（SM2/SM3/SM4 国密算法）
+# 新终端
+cd ../frontend && pnpm install && pnpm dev                     # http://localhost:5173
+```
 
----
+打开浏览器，开始对话。不需要数据库，不需要 Docker，不需要注册任何服务。
 
-## ✨ 核心特性
-
-### 1. 🤖 多模态 Agent 管理
-- **4 类 Agent 角色**：enforcement（执法）/ monitoring（监测）/ pproval（审批）/ public（公众）
-- **权限分级**：L1-L5 五级权限体系
-- **人在环路**（HITL）：低置信度自动触发人工审批
-- **流式输出**：支持 SSE / WebSocket 实时流式响应
-
-### 2. 🔄 工作流编排
-- **LangGraph** 状态图编排（监督节点 + 审批节点 + 检查点）
-- **CrewAI** 团队协作（监测团队 / 执法团队 / 巡检团队）
-- **审批流**：GOVMCP 三级审批（L1单签 / L2双因子 / L3会签+区块链存证）
-
-### 3. 🛡️ 安全治理链（SafetyChain）
-| 层级 | 技术 | 功能 |
-|------|------|------|
-| L5-1 | Xiangxin Guardrails | 输入/输出内容安全审核 |
-| L5-2 | NeMo Guardrails | NVIDIA 官方护栏系统 |
-| L5-3 | EcoVerifyAdapter | 六层 VERIFY 验证（坤守/乾进/复归/观变/巽调/北辰） |
-| L5-4 | LettuceDetect | 幻觉检测（Hallucination Detection） |
-| L5-5 | Langfuse Tracer | LLM 调用审计追踪 |
-| L5-6 | GovWorkflowManager | 政务审批流（SM2/SM3/SM4 国密加密） |
-
-### 4. 🧠 四层记忆系统
-- **Hermes**（短期）：会话上下文记忆
-- **Mem0**（中期）：用户偏好记忆
-- **Graphiti**（关联）：知识图谱时序记忆
-- **GraphRAG**（长期）：全局知识库检索
-
-### 5. 🌍 3D 可视化（Cesium）
-- 湖南省地形 3D 场景
-- 监测站点实时数据叠加
-- Deck.gl 数据图层（热力图 / 散点图 / 聚合图）
-- Turf.js 地理空间分析
-
-### 6. 🔌 模型路由（LiteLLM Proxy）
-- **Qwen3-14B**（45% 流量）：通用任务
-- **DeepSeek-671B**（28% 流量）：复杂推理
-- **Qwen3-72B**（18% 流量）：大规模上下文
-- **GLM-4-9B**（9% 流量）：边缘推理
-- **本地推理**：vLLM / SGLang 部署（Phase 1B）
+<table>
+<tr><td width="30%"><b>🧠 11 个领域专家</b></td><td>助手统一调度，10 个领域专家各司其职——环境监测、执法监察、环评审批、排污许可、碳排放、应急管理、生物多样性、生态修复、生态督察、公众服务。每个专家有独立的 SOUL 人格和工具权限矩阵，对话中一键切换。</td></tr>
+<tr><td><b>🛡️ 六层安全链</b></td><td>L0 全局异常脱敏 → L1 Prompt 注入检测 → L2 策略护栏 → L3 输出验证 → L4 幻觉检测 → L5 审计追踪 → L6 国密审批。15 种注入攻击全拦截，SM2/SM3/SM4 国密算法内置。</td></tr>
+<tr><td><b>📡 四平台消息网关</b></td><td>飞书、微信、企业微信、钉钉——扫码即连。执法人员在现场用手机发消息，EcoMind 在服务器上调度专家、检索法规、生成文书，结果实时推回手机。一个网关进程，四个平台同时在线。</td></tr>
+<tr><td><b>🔍 法规语义搜索</b></td><td>不靠关键词匹配。"废气排放"搜到"大气污染物排放标准"，"黑烟"关联到"林格曼黑度"。SQLite + numpy 向量检索引擎，零外部数据库依赖。法规数据不出内网。</td></tr>
+<tr><td><b>🧬 越用越聪明</b></td><td>记忆蒸馏、遗忘曲线、夜间反思——EcoMind 会记住你的偏好、纠正过的错误、常用的法规。每办一个案件就长一分经验。三层知识图谱自动构建法规引用网络。</td></tr>
+<tr><td><b>📊 实时环境数据</b></td><td>对接湖南省生态环境厅监测网络，14 市州 AQI/PM2.5/PM10/O₃/SO₂/NO₂/CO 七项指标实时更新。城市排名、预报趋势、历史对比，Cesium 3D 地形叠加监测站数据。</td></tr>
+</table>
 
 ---
 
-## 🏗️ 技术架构
+## 常用命令
 
-\\\mermaid
-graph TB
-    User[👤 用户] --> Frontend[🌐 Frontend<br/>React + Cesium + ECharts]
-    Frontend --> WebSocket[📡 WebSocket<br/>Socket.IO]
-    Frontend --> API[🔧 FastAPI Backend]
-    
-    API --> Engine[🧠 EcoAgentEngine<br/>LangGraph + CrewAI]
-    Engine --> Safety[🛡️ SafetyChain<br/>6-Layer Guard]
-    Engine --> Memory[🧠 MemoryProvider<br/>Hermes+Mem0+Graphiti]
-    Engine --> GovMCP[🏛️ GovMCP<br/>政务审批流]
-    
-    Safety --> Verify[✅ EcoVerifyAdapter<br/>6-Layer VERIFY]
-    Safety --> Guardrails[🛡️ Xiangxin+NeMo<br/>内容安全]
-    Safety --> Hallucination[🔍 LettuceDetect<br/>幻觉检测]
-    
-    Memory --> ShortTerm[Hermes<br/>短期记忆]
-    Memory --> MidTerm[Mem0<br/>用户偏好]
-    Memory --> Associative[Graphiti<br/>关联记忆]
-    Memory --> LongTerm[GraphRAG<br/>长期知识库]
-    
-    Engine --> LiteLLM[🔌 LiteLLM Proxy<br/>模型路由]
-    LiteLLM --> Qwen3[Qwen3-14B]
-    LiteLLM --> DeepSeek[DeepSeek-671B]
-    LiteLLM --> GLM[GLM-4-9B]
-    
-    GovMCP --> SM2[🔐 SM2 证书]
-    GovMCP --> SM3[🔐 SM3 哈希]
-    GovMCP --> SM4[🔐 SM4 加密]
-    
-    style Frontend fill:#e1f5fe
-    style Engine fill:#fff3e0
-    style Safety fill:#ffebee
-    style Memory fill:#e8f5e9
-    style GovMCP fill:#f3e5f5
-\\\
+```bash
+# 启动对话
+python -m uvicorn api.main:app --port 8000    # 后端
+pnpm dev                                       # 前端 → http://localhost:5173
+
+# 向量化法规（首次使用）
+curl -X POST http://localhost:8000/api/rag/ingest -d '{"source":"hunan_policy"}'
+
+# 启动消息网关
+curl -X POST http://localhost:8000/api/gateway/start -d '{"platforms":["feishu"]}'
+
+# 扫码连接飞书
+curl -X POST http://localhost:8000/api/gateway/qr/register -d '{"platform":"feishu"}'
+
+# 运行测试
+bash scripts/smoke.sh                          # 6条/10秒烟雾测试
+cd backend && python -m pytest tests/unit/     # 57条单元测试
+
+# 夜间反思（每日凌晨 CI 自动执行，也可手动触发）
+PYTHONPATH=backend python -c "from engine.learning_loop import LearningLoop; LearningLoop().nightly_discovery()"
+```
+
+| 操作 | 网页端 | 消息平台 |
+|------|--------|---------|
+| 开始对话 | 打开 `http://localhost:5173` | 给 Bot 发消息 |
+| 切换专家 | 右侧面板选择 | 发送 `/expert 执法监察` |
+| 搜索法规 | 右侧面板→法规 Tab | 直接问"废气排放标准" |
+| 查看任务 | 对话区下方 TaskList | 发送 `/tasks` |
+| 新建会话 | 左侧栏 "+ 新建会话" | 发送 `/new` |
 
 ---
 
-## 📁 项目结构
+## 文档
 
-\\\ash
-EcoMind OS/
-├── backend/                      # FastAPI 后端
-│   ├── api/                     # API 路由
-│   │   ├── main.py              # FastAPI 入口
-│   │   ├── routers/             # 路由模块（agents/workflows/security/models）
-│   │   ├── services/            # 业务逻辑层
-│   │   ├── schemas/             # Pydantic 数据模型
-│   │   └── websocket/           # WebSocket 管理器
-│   ├── inference/               # 推理引擎配置
-│   │   ├── adapter.py           # vLLM/SGLang 适配器
-│   │   ├── config.yaml          # 模型映射配置
-│   │   └── start_*.sh          # 启动脚本
-│   ├── litellm-proxy/           # LiteLLM 代理
-│   ├── taiji-agent/             # TAIJI-AGENT 2.0 核心（112 个模块）
-│   │   ├── agent/               # Agent 引擎
-│   │   ├── govmcp/             # GOVMCP 政务协议
-│   │   ├── workflow/            # LangGraph 工作流
-│   │   ├── multiagent/          # 多 Agent 协调
-│   │   ├── memory/              # 记忆系统
-│   │   ├── memory_tree/         # 三层记忆树
-│   │   ├── mcp/                # MCP 协议适配
-│   │   ├── skills/              # 技能系统
-│   │   ├── souls/               # 灵魂系统
-│   │   └── providers/chinese/   # 国产模型适配
-│   └── vllm/                   # vLLM 部署配置
-├── frontend/                     # React 前端
-│   ├── src/
-│   │   ├── pages/               # 9 个功能模块
-│   │   │   ├── Dashboard/       # 总览页（ECharts 图表）
-│   │   │   ├── Agents/          # Agent 管理
-│   │   │   ├── Workflows/       # 工作流编排
-│   │   │   ├── Security/        # 安全治理
-│   │   │   ├── Models/          # 模型管理
-│   │   │   ├── Domains/         # 业务域配置
-│   │   │   ├── Conversations/   # 对话审计
-│   │   │   ├── Cesium/          # 3D 地图场景
-│   │   │   └── Settings/        # 系统设置
-│   │   ├── components/          # 公共组件
-│   │   ├── layouts/             # 主布局（Ant Design Pro）
-│   │   ├── store/               # Zustand 状态管理
-│   │   ├── services/            # API 调用封装
-│   │   ├── hooks/               # 自定义 Hooks
-│   │   ├── locales/             # i18n 双语（zh-CN/en-US）
-│   │   └── theme/               # Ant Design 主题配置
-│   ├── public/                  # 静态资源
-│   └── vite.config.ts           # Vite 配置（Cesium 插件）
-├── docs/                        # 设计文档
-│   ├── class-diagram.mermaid    # 类图
-│   └── sequence-diagram.mermaid # 时序图
-├── VI/                          # 品牌视觉识别系统
-│   ├── EcoMind_OS_VI_Brand_Manual.md  # VI 手册
-│   └── overview.md              # VI 总览
-├── deliverables/                 # 交付物
-│   └── software-company/        # 软件开发交付报告
-├── agent-prompts-collection/     # Agent 提示词集合
-├── .workbuddy/                  # WorkBuddy 协作记忆
-└── README.md                    # 本文件
-\\\
+所有核心文档在仓库内，不需要外站。
+
+| 你想做什么 | 文档 |
+|-----------|------|
+| 了解设计理念和核心人格 | [SOUL-EcoMind.md](./spec/SOUL-EcoMind.md) |
+| 查看架构决策和模块划分 | [design.md](./spec/design.md) |
+| 理解 Agent 引擎实现 | [loop.py](./backend/engine/loop.py) |
+| 查看 11 专家配置 | [ecc/hunan-agents/](./backend/skills/ecc/hunan-agents/) |
+| 了解记忆进化系统 | [memory_evolution.py](./backend/engine/memory_evolution.py) |
+| 了解闭环学习引擎 | [learning_loop.py](./backend/engine/learning_loop.py) |
+| 配置消息网关 | [gateway_config.json](./backend/gateway/gateway_config.json) |
+| 部署到生产环境 | [deploy/](./deploy/) |
+| 查看安全加固规则 | [safety_chain.py](./backend/api/routers/safety_chain.py) |
+| 贡献代码 | [CONTRIBUTING.md](./CONTRIBUTING.md) |
 
 ---
 
-## 🚀 快速开始
+## 项目结构
 
-### 前置条件
-
-| 依赖 | 版本 | 说明 |
-|------|------|------|
-| **Node.js** | v22+ | 前端构建环境 |
-| **pnpm** | v11+ | 前端包管理器 |
-| **Python** | 3.11+ | 后端运行环境 |
-| **Git** | 2.x+ | 版本控制 |
-
-### 1. 克隆项目
-
-\\\ash
-git clone https://github.com/xiejianjun000/EcoMind-OS.git
-cd EcoMind-OS
-\\\
-
-### 2. 启动前端（开发模式）
-
-\\\ash
-cd frontend
-pnpm install   # 安装 678 个依赖包
-pnpm dev       # 启动 Vite 开发服务器（默认 http://localhost:5173）
-\\\
-
-### 3. 启动后端（FastAPI）
-
-\\\ash
-cd backend/taiji-agent
-pip install -e ".[dev]"   # 安装 TAIJI-AGENT 2.0（112 个模块）
-pytest tests/                # 运行集成测试（38/38 PASS）
-\\\
-
-### 4. 启动推理引擎（可选）
-
-\\\ash
-# vLLM 部署（需要 GPU）
-cd backend/vllm
-docker-compose up -d
-
-# 或 SGLang 部署
-cd backend/inference
-bash start_sglang.sh
-\\\
+```
+EcoMind-OS/
+├── backend/                         # FastAPI 后端
+│   ├── api/                         # 路由 + 服务层
+│   ├── engine/                      # EcoAgentEngine 自建引擎 (17 模块)
+│   ├── gateway/platforms/           # 消息网关 (飞书/微信/企微/钉钉)
+│   ├── rag/                         # RAG 向量检索引擎
+│   ├── graph/                       # 三层知识图谱
+│   ├── marketplace/                 # 技能插件市场
+│   └── tests/                       # 单元/集成/契约/安全/混沌测试
+├── frontend/                        # React 18 三面板布局
+├── spec/                            # 项目规格 (灵魂铁律/架构/审计)
+├── deploy/                          # Docker + Nginx + systemd
+├── scripts/                         # 烟雾测试 / 文档自动同步 / Git运维
+└── .github/workflows/               # CI/CD (烟雾→单元→集成→夜间反思)
+```
 
 ---
 
-## 🛠️ 开发指南
+## 社区
 
-### 前端技术栈
-
-| 技术 | 版本 | 用途 |
-|------|------|------|
-| React | 18.3.1 | UI 框架 |
-| TypeScript | 5.7.3 | 类型安全 |
-| Vite | 6.1.0 | 构建工具 |
-| Ant Design | 5.24.0 | UI 组件库 |
-| Ant Design Pro | 7.21.3 | 企业级布局 |
-| Cesium | 1.127.0 | 3D 地图 |
-| ECharts | 5.6.0 | 数据可视化 |
-| Zustand | 5.0.3 | 状态管理 |
-| Tailwind CSS | 4.1.7 | 原子化样式 |
-| i18next | 24.2.3 | 国际化 |
-| Socket.IO Client | 4.8.1 | WebSocket 通信 |
-
-### 后端技术栈
-
-| 技术 | 版本 | 用途 |
-|------|------|------|
-| FastAPI | 最新 | Web 框架 |
-| TAIJI-AGENT | 2.0 | Agent 核心框架（112 模块） |
-| LangGraph | 最新 | 工作流编排 |
-| CrewAI | 最新 | 团队协作编排 |
-| LiteLLM | 最新 | 模型路由代理 |
-| Hermes | 最新 | 记忆系统 |
-| Mem0 | 最新 | 用户偏好记忆 |
-| Graphiti | 最新 | 时序知识图谱 |
-| GraphRAG | 最新 | 长期知识库检索 |
-
-### 可用脚本
-
-#### 前端
-
-\\\ash
-cd frontend
-pnpm dev        # 启动开发服务器（热更新）
-pnpm build      # 构建生产版本（输出到 dist/）
-pnpm preview    # 预览生产版本
-pnpm lint       # ESLint 代码检查
-pnpm format     # Prettier 格式化
-\\\
-
-#### 后端
-
-\\\ash
-cd backend/taiji-agent
-pytest tests/                          # 运行集成测试
-python -m taiji_agent.agent.engine     # 启动 Agent 引擎
-python backend/inference/adapter.py     # 启动推理适配器
-\\\
+- 🐛 [提交 Issue](https://github.com/xiejianjun000/EcoMind-OS/issues)
+- 📖 [贡献指南](./CONTRIBUTING.md)
+- 🌐 关注 `@xiejianjun000` 获取更新
 
 ---
 
-## 📊 项目状态
+## 致谢
 
-### Phase 1A（✅ 已完成）
-
-| 模块 | 状态 | 说明 |
-|------|------|------|
-| 后端集成测试 | ✅ 38/38 PASS | TAIJI-AGENT + GOVMCP + VERIFY 全通过 |
-| 前端构建 | ✅ 通过 | Vite build 1m20s, pnpm 678 包 |
-| Dashboard 原型 | ✅ 完成 | 4 统计卡片 + Agent 表 + 3 ECharts 图 + 安全表 + 审批队列 |
-| 9 模块路由 | ✅ 完成 | Dashboard/Agents/Workflows/Security/Models/Domains/Conversations/Cesium/Settings |
-| i18n 双语 | ✅ 完成 | zh-CN + en-US |
-| 亮色/暗色主题 | ✅ 完成 | Ant Design ConfigProvider + Tailwind CSS |
-
-### Phase 1B（🔶 进行中）
-
-| 模块 | 状态 | 说明 |
-|------|------|------|
-| Cesium 3D 场景 | 🔶 占位 | 湖南省地形 + 监测站点叠加 |
-| 后端 API 服务 | 🔶 进行中 | FastAPI 启动脚本 + 数据库连接 |
-| 前后端 WebSocket 联调 | 🔶 进行中 | Socket.IO 实时通信 |
-| 国产模型本地推理 | 🔶 进行中 | vLLM / SGLang 部署 |
-| LiteLLM 适配配置 | 🔶 进行中 | 模型路由规则配置 |
+EcoMind OS 受以下项目和理念启发：Hermes Agent (Nous Research) 的自我进化架构、Claude Code 的 Skill 插件化体系、Trae Solo 的 UI 设计规范、Understand-Anything 的知识图谱理念、Anthropic 的网络安全技能。
 
 ---
 
-## 🎨 品牌视觉识别（VI）
+## 许可证
 
-EcoMind OS 拥有完整的 **VI 品牌视觉识别系统**，核心理念为 **"会思考的生态大脑"**：
-
-- 🍃 **Logo**：融合叶脉轮廓与 AI 神经网络拓扑结构
-- 🎨 **色彩系统**：生态绿 #00C9A7 → 智慧青 #0E7490（呼吸式循环渐变）
-- 📐 **辅助图形**：生态数据网格 + 参数化生长单元 + 意识流光线
-- 🔤 **字体系统**：思源黑体（中文）/ Inter（英文）/ DM Sans（数据）
-- 🌐 **品牌口号**：
-  - 英文：*Intelligence that Nurtures the Planet.*
-  - 中文：*以智慧，哺育星球。*
-
-> 📖 **完整 VI 手册**：[VI/EcoMind_OS_VI_Brand_Manual.md](./VI/EcoMind_OS_VI_Brand_Manual.md)
-
----
-
-## 🤝 贡献指南
-
-我们欢迎任何形式的贡献！
-
-### 贡献流程
-
-1. **Fork 本仓库**
-2. **创建特性分支**：git checkout -b feature/YourFeature
-3. **提交更改**：git commit -m "feat: 描述你的更改"
-4. **推送到全局**：git push origin feature/YourFeature
-5. **创建 Pull Request**
-
-### 代码规范
-
-- **Python**：遵循 PEP 8，使用 uff 格式化
-- **TypeScript**：遵循 ESLint 规则，使用 Prettier 格式化
-- **提交信息**：遵循 [Conventional Commits](https://www.conventionalcommits.org/)
-
-###  issue 报告
-
-请使用 [GitHub Issues](https://github.com/xiejianjun000/EcoMind-OS/issues) 报告 Bug 或提出新功能建议。
-
----
-
-## 📄 许可证
-
-本项目采用 **Apache License 2.0** 开源许可证。
-
-See [LICENSE](./LICENSE) for details.
-
----
-
-## 📞 联系方式
-
-- **GitHub**：[@xiejianjun000](https://github.com/xiejianjun000)
-- **项目地址**：[EcoMind-OS](https://github.com/xiejianjun000/EcoMind-OS)
-- **Issues**：[Report a bug](https://github.com/xiejianjun000/EcoMind-OS/issues)
-
----
-
-## 🙏 致谢
-
-- **TAIJI-AGENT**：国产 AI Agent 框架
-- **FastAPI**：高性能 Python Web 框架
-- **React**：Facebook 开源 UI 框架
-- **Cesium**：3D 地理空间可视化平台
-- **Ant Design**：企业级 UI 设计语言
-
----
+Apache License 2.0 — 详见 [LICENSE](./LICENSE)。
 
 <p align="center">
-  <em>🌱 EcoMind OS — 生态，自此思考。</em><br/>
-  <em>🌍 Intelligence that Nurtures the Planet.</em>
+  <em>🌱 数据不到不开口，法规不引不下笔。</em>
 </p>

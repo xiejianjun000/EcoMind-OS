@@ -1,0 +1,6 @@
+- [x] 创建 schemas/approval.py（枚举 + 模型）
+- [x] 创建 services/approval_service.py（三级状态机）
+- [x] 创建 routers/approval.py（4 端点）
+- [x] main.py 注册路由
+- [x] types.ts 追加类型
+- [x] api.ts 追加 approvalApi

@@ -35,6 +35,8 @@ export interface Expert {
   modelTier: 'opus' | 'sonnet' | 'haiku';
   safetyLevel: 'L1' | 'L2' | 'L3';
   isBuiltin: boolean;
+  /** Claude Code pattern: natural language description of when this agent should be triggered */
+  whenToUse?: string;
 }
 
 /** Expert capability / skill */

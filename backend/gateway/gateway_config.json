@@ -1,0 +1,36 @@
+{
+  "feishu": {
+    "domain": "feishu",
+    "app_id": "",
+    "app_secret": "",
+    "verification_token": "",
+    "encrypt_key": "",
+    "webhook_port": 18090,
+    "webhook_path": "/feishu/callback"
+  },
+  "wecom": {
+    "corp_id": "",
+    "agent_id": "",
+    "secret": "",
+    "token": "ecomind_gateway",
+    "encoding_aes_key": "",
+    "webhook_port": 18091,
+    "webhook_path": "/wecom/callback"
+  },
+  "dingtalk": {
+    "app_key": "",
+    "app_secret": "",
+    "robot_code": "",
+    "webhook_secret": "",
+    "webhook_port": 18092,
+    "webhook_path": "/dingtalk/callback"
+  },
+  "wechat": {
+    "app_id": "",
+    "app_secret": "",
+    "token": "ecomind_wechat_token",
+    "encoding_aes_key": "",
+    "webhook_port": 18093,
+    "webhook_path": "/wechat/callback"
+  }
+}

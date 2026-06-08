@@ -1,0 +1,66 @@
+# EcoMind 模型配置
+# 定义可用模型、降级链、provider 信息
+# 热加载：修改后 30 秒内自动生效
+
+models:
+  # 默认模型（主模型）
+  default: deepseek-chat
+
+  # Provider 定义
+  providers:
+    deepseek:
+      name: DeepSeek
+      base_url: https://api.deepseek.com/v1
+      api_key_env: DEEPSEEK_API_KEY
+      health_url: https://api.deepseek.com/v1/models
+    qwen:
+      name: 通义千问
+      base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+      api_key_env: DASHSCOPE_API_KEY
+      health_url: https://dashscope.aliyuncs.com/compatible-mode/v1/models
+    ollama:
+      name: Ollama Local
+      base_url: http://localhost:11434/v1
+      api_key_env: ""  # 本地不需要 key
+      health_url: http://localhost:11434/api/tags
+
+  # 模型列表
+  available:
+    - id: deepseek-chat
+      name: DeepSeek-V3
+      provider: deepseek
+      max_tokens: 8192
+      temperature: 0.7
+      supports_tools: true
+      supports_streaming: true
+      priority: 1
+
+    - id: qwen-plus
+      name: 通义千问-Plus
+      provider: qwen
+      max_tokens: 8192
+      temperature: 0.7
+      supports_tools: true
+      supports_streaming: true
+      priority: 2
+
+    - id: qwen2.5:7b
+      name: Qwen2.5-7B (本地)
+      provider: ollama
+      max_tokens: 4096
+      temperature: 0.7
+      supports_tools: false
+      supports_streaming: true
+      priority: 3
+
+  # 降级链：当模型不可用时，按顺序尝试下一个
+  fallback_chain:
+    - deepseek-chat
+    - qwen-plus
+    - qwen2.5:7b
+
+  # 健康检查
+  health_check:
+    enabled: true
+    interval_seconds: 60
+    timeout_seconds: 10

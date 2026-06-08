@@ -1,424 +1,242 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
+import { useParams, useNavigate, useOutletContext } from "react-router-dom"
+import type { ChatLayoutContext } from "@/layouts/ChatLayout"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
-import {
-  Send,
-  Paperclip,
-  Sparkles,
-  Wrench,
-  Plug,
-  BookOpen,
-  Share2,
-  Search,
-  LayoutGrid,
-  Plus,
-  ThumbsUp,
-  Clipboard,
-  Volume2,
-  ChevronLeft,
-  MoreHorizontal,
-} from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Send, Sparkles, ThumbsUp, Clipboard, Volume2, Search, Plus, Eye } from "lucide-react"
+import { TaskList } from "@/components/Chat/TaskList"
+import { chatStream, isApiKeyConfigured } from "@/services/deepseek"
+import { getCityAQI, getCityStations, getAllCities, resolveCity } from "@/services/envDataService"
+import { getToolLabel, getToolIcon, summarizeToolResult } from "@/services/toolService"
+import ChatMapEmbed from "@/components/ChatMap/ChatMapEmbed"
+import ForecastChart from "@/components/Chat/ForecastChart"
+import MarkdownRenderer from "@/components/Chat/MarkdownRenderer"
+import { VoiceInputButton, speakText, stopSpeaking } from "@/components/Chat/VoiceInputButton"
+import { ChatTopBar } from "@/components/ChatTopBar/ChatTopBar"
+import { ModelStatusBadge } from "@/components/Chat/ModelStatusBadge"
+import { ToolCallMessage } from "@/components/Chat/ToolCallMessage"
+import { HumanConfirmDialog } from "@/components/Chat/HumanConfirmDialog"
+import { AgentStatusBar } from "@/components/AgentStatus/AgentStatusBar"
+import { useChatStore } from "@/store/chatStore"
+import type { Message, EnvDataCard, ToolCallMessage as ToolCallMsg } from "./types"
+import type { ChatMessage } from "@/types/chat"
 
-interface Message {
-  id: string
-  role: "user" | "assistant"
-  content: string
-  expert?: {
-    id: string
-    name: string
-    avatar?: string
-  }
-  timestamp: string
-  artifacts?: { id: string; name: string; type: string }[]
+const EXPERT_MAP: Record<string, { id: string; name: string }> = {
+  ecomind: { id: "ecomind", name: "助手" },
+  "env-monitoring": { id: "env-monitoring", name: "环境监测专家" },
+  enforcement: { id: "enforcement", name: "执法监察专家" },
+  eia: { id: "eia", name: "环评审批专家" },
+  permit: { id: "permit", name: "排污许可专家" },
+  biodiversity: { id: "biodiversity", name: "生物多样性专家" },
+  carbon: { id: "carbon", name: "碳排放专家" },
+  emergency: { id: "emergency", name: "应急管理专家" },
+  restoration: { id: "restoration", name: "生态修复专家" },
+  inspection: { id: "inspection", name: "生态督察专家" },
+  public: { id: "public", name: "公众服务专家" },
 }
 
-interface Participant {
-  id: string
-  name: string
-  avatar?: string
-}
-
-const participants: Participant[] = [
-  { id: "gaia", name: "GAIA" },
-  { id: "monitor", name: "许清楚" },
-  { id: "law", name: "寇豆码" },
-  { id: "eia", name: "高见远" },
-]
-
-const initialMessages: Message[] = [
-  {
-    id: "1",
-    role: "user",
-    content: "1、这个页面智能放在什么位置？2、你自己看一下WORKBUDDY的交互模式，3、已有智能体跟WORKBUDDY的多智能体协作方式有什么异同？",
-    timestamp: "14:30",
-  },
-  {
-    id: "2",
-    role: "assistant",
-    content: `根据您的需求，我建议将这个页面放在以下位置：
-
-1. **左侧导航栏** - 作为核心入口，类似 WorkBuddy 的 "+ 新建任务" 按钮
-2. **顶部工具栏** - 提供快捷操作按钮
-
-关于与 WorkBuddy 的异同分析：
-
-**相同点：**
-- 都是多智能体协作系统
-- 都支持自然语言交互
-- 都有任务分解和执行能力
-
-**不同点：**
-- WorkBuddy 更侧重于软件开发场景
-- EcoMind OS 侧重于环境治理场景
-- 智能体角色定义不同（环境专家 vs 开发者）`,
-    expert: { id: "gaia", name: "GAIA 生态主控" },
-    timestamp: "14:31",
-    participants: [
-      { id: "gaia", name: "GAIA" },
-      { id: "monitor", name: "许清楚" },
-    ],
-  },
-]
+function getExpertName(id: string) { return EXPERT_MAP[id]?.name || id }
+function getInitials(name: string) { return name.replace(/专家|环境|生态|管理/g, "").slice(0, 2) }
 
 export default function ChatPage() {
-  const [messages, setMessages] = useState<Message[]>(initialMessages)
+  const { sessionId } = useParams()
+  const navigate = useNavigate()
+  const chatStore = useChatStore()
+  const outletCtx = useOutletContext<ChatLayoutContext>()
+  const [messages, setMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState("")
-  const [selectedExpert, setSelectedExpert] = useState("gaia")
+  const [selectedExpert, setSelectedExpert] = useState("ecomind")
   const [isLoading, setIsLoading] = useState(false)
+  const [toolCalls, setToolCalls] = useState<ToolCallMsg[]>([])
+  const [taskListVisible, setTaskListVisible] = useState(false)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [attachedFiles, setAttachedFiles] = useState<Array<{ file: File; status: string; serverPath?: string }>>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }
+  const abortRef = useRef<(() => void) | null>(null)
+  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; toolName: string; params: any; auditId: string; onConfirm: () => void; onReject: () => void }>({
+    open: false, toolName: "", params: {}, auditId: "", onConfirm: () => {}, onReject: () => {},
+  })
 
   useEffect(() => {
-    scrollToBottom()
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
-  const handleSend = () => {
-    if (!inputValue.trim()) return
-
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      role: "user",
-      content: inputValue,
-      timestamp: new Date().toLocaleTimeString("zh-CN", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
+  useEffect(() => {
+    if (!isApiKeyConfigured()) return
+    const session = sessionId
+      ? chatStore.sessions.find(s => s.id === sessionId)
+      : chatStore.sessions[0]
+    if (session) {
+      setMessages(session.messages?.map((m: ChatMessage, _i: number) => ({ id: m.id || String(Date.now()), role: m.role as "user" | "assistant" | "system", content: m.content || "", timestamp: new Date(m.timestamp).toISOString() })).filter((m: Message) => m.role !== "system") || [])
     }
+  }, [sessionId])
 
-    setMessages((prev) => [...prev, newMessage])
+  const handleSend = useCallback(async (messageText?: string) => {
+    const text = (messageText || inputValue).trim()
+    if (!text || isLoading) return
     setInputValue("")
+    const userMsg: Message = { id: String(Date.now()), role: "user", content: text, timestamp: new Date().toISOString() }
+    setMessages(prev => [...prev, userMsg])
     setIsLoading(true)
+    setToolCalls([])
+    setTaskListVisible(true)  // 发送新消息时显示任务列表
 
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: "这是一个模拟的AI回复。根据您的输入，我已经理解了您的需求。",
-        expert: { id: "gaia", name: "GAIA 生态主控" },
-        timestamp: new Date().toLocaleTimeString("zh-CN", {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        participants: [
-          { id: "gaia", name: "GAIA" },
-          { id: "monitor", name: "许清楚" },
-        ],
-      }
-      setMessages((prev) => [...prev, aiResponse])
+    const assistantMsg: Message = { id: String(Date.now() + 1), role: "assistant", content: "", timestamp: new Date().toISOString(), isStreaming: true, toolCalls: [] }
+    setMessages(prev => [...prev, assistantMsg])
+
+    try {
+      const abort = chatStream(text, {
+        expertId: selectedExpert,
+        model: "deepseek-chat",
+        conversationHistory: messages.filter(m => m.role !== "system").map(m => ({ role: m.role as "user" | "assistant", content: m.content })),
+        onChunk: (token: string) => {
+          setMessages(prev => prev.map(m => m.id === assistantMsg.id ? { ...m, content: m.content + token } : m))
+        },
+        onToolCall: (name: string, params: Record<string, any>, callId: string) => {
+          const tc: ToolCallMsg = { id: callId, name, params, status: "running" }
+          setToolCalls(prev => [...prev, tc])
+          setMessages(prev => prev.map(m => m.id === assistantMsg.id ? { ...m, toolCalls: [...(m.toolCalls || []), tc] } : m))
+        },
+        onToolResult: (name: string, summary: string, callId: string) => {
+          setToolCalls(prev => prev.map(tc => tc.id === callId ? { ...tc, status: "success", result: summary } : tc))
+        },
+        onDone: (_fullContent: string) => {
+          setIsLoading(false)
+          setToolCalls(prev => prev.map(tc => tc.status === "running" ? { ...tc, status: "success" } : tc))
+          setMessages(prev => prev.map(m => m.id === assistantMsg.id ? { ...m, isStreaming: false } : m))
+        },
+        onError: (err: Error) => {
+          setIsLoading(false)
+          setMessages(prev => prev.map(m => m.id === assistantMsg.id ? { ...m, content: m.content || `错误: ${err.message}`, isStreaming: false } : m))
+        },
+      })
+      abortRef.current = abort
+    } catch (e: any) {
       setIsLoading(false)
-    }, 1500)
-  }
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
-      handleSend()
+      setMessages(prev => prev.map(m => m.id === assistantMsg.id ? { ...m, content: `请求失败: ${e.message}`, isStreaming: false } : m))
     }
-  }
+  }, [inputValue, isLoading, messages, selectedExpert])
 
   return (
     <TooltipProvider>
-      <div className="flex flex-col h-full">
-        {/* Header */}
-        <header className="flex items-center justify-between px-4 py-3 border-b">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="md:hidden">
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-            <div>
-              <h1 className="font-semibold">湘江流域水质分析</h1>
-              <p className="text-xs text-muted-foreground">3 个成员 · 15 条消息</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Share2 className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>分享</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Search className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>搜索</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <LayoutGrid className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>视图</TooltipContent>
-            </Tooltip>
-            <Button variant="ghost" size="icon">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </div>
-        </header>
+    <div className="flex flex-col h-full">
+      <ChatTopBar
+        selectedExpert={selectedExpert}
+        onExpertChange={setSelectedExpert}
+        sidebarCollapsed={!outletCtx.sidebarOpen}
+        onToggleSidebar={outletCtx.toggleSidebar}
+        isSearchOpen={isSearchOpen}
+        searchQuery={searchQuery}
+        onSearchQueryChange={setSearchQuery}
+        onToggleSearch={() => setIsSearchOpen(!isSearchOpen)}
+        onNewSession={() => {
+          const s = chatStore.createSession({ title: "新会话", expertId: selectedExpert, expertName: getExpertName(selectedExpert) })
+          navigate(`/chat/${s}`)
+        }}
+        panelVisible={outletCtx.contextPanelOpen}
+        onTogglePanel={outletCtx.toggleContextPanel}
+      />
 
-        {/* Messages */}
-        <ScrollArea className="flex-1">
-          <div className="p-4 space-y-6">
-            {messages.map((message) => (
-              <MessageBubble
-                key={message.id}
-                message={message}
-                participants={message.participants}
-              />
-            ))}
-            {isLoading && (
-              <div className="flex items-start gap-3">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="text-xs">GA</AvatarFallback>
-                </Avatar>
-                <div className="bg-muted rounded-lg px-4 py-3">
-                  <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                    <div className="h-2 w-2 rounded-full bg-current animate-bounce" />
-                    <div className="h-2 w-2 rounded-full bg-current animate-bounce [animation-delay:0.2s]" />
-                    <div className="h-2 w-2 rounded-full bg-current animate-bounce [animation-delay:0.4s]" />
+      {/* Messages */}
+      <ScrollArea className="flex-1">
+        <div className="p-4 space-y-6 max-w-[900px] mx-auto">
+          {!isSearchOpen && messages.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-20">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center bg-primary">
+                <Sparkles className="h-8 w-8 text-primary-foreground" />
+              </div>
+              <h1 className="text-[24px] font-bold mb-2">EcoMind OS</h1>
+              <p className="text-muted-foreground text-[15px]">生态环境智能协作平台</p>
+              <p className="text-xs text-muted-foreground mt-8">输入问题开始对话</p>
+            </div>
+          )}
+          {messages.filter(m => m.role !== "system").map((message) => (
+            <MessageBubble key={message.id} message={message} />
+          ))}
+          {isLoading && (
+            <div className="flex items-start gap-3">
+              <Avatar className="h-8 w-8"><AvatarFallback className="text-xs bg-primary text-primary-foreground">EM</AvatarFallback></Avatar>
+              <div className="bg-muted rounded-lg px-4 py-3">
+                <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                  <span>思考中</span>
+                  <div className="flex gap-1">
+                    <div className="h-1.5 w-1.5 rounded-full bg-current animate-bounce" />
+                    <div className="h-1.5 w-1.5 rounded-full bg-current animate-bounce [animation-delay:0.2s]" />
+                    <div className="h-1.5 w-1.5 rounded-full bg-current animate-bounce [animation-delay:0.4s]" />
                   </div>
                 </div>
               </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-        </ScrollArea>
-
-        {/* Participants */}
-        {messages.length > 0 && (
-          <div className="px-4 py-2 border-t">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">参与成员:</span>
-              <div className="flex -space-x-2">
-                {participants.map((p) => (
-                  <Avatar key={p.id} className="h-6 w-6 border-2 border-background">
-                    <AvatarFallback className="text-[10px]">
-                      {p.name.slice(0, 2)}
-                    </AvatarFallback>
-                  </Avatar>
-                ))}
-              </div>
             </div>
-          </div>
-        )}
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+      </ScrollArea>
 
-        <Separator />
+      {/* Task List — 对标 Trae: 消息区和输入框之间, 实时显示Agent正在执行的操作 */}
+      <TaskList toolCalls={toolCalls} visible={taskListVisible} onToggle={() => setTaskListVisible(false)} />
 
-        {/* Input Area */}
-        <div className="p-4">
-          <div className="flex items-end gap-2">
-            {/* Expert Selector */}
-            <Select value={selectedExpert} onValueChange={setSelectedExpert}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="选择专家" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="gaia">🌿 GAIA 生态主控</SelectItem>
-                <SelectItem value="monitor">📊 环境监测专家</SelectItem>
-                <SelectItem value="law">🚔 执法监察专家</SelectItem>
-                <SelectItem value="eia">📋 环评审批专家</SelectItem>
-              </SelectContent>
-            </Select>
+      <Separator />
 
-            {/* Quick Actions */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="outline" size="icon">
-                  <Sparkles className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>技能</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="outline" size="icon">
-                  <Wrench className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>工具</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="outline" size="icon">
-                  <Plug className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>连接器</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="outline" size="icon">
-                  <BookOpen className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>资料库</TooltipContent>
-            </Tooltip>
-          </div>
-
-          <div className="mt-3 flex items-end gap-2">
-            <div className="flex-1 relative">
-              <Textarea
-                ref={textareaRef}
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="请输入指令或问题..."
-                className="min-h-[60px] resize-none pr-12"
-                rows={1}
-              />
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-2 bottom-2"
-              >
-                <Paperclip className="h-4 w-4" />
-              </Button>
-            </div>
-            <Button onClick={handleSend} disabled={!inputValue.trim()}>
-              <Send className="h-4 w-4 mr-2" />
-              发送
-            </Button>
-          </div>
-
-          {/* Security Level */}
-          <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-            <span>默认权限 · 安全沙箱</span>
-            <Badge variant="outline" className="text-xs">
-              L2 · 需确认
-            </Badge>
+      {/* Input */}
+      <div className="px-4 pb-4 pt-2 max-w-3xl mx-auto w-full">
+        <div className="flex items-end gap-2 bg-muted/50 rounded-xl border p-2">
+          <Textarea
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend() } }}
+            placeholder="输入指令或问题...（Enter 发送）"
+            className="min-h-[40px] max-h-[200px] resize-none border-0 bg-transparent focus-visible:ring-0 text-sm"
+            rows={1}
+            disabled={isLoading}
+          />
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleSend()} disabled={isLoading}><Send className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent>发送</TooltipContent></Tooltip>
           </div>
         </div>
+        <div className="flex items-center justify-between mt-1.5 px-1">
+          <ModelStatusBadge onOpenSettings={outletCtx.onOpenSettings} />
+          <span className="text-[10px] text-muted-foreground">
+            {getExpertName(selectedExpert)}
+          </span>
+        </div>
       </div>
+
+      <HumanConfirmDialog
+        open={confirmDialog.open}
+        toolName={confirmDialog.toolName}
+        toolParams={confirmDialog.params}
+        auditId={confirmDialog.auditId}
+        onConfirm={() => { confirmDialog.onConfirm(); setConfirmDialog(p => ({ ...p, open: false })) }}
+        onReject={() => { confirmDialog.onReject(); setConfirmDialog(p => ({ ...p, open: false })) }}
+      />
+    </div>
     </TooltipProvider>
   )
 }
 
-interface MessageBubbleProps {
-  message: Message
-  participants?: Participant[]
-}
-
-function MessageBubble({ message, participants }: MessageBubbleProps) {
+function MessageBubble({ message }: { message: Message }) {
   const isUser = message.role === "user"
-
   return (
-    <div className={cn("flex items-start gap-3", isUser && "flex-row-reverse")}>
-      <Avatar className={cn("h-8 w-8", !isUser && "shrink-0")}>
+    <div className={cn("flex items-start gap-3", isUser ? "flex-row-reverse" : "")}>
+      <Avatar className="h-8 w-8 mt-0.5">
         {isUser ? (
-          <>
-            <AvatarFallback className="text-xs">U</AvatarFallback>
-          </>
+          <AvatarFallback className="text-xs bg-primary text-primary-foreground">我</AvatarFallback>
         ) : (
-          <>
-            <AvatarImage src={message.expert?.avatar} />
-            <AvatarFallback className="text-xs">
-              {message.expert?.name.slice(0, 2) || "AI"}
-            </AvatarFallback>
-          </>
+          <AvatarFallback className="text-xs bg-primary text-primary-foreground">EM</AvatarFallback>
         )}
       </Avatar>
-
-      <div className={cn("max-w-[70%] space-y-2", isUser && "text-right")}>
-        <div
-          className={cn(
-            "rounded-2xl px-4 py-3",
-            isUser
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted"
-          )}
-        >
-          {message.expert && (
-            <div className="font-medium text-sm mb-1">{message.expert.name}</div>
-          )}
-          <div className="text-sm whitespace-pre-wrap">{message.content}</div>
-        </div>
-
-        {/* Actions */}
-        <div
-          className={cn(
-            "flex items-center gap-1",
-            isUser ? "justify-end" : "justify-start"
-          )}
-        >
-          <Button variant="ghost" size="icon" className="h-7 w-7">
-            <ThumbsUp className="h-3 w-3" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7">
-            <Clipboard className="h-3 w-3" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7">
-            <Volume2 className="h-3 w-3" />
-          </Button>
-        </div>
-
-        {/* Participants */}
-        {participants && participants.length > 0 && (
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">参与:</span>
-            <div className="flex -space-x-1">
-              {participants.map((p) => (
-                <Avatar key={p.id} className="h-5 w-5 border border-background">
-                  <AvatarFallback className="text-[8px]">
-                    {p.name.slice(0, 1)}
-                  </AvatarFallback>
-                </Avatar>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="text-xs text-muted-foreground">{message.timestamp}</div>
+      <div className={cn("rounded-2xl px-4 py-3 max-w-[80%] min-w-0", isUser ? "bg-primary text-primary-foreground" : "bg-muted")}>
+        <MarkdownRenderer content={message.content} isStreaming={message.isStreaming} />
       </div>
     </div>
   )

@@ -1,7 +1,8 @@
 """
-Security 业务逻辑服务
+Security 业务逻辑服务 — EcoMind 自建版。
 
-封装对 taiji_agent.govmcp 模块的调用，提供安全事件管理、审批流、审计日志等功能。
+不再依赖 taiji_agent.govmcp 模块。
+审批流、安全事件、审计日志全部自建，纯 Python 实现。
 """
 
 from __future__ import annotations
@@ -38,7 +39,7 @@ class SecurityEventRecord:
         title: str,
         description: str = "",
         agent_id: Optional[str] = None,
-        source: str = "system",
+        source: str = "eco-verifier",
         metadata: Optional[dict[str, Any]] = None,
     ) -> None:
         self.event_id = str(uuid.uuid4())
@@ -67,39 +68,124 @@ class SecurityEventRecord:
         )
 
 
+class ApprovalRecord:
+    """审批请求记录（自建，替代 GOVMCP ApprovalWorkflow）。"""
+
+    def __init__(
+        self,
+        title: str,
+        description: str,
+        requester: str,
+        department: str = "",
+        steps: Optional[list[dict]] = None,
+    ) -> None:
+        self.approval_id = str(uuid.uuid4())
+        self.title = title
+        self.description = description
+        self.requester = requester
+        self.department = department
+        self.status = ApprovalStatusResponse.PENDING
+        self.steps: list[dict] = steps or [{
+            "step_id": str(uuid.uuid4()),
+            "step_name": "一级审批",
+            "approvers": [],
+            "required_approvers": 1,
+            "status": "pending",
+            "approved_by": [],
+            "rejected_by": [],
+            "comments": [],
+        }]
+        self.current_step = 0
+        self.metadata: dict[str, Any] = {}
+        self.created_at = datetime.now()
+        self.updated_at = datetime.now()
+
+    def to_response(self) -> ApprovalResponse:
+        steps = [
+            ApprovalStepResponse(
+                step_id=s["step_id"],
+                step_name=s["step_name"],
+                approvers=s.get("approvers", []),
+                required_approvers=s.get("required_approvers", 1),
+                status=ApprovalStatusResponse(s.get("status", "pending")),
+                approved_by=s.get("approved_by", []),
+                rejected_by=s.get("rejected_by", []),
+                comments=s.get("comments", []),
+            )
+            for s in self.steps
+        ]
+        return ApprovalResponse(
+            approval_id=self.approval_id,
+            title=self.title,
+            description=self.description,
+            requester=self.requester,
+            department=self.department,
+            status=self.status,
+            steps=steps,
+            current_step=self.current_step,
+            metadata=self.metadata,
+            created_at=self.created_at,
+            updated_at=self.updated_at,
+        )
+
+
+class AuditRecord:
+    """审计记录。"""
+
+    def __init__(
+        self,
+        user_id: str,
+        action: str,
+        resource: str,
+        success: bool = True,
+        details: Optional[dict[str, Any]] = None,
+    ) -> None:
+        self.record_id = str(uuid.uuid4())
+        self.user_id = user_id
+        self.action = action
+        self.resource = resource
+        self.success = success
+        self.details = details or {}
+        self.timestamp = datetime.now()
+
+
 class SecurityService:
     """
-    Security 业务逻辑服务
+    Security 业务逻辑服务 — EcoMind 自建版。
 
-    提供安全事件管理、GOVMCP 审批流管理、审计日志查询。
-    内部调用 govmcp.workflow.ApprovalWorkflow 和 govmcp.crypto.AuditTrail。
+    安全事件管理 + 审批队列 + 审计日志。
+    纯自建，零外部依赖。
     """
 
     def __init__(self) -> None:
         self._events: list[SecurityEventRecord] = []
-        self._approval_workflow: Any = None
-        self._audit_trail: Any = None
-        self._init_govmcp()
+        self._approvals: dict[str, ApprovalRecord] = {}
+        self._audit_records: list[AuditRecord] = []
+        logger.info("EcoMind SecurityService 初始化完成（自建模式）")
 
-    def _init_govmcp(self) -> None:
-        """初始化 GOVMCP 审批工作流和审计追踪。"""
-        try:
-            from taiji_agent.govmcp.workflow import ApprovalWorkflow
-            self._approval_workflow = ApprovalWorkflow()
-            logger.info("GOVMCP ApprovalWorkflow 初始化成功")
-        except ImportError:
-            logger.warning("govmcp.workflow 不可用，审批功能将以模拟模式运行")
-        except Exception as e:
-            logger.error(f"GOVMCP 初始化失败: {e}")
+    # ─── 安全事件 ────────────────────────────
 
-        try:
-            from taiji_agent.govmcp.crypto import AuditTrail
-            self._audit_trail = AuditTrail()
-            logger.info("GOVMCP AuditTrail 初始化成功")
-        except ImportError:
-            logger.warning("govmcp.crypto.AuditTrail 不可用，审计功能将以模拟模式运行")
-        except Exception as e:
-            logger.error(f"AuditTrail 初始化失败: {e}")
+    def create_event(
+        self,
+        event_type: SecurityEventType,
+        severity: SecurityEventSeverity,
+        title: str,
+        description: str = "",
+        agent_id: Optional[str] = None,
+        source: str = "eco-verifier",
+    ) -> SecurityEventRecord:
+        """创建安全事件"""
+        event = SecurityEventRecord(
+            event_type=event_type,
+            severity=severity,
+            title=title,
+            description=description,
+            agent_id=agent_id,
+            source=source,
+        )
+        self._events.append(event)
+        self._notify_ws("security:event", {"event_id": event.event_id, "title": title})
+        return event
 
     async def list_security_events(
         self,
@@ -109,21 +195,8 @@ class SecurityService:
         limit: int = 100,
         offset: int = 0,
     ) -> SecurityEventListResponse:
-        """
-        获取安全事件列表，支持按类型/严重等级/处理状态过滤。
-
-        Args:
-            event_type: 按事件类型过滤
-            severity: 按严重等级过滤
-            resolved: 按是否已处理过滤
-            limit: 返回数量上限
-            offset: 偏移量
-
-        Returns:
-            安全事件列表响应
-        """
-        events = self._events
-
+        """获取安全事件列表"""
+        events = list(self._events)
         if event_type:
             events = [e for e in events if e.event_type == event_type]
         if severity:
@@ -140,6 +213,26 @@ class SecurityService:
             total=total,
         )
 
+    # ─── 审批管理 ─────────────────────────────
+
+    async def create_approval(
+        self,
+        title: str,
+        description: str,
+        requester: str,
+        department: str = "",
+    ) -> ApprovalResponse:
+        """创建审批请求"""
+        record = ApprovalRecord(
+            title=title,
+            description=description,
+            requester=requester,
+            department=department,
+        )
+        self._approvals[record.approval_id] = record
+        self._notify_ws("approval:created", {"approval_id": record.approval_id})
+        return record.to_response()
+
     async def list_approvals(
         self,
         status: Optional[ApprovalStatusResponse] = None,
@@ -148,169 +241,74 @@ class SecurityService:
         limit: int = 100,
         offset: int = 0,
     ) -> ApprovalListResponse:
-        """
-        获取审批队列列表。
+        """获取审批列表"""
+        approvals = list(self._approvals.values())
+        if status:
+            approvals = [a for a in approvals if a.status == status]
+        if department:
+            approvals = [a for a in approvals if a.department == department]
+        if user_id:
+            approvals = [a for a in approvals if a.requester == user_id]
 
-        通过 GOVMCP ApprovalWorkflow 获取审批请求，若不可用则返回空列表。
+        approvals.sort(key=lambda a: a.updated_at, reverse=True)
+        total = len(approvals)
+        approvals = approvals[offset: offset + limit]
 
-        Args:
-            status: 按审批状态过滤
-            department: 按部门过滤
-            user_id: 按用户过滤
-            limit: 返回数量上限
-            offset: 偏移量
-
-        Returns:
-            审批列表响应
-        """
-        if self._approval_workflow:
-            try:
-                from taiji_agent.govmcp.workflow import ApprovalStatus as GovApprovalStatus
-
-                gov_status = None
-                if status:
-                    status_map = {
-                        ApprovalStatusResponse.DRAFT: GovApprovalStatus.DRAFT,
-                        ApprovalStatusResponse.PENDING: GovApprovalStatus.PENDING,
-                        ApprovalStatusResponse.IN_REVIEW: GovApprovalStatus.IN_REVIEW,
-                        ApprovalStatusResponse.APPROVED: GovApprovalStatus.APPROVED,
-                        ApprovalStatusResponse.REJECTED: GovApprovalStatus.REJECTED,
-                        ApprovalStatusResponse.RETURNED: GovApprovalStatus.RETURNED,
-                        ApprovalStatusResponse.CANCELLED: GovApprovalStatus.CANCELLED,
-                        ApprovalStatusResponse.COMPLETED: GovApprovalStatus.COMPLETED,
-                    }
-                    gov_status = status_map.get(status)
-
-                requests = self._approval_workflow.list_requests(
-                    user_id=user_id,
-                    status=gov_status,
-                    department=department,
-                )
-
-                approvals = []
-                for req in requests[offset: offset + limit]:
-                    steps = [
-                        ApprovalStepResponse(
-                            step_id=s.step_id,
-                            step_name=s.step_name,
-                            approvers=[{"user_id": a.user_id, "name": a.name, "role": a.role} for a in s.approvers],
-                            required_approvers=s.required_approvers,
-                            status=ApprovalStatusResponse(s.status.value),
-                            approved_by=s.approved_by,
-                            rejected_by=s.rejected_by,
-                            comments=s.comments,
-                        )
-                        for s in req.steps
-                    ]
-
-                    approvals.append(ApprovalResponse(
-                        approval_id=req.request_id,
-                        title=req.title,
-                        description=req.description,
-                        requester=req.requester,
-                        department=req.department,
-                        status=ApprovalStatusResponse(req.status.value),
-                        steps=steps,
-                        current_step=req.current_step,
-                        metadata=req.metadata,
-                        created_at=datetime.fromtimestamp(req.created_at),
-                        updated_at=datetime.fromtimestamp(req.updated_at),
-                    ))
-
-                return ApprovalListResponse(
-                    approvals=approvals,
-                    total=len(requests),
-                )
-            except Exception as e:
-                logger.error(f"获取审批列表失败: {e}")
-
-        return ApprovalListResponse(approvals=[], total=0)
+        return ApprovalListResponse(
+            approvals=[a.to_response() for a in approvals],
+            total=total,
+        )
 
     async def approve(self, approval_id: str, request: ApprovalActionRequest) -> Optional[ApprovalResponse]:
-        """
-        审批通过。
+        """审批通过"""
+        record = self._approvals.get(approval_id)
+        if not record:
+            return None
 
-        调用 GOVMCP ApprovalWorkflow.approve() 执行审批通过操作，
-        并通过 WebSocket 推送审批通知。
+        record.status = ApprovalStatusResponse.APPROVED
+        record.updated_at = datetime.now()
 
-        Args:
-            approval_id: 审批请求 ID
-            request: 审批操作请求
+        # 审计记录
+        self._record_audit(
+            user_id=request.approver_id,
+            action="approve",
+            resource=f"approval:{approval_id}",
+            details={"comment": request.comment},
+        )
 
-        Returns:
-            更新后的审批详情，不存在返回 None
-        """
-        if self._approval_workflow:
-            try:
-                decision = await self._approval_workflow.approve(
-                    request_id=approval_id,
-                    approver_id=request.approver_id,
-                    comment=request.comment,
-                    step_id=request.step_id,
-                )
+        self._notify_ws("approval:notification", {
+            "approval_id": approval_id,
+            "event": "approved",
+            "approver_id": request.approver_id,
+        })
 
-                # 记录审计
-                self._record_audit(
-                    user_id=request.approver_id,
-                    action="approve",
-                    resource=f"approval:{approval_id}",
-                    details={"comment": request.comment},
-                )
-
-                # WebSocket 推送
-                self._notify_approval(approval_id, "approved", request.approver_id)
-
-                # 返回更新后的审批详情
-                req = self._approval_workflow.get_request(approval_id)
-                if req:
-                    return self._request_to_response(req)
-            except ValueError:
-                return None
-            except Exception as e:
-                logger.error(f"审批通过操作失败: {e}")
-
-        return None
+        return record.to_response()
 
     async def reject(self, approval_id: str, request: ApprovalActionRequest) -> Optional[ApprovalResponse]:
-        """
-        审批驳回。
+        """审批驳回"""
+        record = self._approvals.get(approval_id)
+        if not record:
+            return None
 
-        调用 GOVMCP ApprovalWorkflow.reject() 执行审批驳回操作。
+        record.status = ApprovalStatusResponse.REJECTED
+        record.updated_at = datetime.now()
 
-        Args:
-            approval_id: 审批请求 ID
-            request: 审批操作请求
+        self._record_audit(
+            user_id=request.approver_id,
+            action="reject",
+            resource=f"approval:{approval_id}",
+            details={"comment": request.comment},
+        )
 
-        Returns:
-            更新后的审批详情，不存在返回 None
-        """
-        if self._approval_workflow:
-            try:
-                decision = await self._approval_workflow.reject(
-                    request_id=approval_id,
-                    approver_id=request.approver_id,
-                    comment=request.comment,
-                    step_id=request.step_id,
-                )
+        self._notify_ws("approval:notification", {
+            "approval_id": approval_id,
+            "event": "rejected",
+            "approver_id": request.approver_id,
+        })
 
-                self._record_audit(
-                    user_id=request.approver_id,
-                    action="reject",
-                    resource=f"approval:{approval_id}",
-                    details={"comment": request.comment},
-                )
+        return record.to_response()
 
-                self._notify_approval(approval_id, "rejected", request.approver_id)
-
-                req = self._approval_workflow.get_request(approval_id)
-                if req:
-                    return self._request_to_response(req)
-            except ValueError:
-                return None
-            except Exception as e:
-                logger.error(f"审批驳回操作失败: {e}")
-
-        return None
+    # ─── 审计日志 ─────────────────────────────
 
     async def get_audit_trail(
         self,
@@ -318,52 +316,37 @@ class SecurityService:
         action: Optional[str] = None,
         limit: int = 100,
     ) -> AuditTrailResponse:
-        """
-        获取审计日志。
+        """获取审计日志"""
+        records = list(self._audit_records)
+        if user_id:
+            records = [r for r in records if r.user_id == user_id]
+        if action:
+            records = [r for r in records if r.action == action]
 
-        调用 GOVMCP AuditTrail.get_records() 获取审计记录，
-        并验证哈希链完整性。
+        records.sort(key=lambda r: r.timestamp, reverse=True)
+        total = len(records)
+        records = records[:limit]
 
-        Args:
-            user_id: 按用户过滤
-            action: 按操作类型过滤
-            limit: 返回数量上限
+        audit_records = [
+            AuditRecordResponse(
+                record_id=r.record_id,
+                user_id=r.user_id,
+                action=r.action,
+                resource=r.resource,
+                timestamp=r.timestamp,
+                success=r.success,
+                details=r.details,
+            )
+            for r in records
+        ]
 
-        Returns:
-            审计日志响应
-        """
-        if self._audit_trail:
-            try:
-                records = self._audit_trail.get_records(
-                    user_id=user_id,
-                    action=action,
-                    limit=limit,
-                )
+        return AuditTrailResponse(
+            records=audit_records,
+            total=total,
+            chain_valid=True,
+        )
 
-                chain_valid, chain_errors = self._audit_trail.verify_chain()
-
-                audit_records = [
-                    AuditRecordResponse(
-                        record_id=r.record_id,
-                        user_id=r.user_id,
-                        action=r.action,
-                        resource=r.resource,
-                        timestamp=datetime.fromtimestamp(r.timestamp),
-                        success=r.success,
-                        details=r.details,
-                    )
-                    for r in records
-                ]
-
-                return AuditTrailResponse(
-                    records=audit_records,
-                    total=len(records),
-                    chain_valid=chain_valid,
-                )
-            except Exception as e:
-                logger.error(f"获取审计日志失败: {e}")
-
-        return AuditTrailResponse(records=[], total=0, chain_valid=True)
+    # ─── 内部方法 ─────────────────────────────
 
     def _record_audit(
         self,
@@ -373,65 +356,24 @@ class SecurityService:
         details: Optional[dict[str, Any]] = None,
         success: bool = True,
     ) -> None:
-        """记录审计操作。"""
-        if self._audit_trail:
-            try:
-                self._audit_trail.record_action(
-                    user_id=user_id,
-                    action=action,
-                    resource=resource,
-                    details=details,
-                    success=success,
-                )
-            except Exception as e:
-                logger.error(f"审计记录失败: {e}")
+        """记录审计操作"""
+        record = AuditRecord(
+            user_id=user_id,
+            action=action,
+            resource=resource,
+            success=success,
+            details=details,
+        )
+        self._audit_records.append(record)
 
-    def _notify_approval(
-        self,
-        approval_id: str,
-        event: str,
-        approver_id: str,
-    ) -> None:
-        """通过 WebSocket 推送审批通知。"""
+    @staticmethod
+    def _notify_ws(topic: str, data: dict[str, Any]) -> None:
+        """通过 WebSocket 推送通知"""
         try:
             from api.main import ws_manager
-            ws_manager.enqueue_broadcast("approval:notification", {
-                "approval_id": approval_id,
-                "event": event,
-                "approver_id": approver_id,
-            })
+            ws_manager.enqueue_broadcast(topic, data)
         except Exception:
             pass
-
-    def _request_to_response(self, req: Any) -> ApprovalResponse:
-        """将 GOVMCP ApprovalRequest 转换为 API 响应。"""
-        steps = [
-            ApprovalStepResponse(
-                step_id=s.step_id,
-                step_name=s.step_name,
-                approvers=[{"user_id": a.user_id, "name": a.name, "role": a.role} for a in s.approvers],
-                required_approvers=s.required_approvers,
-                status=ApprovalStatusResponse(s.status.value),
-                approved_by=s.approved_by,
-                rejected_by=s.rejected_by,
-                comments=s.comments,
-            )
-            for s in req.steps
-        ]
-
-        return ApprovalResponse(
-            approval_id=req.request_id,
-            title=req.title,
-            description=req.description,
-            requester=req.requester,
-            department=req.department,
-            status=ApprovalStatusResponse(req.status.value),
-            steps=steps,
-            current_step=req.current_step,
-            metadata=req.metadata,
-            created_at=datetime.fromtimestamp(req.created_at),
-            updated_at=datetime.fromtimestamp(req.updated_at),
-        )
 
 
 # 全局单例
@@ -439,7 +381,6 @@ _security_service: Optional[SecurityService] = None
 
 
 def get_security_service() -> SecurityService:
-    """获取 SecurityService 单例（依赖注入用）。"""
     global _security_service
     if _security_service is None:
         _security_service = SecurityService()

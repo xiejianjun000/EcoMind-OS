@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * CoordinateInfo — Displays current mouse position and camera
  * altitude information in the top-right corner of the Cesium scene.

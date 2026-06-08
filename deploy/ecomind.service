@@ -1,0 +1,39 @@
+[Unit]
+Description=EcoMind OS - 生态环境AI Agent操作系统
+After=network.target
+Wants=network.target
+
+[Service]
+Type=notify
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/ecomind/backend
+EnvironmentFile=-/etc/ecomind/.env
+ExecStart=/opt/ecomind/backend/venv/bin/python -m uvicorn api.main:app \
+    --host 0.0.0.0 --port 8000 \
+    --workers 4 \
+    --timeout-keep-alive 120 \
+    --limit-concurrency 100 \
+    --backlog 2048
+ExecReload=/bin/kill -HUP $MAINPID
+ExecStop=/bin/kill -TERM $MAINPID
+Restart=on-failure
+RestartSec=10
+StartLimitInterval=300
+StartLimitBurst=5
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+LimitNOFILE=65536
+LimitNPROC=4096
+PrivateTmp=true
+NoNewPrivileges=true
+
+ReadWritePaths=/opt/ecomind/backend/data
+ReadWritePaths=/opt/ecomind/backend/logs
+ReadOnlyPaths=/opt/ecomind/backend
+InaccessiblePaths=/opt/ecomind/backend/.env
+
+[Install]
+WantedBy=multi-user.target

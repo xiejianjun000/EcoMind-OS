@@ -17,7 +17,7 @@ export function ThemeProvider({
   storageKey = "ecomind-ui-theme",
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = React.useState<Theme>(defaultTheme)
+  const [theme, setTheme] = React.useState<Theme>(defaultTheme as Theme)
 
   React.useEffect(() => {
     const stored = localStorage.getItem(storageKey) as Theme

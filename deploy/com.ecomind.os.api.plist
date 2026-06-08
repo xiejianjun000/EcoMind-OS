@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.ecomind.os.api</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/opt/ecomind/backend/venv/bin/python</string>
+        <string>-m</string>
+        <string>uvicorn</string>
+        <string>api.main:app</string>
+        <string>--host</string>
+        <string>0.0.0.0</string>
+        <string>--port</string>
+        <string>8000</string>
+        <string>--workers</string>
+        <string>4</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/opt/ecomind/backend</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin</string>
+        <key>PYTHONPATH</key>
+        <string>/opt/ecomind/backend</string>
+    </dict>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+    <key>StandardOutPath</key>
+    <string>/opt/ecomind/backend/logs/stdout.log</string>
+    <key>StandardErrorPath</key>
+    <string>/opt/ecomind/backend/logs/stderr.log</string>
+</dict>
+</plist>

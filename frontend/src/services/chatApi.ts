@@ -1,178 +1,52 @@
 /**
- * Chat API service layer — 对话相关 API 封装
- * 后端暂未实现，先提供 Mock 数据支持前端开发
+ * Chat API service layer — 对话走后端 EcoAgentEngine
  */
 
 import type {
-  CreateSessionRequest,
-  CreateSessionResponse,
-  SessionsListResponse,
-  MessagesListResponse,
-  SendMessageRequest,
-  SendMessageResponse,
-  StreamChunk,
+  CreateSessionRequest, CreateSessionResponse, SessionsListResponse,
+  MessagesListResponse, SendMessageResponse, StreamChunk,
 } from '@/types/chat';
 
 const API_BASE = '/api';
-
-/** Generic request helper with error handling */
-async function request<T>(url: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${url}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail));
-  }
-  return res.json() as Promise<T>;
+async function req<T>(url: string, opts?: RequestInit): Promise<T> {
+  const r = await fetch(`${API_BASE}${url}`, { headers: { 'Content-Type': 'application/json' }, ...opts });
+  if (!r.ok) { const e = await r.json().catch(() => ({ detail: r.statusText })); throw new Error(typeof e.detail === 'string' ? e.detail : JSON.stringify(e.detail)); }
+  return r.json() as Promise<T>;
 }
 
-// ============================================================
-// Session APIs
-// ============================================================
+const SK = 'ecomind_sessions';
+function ls(): SessionsListResponse { try { const r = localStorage.getItem(SK); return r ? JSON.parse(r) : { sessions: [], total: 0 }; } catch { return { sessions: [], total: 0 }; } }
+function ss(d: SessionsListResponse) { localStorage.setItem(SK, JSON.stringify(d)); }
 
-export async function createSession(params: CreateSessionRequest): Promise<CreateSessionResponse> {
-  // TODO: replace with real API when backend is ready
-  // return request<CreateSessionResponse>('/chat/sessions', {
-  //   method: 'POST',
-  //   body: JSON.stringify(params),
-  // });
+export async function createSession(p: CreateSessionRequest): Promise<CreateSessionResponse> {
+  const d = ls(); const s = { id: `s-${Date.now()}`, title: p.title || '新会话', expertId: p.expert_id, expertName: undefined, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), messageCount: 0, workspaceId: p.workspace_id };
+  d.sessions.unshift(s); d.total = d.sessions.length; ss(d); return { session: s };
+}
+export async function listSessions(): Promise<SessionsListResponse> { return ls(); }
+export async function getSessionMessages(sid: string): Promise<MessagesListResponse> { try { const r = localStorage.getItem(`ecomind_msgs_${sid}`); return r ? JSON.parse(r) : { messages: [], total: 0 }; } catch { return { messages: [], total: 0 }; } }
+export async function deleteSession(sid: string): Promise<void> { const d = ls(); d.sessions = d.sessions.filter(s => s.id !== sid); d.total = d.sessions.length; ss(d); localStorage.removeItem(`ecomind_msgs_${sid}`); }
 
-  // Mock response for frontend development
-  const session = {
-    id: `session-${Date.now()}`,
-    title: params.title || '新会话',
-    expertId: params.expert_id,
-    expertName: undefined,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    messageCount: 0,
-    workspaceId: params.workspace_id,
-  };
-  return { session };
+export async function sendMessage(sid: string, msg: string, eid?: string): Promise<SendMessageResponse> {
+  const r = await req<{ content: string; session_id: string; status: string; tools_used: string[]; iterations: number }>('/chat', { method: 'POST', body: JSON.stringify({ message: msg, expert_id: eid || 'ecomind', session_id: sid }) });
+  return { message_id: `m-${Date.now()}`, session_id: r.session_id || sid, content: r.content, tools_used: r.tools_used, expert: eid ? { id: eid, name: '助手' } : undefined };
 }
 
-export async function listSessions(): Promise<SessionsListResponse> {
-  // TODO: real API
-  // return request<SessionsListResponse>('/chat/sessions');
-  return { sessions: [], total: 0 };
+export type StreamCallback = (c: StreamChunk) => void;
+
+export function sendMessageStream(sid: string, msg: string, eid: string | undefined, mid: string, on: StreamCallback, ws: WebSocket | null): () => void {
+  const ac = new AbortController(); let aborted = false;
+  if (ws?.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ action: 'chat', session_id: sid, message: msg, expert_id: eid, message_id: mid })); return () => {}; }
+  (async () => {
+    try {
+      const r = await fetch('/api/chat/stream', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: msg, expert_id: eid || 'ecomind', session_id: sid, stream: true }), signal: ac.signal });
+      if (!r.ok) { const e = await r.json().catch(() => ({ detail: r.statusText })); throw new Error(typeof e.detail === 'string' ? e.detail : JSON.stringify(e.detail)); }
+      const rd = r.body?.getReader(); if (!rd) throw new Error('no reader');
+      const d = new TextDecoder(); let b = '';
+      while (true) { const { done, val } = await rd.read(); if (done || aborted) break; b += d.decode(val, { stream: true }); const ls = b.split('\n'); b = ls.pop() || ''; for (const l of ls) { if (!l.trim().startsWith('data: ')) continue; try { const p = JSON.parse(l.trim().slice(6)); if (p.type === 'text_delta') on({ type: 'chunk', sessionId: sid, messageId: mid, content: p.text }); else if (p.type === 'done') on({ type: 'done', sessionId: sid, messageId: mid, content: p.content, toolsUsed: p.tools_used }); else if (p.type === 'error') on({ type: 'error', sessionId: sid, messageId: mid, error: p.message }); } catch {} } }
+    } catch (err: any) { if (err.name !== 'AbortError') on({ type: 'error', sessionId: sid, messageId: mid, error: err.message }); }
+  })();
+  return () => { aborted = true; ac.abort(); };
 }
 
-export async function getSessionMessages(sessionId: string): Promise<MessagesListResponse> {
-  // TODO: real API
-  // return request<MessagesListResponse>(`/chat/sessions/${sessionId}/messages`);
-  return { messages: [], total: 0 };
-}
-
-export async function deleteSession(sessionId: string): Promise<void> {
-  // TODO: real API
-  // await request(`/chat/sessions/${sessionId}`, { method: 'DELETE' });
-}
-
-// ============================================================
-// Message APIs
-// ============================================================
-
-export async function sendMessage(
-  sessionId: string,
-  message: string,
-  expertId?: string
-): Promise<SendMessageResponse> {
-  // TODO: replace with real API
-  // return request<SendMessageResponse>(`/chat/sessions/${sessionId}/messages`, {
-  //   method: 'POST',
-  //   body: JSON.stringify({ session_id: sessionId, message, expert_id: expertId }),
-  // });
-
-  // Mock response
-  return {
-    message_id: `msg-${Date.now()}`,
-    session_id: sessionId,
-    content: `已收到您的消息："${message}"。\n\n后端 API 尚未接入，这是 Mock 回复。后续将接入 TAIJI-AGENT 实现真实对话能力。`,
-    expert: expertId
-      ? { id: expertId, name: 'AI助手' }
-      : undefined,
-  };
-}
-
-// ============================================================
-// Streaming API (WebSocket-based)
-// ============================================================
-
-export type StreamCallback = (chunk: StreamChunk) => void;
-
-/**
- * Send a message and receive streaming response via WebSocket.
- * Returns a cleanup function to abort the stream.
- */
-export function sendMessageStream(
-  sessionId: string,
-  message: string,
-  expertId: string | undefined,
-  messageId: string,
-  onChunk: StreamCallback,
-  ws: WebSocket | null
-): () => void {
-  if (!ws || ws.readyState !== WebSocket.OPEN) {
-    onChunk({
-      type: 'error',
-      sessionId,
-      messageId,
-      error: 'WebSocket 未连接，无法发送消息',
-    });
-    return () => {};
-  }
-
-  // Send the message via WebSocket
-  ws.send(
-    JSON.stringify({
-      action: 'chat',
-      session_id: sessionId,
-      message,
-      expert_id: expertId,
-      message_id: messageId,
-    })
-  );
-
-  // The WebSocketProvider will route response chunks to the store.
-  // For now, simulate a mock streaming response.
-  const mockReply = `收到您的消息："${message}"。\n\n这是模拟的流式回复。实际部署后将通过 WebSocket 接收 TAIJI-AGENT 的实时推理输出。\n\n当前系统能力：\n- 12 个业务域专家 Agent\n- WebSocket 实时推送\n- 产物/任务/通知面板\n- 3D 地图内嵌预览`;
-
-  const words = mockReply.split('');
-  let index = 0;
-
-  const interval = setInterval(() => {
-    const batch = words.slice(index, index + 3);
-    if (batch.length === 0) {
-      clearInterval(interval);
-      onChunk({ type: 'done', sessionId, messageId });
-      return;
-    }
-    onChunk({
-      type: 'chunk',
-      sessionId,
-      messageId,
-      content: batch.join(''),
-    });
-    index += 3;
-  }, 30);
-
-  return () => clearInterval(interval);
-}
-
-// ============================================================
-// Expert APIs
-// ============================================================
-
-export async function listExperts() {
-  // TODO: real API
-  // return request('/experts');
-  return { experts: [] };
-}
-
-export async function getExpert(expertId: string) {
-  // TODO: real API
-  // return request(`/experts/${expertId}`);
-  return { expert: null };
-}
+export async function listExperts() { try { const r = await req<{ agents: any[] }>('/agents/'); return { experts: r.agents.map((a: any) => ({ id: a.agent_id || a.id, name: a.name, role: a.role, status: a.status })) }; } catch { return { experts: [] }; } }
+export async function getExpert(eid: string) { try { const r = await req<any>(`/agents/${eid}`); return { expert: { id: r.agent_id || r.id, name: r.name } }; } catch { return { expert: null }; } }

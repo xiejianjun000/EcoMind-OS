@@ -1,0 +1,41 @@
+name: Auto Sync Stale Branches
+
+on:
+  schedule:
+    - cron: '0 0 * * 1'  # Every Monday at midnight UTC
+  workflow_dispatch:
+
+jobs:
+  stale-branches:
+    name: "Check Stale Branches"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Find Stale Branches
+        id: stale
+        run: |
+          STALE_BRANCHES=$(git branch -r --sort=-committerdate | \
+            grep -v 'main\|develop\|release\|hotfix' | \
+            awk -F'/' '{print $NF}' | \
+            head -10 | tr '\n' ' ')
+          echo "branches=$STALE_BRANCHES" >> $GITHUB_OUTPUT
+          echo "Stale branches: $STALE_BRANCHES"
+
+      - name: Create Cleanup Issue
+        if: steps.stale.outputs.branches != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const branches = '${{ steps.stale.outputs.branches }}'.trim()
+            if (!branches) return
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `[Branch Cleanup] Stale branches detected: ${branches}`,
+              body: `The following branches have not been updated recently:\n\n${branches.split(' ').map(b => `- \`${b}\``).join('\n')}\n\nPlease review and delete if no longer needed.`,
+              labels: ['maintenance', 'branch-cleanup']
+            })

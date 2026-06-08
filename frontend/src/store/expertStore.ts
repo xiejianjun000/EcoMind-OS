@@ -7,18 +7,19 @@ import type { Expert, ExpertSkill, ExpertConnector, KnowledgeBase, TeamMember, W
 
 const DEFAULT_EXPERTS: Expert[] = [
   {
-    id: 'gaia',
-    name: 'gaia',
-    displayName: 'GAIA 生态主控',
-    description: '通用生态环境AI助手，协调各专家Agent，回答法规政策问题',
+    id: 'ecomind',
+    name: 'ecomind',
+    displayName: 'EcoMind 生态主控',
+    description: '生态环境智能协作平台主控Agent，协调12个领域专家，数据驱动决策，法规为纲标准为尺',
     category: 'general',
     icon: 'GlobalOutlined',
     color: '#52c41a',
     status: 'online',
-    capabilities: ['法规查询', '政策解读', '多专家协调', '通用咨询'],
+    capabilities: ['法规查询', '政策解读', '多专家协调', '通用咨询', '数据驱动分析', '合规审查'],
     modelTier: 'sonnet',
     safetyLevel: 'L2',
     isBuiltin: true,
+    whenToUse: '任何需要生态环境专业知识的对话、需要协调多个专家Agent的复杂任务、法规政策标准查询',
   },
   {
     id: 'env-monitoring',
@@ -177,13 +178,13 @@ const DEFAULT_EXPERTS: Expert[] = [
 ];
 
 const DEFAULT_SKILLS: ExpertSkill[] = [
-  { id: 'map-3d', name: '3D地图分析', description: 'Cesium三维地形与污染扩散可视化', icon: 'GlobalOutlined', expertIds: ['gaia', 'env-monitoring', 'emergency', 'restoration'] },
+  { id: 'map-3d', name: '3D地图分析', description: 'Cesium三维地形与污染扩散可视化', icon: 'GlobalOutlined', expertIds: ['ecomind', 'env-monitoring', 'emergency', 'restoration'] },
   { id: 'remote-sensing', name: '遥感影像解译', description: '卫星遥感影像自动识别与分析', icon: 'ScanOutlined', expertIds: ['env-monitoring', 'biodiversity', 'restoration'] },
   { id: 'pollution-sim', name: '污染扩散模拟', description: '大气/水污染扩散数值模拟', icon: 'HeatMapOutlined', expertIds: ['env-monitoring', 'emergency'] },
   { id: 'compliance-check', name: '合规校验', description: '自动对照法规标准进行合规检查', icon: 'CheckCircleOutlined', expertIds: ['eia', 'permit', 'enforcement', 'inspection'] },
-  { id: 'report-gen', name: '报告生成', description: '自动生成环评/监测/执法报告', icon: 'FileTextOutlined', expertIds: ['gaia', 'eia', 'env-monitoring', 'enforcement', 'inspection'] },
+  { id: 'report-gen', name: '报告生成', description: '自动生成环评/监测/执法报告', icon: 'FileTextOutlined', expertIds: ['ecomind', 'eia', 'env-monitoring', 'enforcement', 'inspection'] },
   { id: 'ocr', name: 'OCR识别', description: '扫描件/图片文字识别与结构化', icon: 'EyeOutlined', expertIds: ['eia', 'permit', 'enforcement'] },
-  { id: 'data-viz', name: '数据可视化', description: 'ECharts图表与统计面板生成', icon: 'BarChartOutlined', expertIds: ['gaia', 'env-monitoring', 'carbon', 'biodiversity'] },
+  { id: 'data-viz', name: '数据可视化', description: 'ECharts图表与统计面板生成', icon: 'BarChartOutlined', expertIds: ['ecomind', 'env-monitoring', 'carbon', 'biodiversity'] },
   { id: 'spatial-analysis', name: '时空分析', description: 'Turf.js空间分析与地理计算', icon: 'NodeIndexOutlined', expertIds: ['env-monitoring', 'emergency', 'water'] },
 ];
 
@@ -205,7 +206,7 @@ const DEFAULT_KNOWLEDGE_BASES: KnowledgeBase[] = [
 
 const DEFAULT_TEAM: TeamMember[] = [
   { id: 'user-1', name: '当前用户', role: '操作员', status: 'online', isHuman: true },
-  { id: 'gaia', name: 'GAIA', role: '生态主控', status: 'online', isHuman: false },
+  { id: 'ecomind', name: 'EcoMind', role: '生态主控', status: 'online', isHuman: false },
   { id: 'env-monitoring', name: '监测专家', role: '环境监测', status: 'online', isHuman: false },
   { id: 'enforcement', name: '执法专家', role: '执法监察', status: 'online', isHuman: false },
   { id: 'eia', name: '环评专家', role: '环评审批', status: 'online', isHuman: false },
@@ -249,7 +250,7 @@ export const useExpertStore = create<ExpertState>((set) => ({
     { id: 'ws-1', name: '湘江流域治理', description: '湘江流域综合治理项目', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), sessionIds: [], color: '#1890ff' },
     { id: 'ws-2', name: '某园区环评', description: 'XX工业园区环境影响评价', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), sessionIds: [], color: '#52c41a' },
   ],
-  activeExpertId: 'gaia',
+  activeExpertId: 'ecomind',
   sidebarExpandedSections: {
     experts: true,
     skills: false,

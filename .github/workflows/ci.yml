@@ -1,0 +1,103 @@
+name: EcoMind CI
+
+on:
+  push:
+    branches: [main, develop]
+    tags: ["v*"]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    - cron: "0 2 * * *"  # 每天凌晨 2 点夜间反思
+
+jobs:
+  # ── Gate 1: 烟雾测试 (30s) ──
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - name: Install deps
+        run: cd backend && python -m venv venv && source venv/bin/activate && pip install fastapi uvicorn pydantic httpx python-dotenv pyyaml sqlalchemy numpy scikit-learn tiktoken
+      - name: Smoke — import
+        run: cd backend && PYTHONPATH=. venv/bin/python -c "from api.main import app; print('OK')"
+      - name: Smoke — config
+        run: test -f backend/config/model_config.yaml && echo "OK"
+
+  # ── Gate 2: 单元测试 ──
+  unit:
+    needs: smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - name: Install
+        run: cd backend && python -m venv venv && source venv/bin/activate && pip install fastapi uvicorn pydantic httpx python-dotenv pyyaml sqlalchemy numpy scikit-learn tiktoken pycryptodome pytest pytest-asyncio pytest-timeout
+      - name: Unit
+        run: cd backend && source venv/bin/activate && PYTHONPATH=. python -m pytest tests/unit/ tests/contract/ tests/security/ -v --tb=short --timeout=30
+
+  # ── Gate 3: 集成测试 ──
+  integration:
+    needs: unit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - name: Install
+        run: cd backend && python -m venv venv && source venv/bin/activate && pip install fastapi uvicorn pydantic httpx python-dotenv pyyaml sqlalchemy numpy scikit-learn tiktoken pycryptodome pytest pytest-asyncio pytest-timeout
+      - name: Start backend
+        run: cd backend && source venv/bin/activate && nohup python -m uvicorn api.main:app --host 0.0.0.0 --port 8000 & sleep 6 && curl -f http://localhost:8000/health
+      - name: Integration + Chaos
+        run: cd backend && source venv/bin/activate && PYTHONPATH=. python -m pytest tests/integration/ tests/chaos/ -v --tb=short --timeout=30
+
+  # ── Gate 4: 夜间反思 + 知识图谱进化 ──
+  nightly-reflection:
+    if: github.event_name == 'schedule'
+    needs: integration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - name: Install
+        run: cd backend && python -m venv venv && source venv/bin/activate && pip install fastapi uvicorn pydantic httpx python-dotenv pyyaml sqlalchemy numpy scikit-learn tiktoken
+      - name: Memory evolution
+        run: cd backend && source venv/bin/activate && PYTHONPATH=. python -c "
+from engine.memory_evolution import MemoryEvolution
+from engine.learning_loop import LearningLoop
+from graph.engine import get_graph_engine
+evo = MemoryEvolution(); evo.apply_decay(); evo.detect_conflicts()
+loop = LearningLoop(); insights = loop.nightly_discovery()
+g = get_graph_engine(); g.build_layer3_from_sessions([])
+print('✅ Nightly OK')
+"
+
+  # ── 自动标签 (仅 develop push) ──
+  auto-tag:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    needs: unit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Auto-update docs
+        run: |
+          python3 scripts/auto-doc.py
+          if ! git diff --quiet; then
+            git config user.name "EcoMind CI"
+            git config user.email "ci@ecomind.dev"
+            git add -A
+            git commit -m "docs: auto-sync from code scan [skip ci]"
+            git push
+          fi
+      - name: Auto tag
+        run: |
+          git config user.name "EcoMind CI"
+          git config user.email "ci@ecomind.dev"
+          TAG="v$(date +'%Y%m%d-%H%M')"
+          git tag "$TAG"
+          git push origin "$TAG"
+          echo "Tagged: $TAG"

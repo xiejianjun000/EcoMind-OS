@@ -6,6 +6,8 @@ import type {
   StreamChunk,
   MessageArtifactRef,
   InlineComponent,
+  SessionFile,
+  ChangeLogEntry,
 } from '@/types/chat';
 
 // ============================================================
@@ -45,12 +47,41 @@ interface ChatState {
   // Input draft per session
   inputDrafts: Record<string, string>;
 
-  // Actions
+  // Selected session IDs for batch operations
+  selectedSessionIds: string[];
+
+  // Actions — Session
   createSession: (params?: { title?: string; expertId?: string; expertName?: string }) => string;
   deleteSession: (sessionId: string) => void;
+  deleteSessions: (sessionIds: string[]) => void;
   setCurrentSession: (sessionId: string) => void;
   updateSessionTitle: (sessionId: string, title: string) => void;
+  syncSessionMeta: (sessionId: string, meta: { title?: string; messageCount?: number; expertId?: string; expertName?: string }) => void;
+  toggleSessionSelection: (sessionId: string) => void;
+  selectAllSessions: () => void;
+  clearSelection: () => void;
 
+  // Actions — Conclusion
+  setSessionConclusion: (sessionId: string, conclusion: string) => void;
+  getSessionConclusion: (sessionId: string) => string | undefined;
+
+  // Actions — File tracking
+  addSessionFile: (sessionId: string, file: SessionFile) => void;
+  removeSessionFile: (sessionId: string, fileId: string) => void;
+  addMessageFile: (sessionId: string, messageId: string, file: SessionFile) => void;
+
+  // Actions — Change log
+  addChangeLog: (sessionId: string, entry: ChangeLogEntry) => void;
+
+  // Actions — Tags
+  setSessionTags: (sessionId: string, tags: string[]) => void;
+  addSessionTag: (sessionId: string, tag: string) => void;
+  removeSessionTag: (sessionId: string, tag: string) => void;
+
+  // Actions — Cross-session search
+  searchAcrossSessions: (query: string) => { sessionId: string; title: string; matchCount: number; preview: string }[];
+
+  // Actions — Messages
   addUserMessage: (sessionId: string, content: string) => string;
   startAssistantMessage: (sessionId: string, expertId?: string, expertName?: string) => string;
   appendStreamChunk: (chunk: StreamChunk) => void;
@@ -77,6 +108,7 @@ export const useChatStore = create<ChatState>()(
       isLoading: false,
       streamingMessageId: null,
       inputDrafts: {},
+      selectedSessionIds: [],
 
       createSession: (params = {}) => {
         const id = generateId();
@@ -110,7 +142,33 @@ export const useChatStore = create<ChatState>()(
             currentSessionId = sessions[0]?.id ?? null;
           }
 
-          return { sessions, messages, inputDrafts, currentSessionId };
+          return {
+            sessions, messages, inputDrafts, currentSessionId,
+            selectedSessionIds: state.selectedSessionIds.filter(id => id !== sessionId),
+          };
+        });
+      },
+
+      deleteSessions: (sessionIds) => {
+        set((state) => {
+          const idSet = new Set(sessionIds);
+          const sessions = state.sessions.filter((s) => !idSet.has(s.id));
+          const messages = { ...state.messages };
+          const inputDrafts = { ...state.inputDrafts };
+          for (const id of sessionIds) {
+            delete messages[id];
+            delete inputDrafts[id];
+          }
+
+          let currentSessionId = state.currentSessionId;
+          if (currentSessionId && idSet.has(currentSessionId)) {
+            currentSessionId = sessions[0]?.id ?? null;
+          }
+
+          return {
+            sessions, messages, inputDrafts, currentSessionId,
+            selectedSessionIds: [],
+          };
         });
       },
 
@@ -124,6 +182,172 @@ export const useChatStore = create<ChatState>()(
             s.id === sessionId ? { ...s, title, updatedAt: now() } : s
           ),
         }));
+      },
+
+      syncSessionMeta: (sessionId, meta) => {
+        set((state) => ({
+          sessions: state.sessions.map((s) =>
+            s.id === sessionId
+              ? {
+                  ...s,
+                  ...(meta.title !== undefined ? { title: meta.title } : {}),
+                  ...(meta.messageCount !== undefined ? { messageCount: meta.messageCount } : {}),
+                  ...(meta.expertId !== undefined ? { expertId: meta.expertId } : {}),
+                  ...(meta.expertName !== undefined ? { expertName: meta.expertName } : {}),
+                  updatedAt: now(),
+                }
+              : s
+          ),
+        }));
+      },
+
+      // ─── Selection (batch ops) ───
+      toggleSessionSelection: (sessionId) => {
+        set((state) => {
+          const idx = state.selectedSessionIds.indexOf(sessionId);
+          if (idx === -1) {
+            return { selectedSessionIds: [...state.selectedSessionIds, sessionId] };
+          }
+          return {
+            selectedSessionIds: state.selectedSessionIds.filter(id => id !== sessionId),
+          };
+        });
+      },
+
+      selectAllSessions: () => {
+        set((state) => ({
+          selectedSessionIds: state.sessions.map(s => s.id),
+        }));
+      },
+
+      clearSelection: () => set({ selectedSessionIds: [] }),
+
+      // ─── Conclusion ───
+      setSessionConclusion: (sessionId, conclusion) => {
+        set((state) => ({
+          sessions: state.sessions.map((s) =>
+            s.id === sessionId
+              ? { ...s, conclusion, conclusionGeneratedAt: now(), updatedAt: now() }
+              : s
+          ),
+        }));
+      },
+
+      getSessionConclusion: (sessionId) => {
+        return get().sessions.find(s => s.id === sessionId)?.conclusion;
+      },
+
+      // ─── File tracking ───
+      addSessionFile: (sessionId, file) => {
+        set((state) => ({
+          sessions: state.sessions.map((s) =>
+            s.id === sessionId
+              ? { ...s, files: [...(s.files || []), file], updatedAt: now() }
+              : s
+          ),
+        }));
+      },
+
+      removeSessionFile: (sessionId, fileId) => {
+        set((state) => ({
+          sessions: state.sessions.map((s) =>
+            s.id === sessionId
+              ? { ...s, files: (s.files || []).filter(f => f.id !== fileId), updatedAt: now() }
+              : s
+          ),
+        }));
+      },
+
+      addMessageFile: (sessionId, messageId, file) => {
+        set((state) => {
+          const msgs = state.messages[sessionId] || [];
+          const idx = msgs.findIndex(m => m.id === messageId);
+          if (idx === -1) return state;
+          const updated = [...msgs];
+          updated[idx] = {
+            ...updated[idx],
+            files: [...(updated[idx].files || []), file],
+          };
+          return { messages: { ...state.messages, [sessionId]: updated } };
+        });
+        // Also add to session file list
+        get().addSessionFile(sessionId, file);
+      },
+
+      // ─── Change log ───
+      addChangeLog: (sessionId, entry) => {
+        set((state) => ({
+          sessions: state.sessions.map((s) =>
+            s.id === sessionId
+              ? { ...s, changeLog: [...(s.changeLog || []), entry], updatedAt: now() }
+              : s
+          ),
+        }));
+      },
+
+      // ─── Tags ───
+      setSessionTags: (sessionId, tags) => {
+        set((state) => ({
+          sessions: state.sessions.map((s) =>
+            s.id === sessionId ? { ...s, tags, updatedAt: now() } : s
+          ),
+        }));
+      },
+
+      addSessionTag: (sessionId, tag) => {
+        set((state) => ({
+          sessions: state.sessions.map((s) =>
+            s.id === sessionId && !(s.tags || []).includes(tag)
+              ? { ...s, tags: [...(s.tags || []), tag], updatedAt: now() }
+              : s
+          ),
+        }));
+      },
+
+      removeSessionTag: (sessionId, tag) => {
+        set((state) => ({
+          sessions: state.sessions.map((s) =>
+            s.id === sessionId
+              ? { ...s, tags: (s.tags || []).filter(t => t !== tag), updatedAt: now() }
+              : s
+          ),
+        }));
+      },
+
+      // ─── Cross-session search ───
+      searchAcrossSessions: (query) => {
+        const state = get();
+        const q = query.toLowerCase().trim();
+        if (!q) return [];
+        const results: { sessionId: string; title: string; matchCount: number; preview: string }[] = [];
+        for (const session of state.sessions) {
+          const msgs = state.messages[session.id] || [];
+          let matchCount = 0;
+          let preview = '';
+          // Search in messages
+          for (const msg of msgs) {
+            const content = msg.content.toLowerCase();
+            let idx = content.indexOf(q);
+            while (idx !== -1) {
+              matchCount++;
+              if (!preview) {
+                const start = Math.max(0, idx - 30);
+                const end = Math.min(msg.content.length, idx + q.length + 40);
+                preview = (start > 0 ? '...' : '') + msg.content.slice(start, end) + (end < msg.content.length ? '...' : '');
+              }
+              idx = content.indexOf(q, idx + 1);
+            }
+          }
+          // Also search in title and conclusion
+          if (session.title.toLowerCase().includes(q) || (session.conclusion || '').toLowerCase().includes(q)) {
+            matchCount++;
+            if (!preview) preview = session.conclusion || session.title;
+          }
+          if (matchCount > 0) {
+            results.push({ sessionId: session.id, title: session.title, matchCount, preview });
+          }
+        }
+        return results.sort((a, b) => b.matchCount - a.matchCount);
       },
 
       addUserMessage: (sessionId, content) => {
@@ -339,6 +563,15 @@ export const useChatStore = create<ChatState>()(
         });
       },
 
+      setSessionMessages: (sessionId, msgs) => {
+        set((state) => ({
+          messages: { ...state.messages, [sessionId]: msgs },
+          sessions: state.sessions.map((s) =>
+            s.id === sessionId ? { ...s, messageCount: msgs.length, updatedAt: now() } : s
+          ),
+        }));
+      },
+
       clearAllData: () => {
         set({
           sessions: [],
@@ -347,13 +580,22 @@ export const useChatStore = create<ChatState>()(
           isLoading: false,
           streamingMessageId: null,
           inputDrafts: {},
+          selectedSessionIds: [],
         });
       },
     }),
     {
       name: 'ecomind-chat-storage',
       partialize: (state) => ({
-        sessions: state.sessions,
+        sessions: state.sessions.map(s => ({
+          ...s,
+          // Ensure new fields are persisted
+          conclusion: s.conclusion,
+          conclusionGeneratedAt: s.conclusionGeneratedAt,
+          files: s.files,
+          changeLog: s.changeLog,
+          tags: s.tags,
+        })),
         messages: state.messages,
         currentSessionId: state.currentSessionId,
         inputDrafts: state.inputDrafts,

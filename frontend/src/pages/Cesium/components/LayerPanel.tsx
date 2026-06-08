@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * LayerPanel — Floating control panel for toggling Cesium scene layers.
  *

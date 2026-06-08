@@ -1,4 +1,4 @@
-﻿# Dependencies
+# Dependencies
 node_modules/
 __pycache__/
 *.pyc
@@ -7,11 +7,14 @@ __pycache__/
 dist/
 build/
 *.egg-info/
+.vite/
 
 # IDE
 .vscode/
 .idea/
 *.swp
+*.swo
+*~
 
 # OS
 Thumbs.db
@@ -21,4 +24,43 @@ Desktop.ini
 # Env
 .env
 .env.local
+
+# Virtual env
+venv/
+.venv/
+env/
+
+# Logs
 *.log
+logs/
+
+# Database artifacts
+*.db-shm
+*.db-wal
+
+# Test artifacts
+.coverage
+.coveragerc
+.pytest_cache/
+htmlcov/
+
+# Office temp
+~$*.docx
+~$*.xlsx
+
+# Submodules / externals
+.github-clone/
+
+# Outputs / uploads
+backend/outputs/
+outputs/
+
+# Data (keep only hermes_memory.db)
+data/*.db
+
+# Vite cache
+*.vite/
+
+# Misc
+nul
+*.bak

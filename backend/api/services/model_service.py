@@ -25,6 +25,12 @@ from api.schemas.model import (
     ModelTier,
 )
 
+try:
+    from inference.router import ModelRouter as InferenceRouter
+    _inference_available = True
+except Exception:
+    _inference_available = False
+
 logger = logging.getLogger(__name__)
 
 
@@ -287,22 +293,24 @@ class ModelService:
         )
 
     async def route_model(self, request: ModelRouteRequest) -> ModelRouteResponse:
-        """
-        模型智能路由。
+        """模型智能路由 — 优先使用 inference/ 引擎，回退到内置路由。"""
+        # 尝试 inference/ 引擎路由
+        if _inference_available and request.tier:
+            try:
+                router = InferenceRouter()
+                result = router.route(tier=request.tier.value if hasattr(request.tier, 'value') else str(request.tier))
+                if result and result.model_id:
+                    return ModelRouteResponse(
+                        routed_model=result.model_id,
+                        provider=result.provider,
+                        tier=request.tier,
+                        api_base=getattr(result, 'api_base', ''),
+                        reason=f"推理引擎路由: {result.reason}",
+                        fallback=getattr(result, 'fallback', None),
+                    )
+            except Exception as e:
+                logger.warning(f"Inference router failed, using built-in: {e}")
 
-        根据 tier 选择最优模型，考虑本地优先、延迟要求等因素。
-
-        路由策略：
-        1. 如果 prefer_local=True，优先选择 LOCAL_VLLM/LOCAL_SGLANG
-        2. 从 tier 对应的模型列表中，选择延迟最低的在线模型
-        3. 如果首选不可用，自动降级到备选模型
-
-        Args:
-            request: 路由请求
-
-        Returns:
-            路由结果响应
-        """
         tier_models = _TIER_ROUTING.get(request.tier, [])
         if not tier_models:
             return ModelRouteResponse(
@@ -391,30 +399,49 @@ class ModelService:
         )
 
     async def _check_model_health(self, model: ModelInfo) -> bool:
-        """
-        检查单个模型端点的健康状态。
-
-        对 API 端点发送轻量级 GET /v1/models 请求。
-        本地模型使用 TCP 连接检测。
-
-        Args:
-            model: 模型信息
-
-        Returns:
-            是否健康
-        """
+        """检查单个模型端点的健康状态。"""
         if not model.api_base:
             return False
 
         try:
+            import os
+
+            provider = model.provider
+            if hasattr(provider, 'value'):
+                provider = provider.value
+
+            _api_key_env_map = {
+                "qwen": "DASHSCOPE_API_KEY",
+                "glm": "ZHIPUAI_API_KEY",
+                "deepseek": "DEEPSEEK_API_KEY",
+                "yi": "YI_API_KEY",
+                "chatglm": "ZHIPUAI_API_KEY",
+                "baichuan": "BAICHUAN_API_KEY",
+                "minicpm": "OPENAI_API_KEY",
+                "internlm": "INTERNLM_API_KEY",
+                "aquila": "AQUILA_API_KEY",
+                "skywork": "SKYWORK_API_KEY",
+                "stepfun": "STEPFUN_API_KEY",
+            }
+
+            if provider in _api_key_env_map:
+                env_key = _api_key_env_map[provider]
+                return bool(os.environ.get(env_key, ""))
+
+            if provider in ("local_vllm", "local_sglang"):
+                import httpx
+                try:
+                    async with httpx.AsyncClient(timeout=3.0) as client:
+                        response = await client.get(f"{model.api_base}/health")
+                        return response.status_code < 500
+                except Exception:
+                    return False
+
             import httpx
             async with httpx.AsyncClient(timeout=5.0) as client:
                 response = await client.get(f"{model.api_base}/models")
-                return response.status_code == 200
+                return response.status_code < 500
         except Exception:
-            # 对于本地模型，可能 API 未启动，标记为 offline 但不报错
-            if model.provider in (ModelProvider.LOCAL_VLLM, ModelProvider.LOCAL_SGLANG):
-                return False
             return False
 
 
