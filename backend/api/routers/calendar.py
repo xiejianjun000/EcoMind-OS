@@ -11,7 +11,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from backend.api.services.calendar_service import CalendarService, get_calendar_service
+from api.services.calendar_service import CalendarService, get_calendar_service
 
 router = APIRouter(prefix="/api/calendar", tags=["Calendar"])
 
