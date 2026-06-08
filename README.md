@@ -5,226 +5,137 @@
 # 🌿 EcoMind OS
 
 <p align="center">
-  <strong>生态环境垂直领域 AI Agent 管理平台 — 部署在您自己的服务器上，为 12 个环保领域提供智能决策支持。</strong>
+  <strong>生态环境垂直领域 AI Agent 操作系统。</strong><br>
+  调度 11 个领域专家协同工作——从实时监测到执法办案，从法规检索到碳核算报告。<br>
+  部署在您自己的服务器上，数据不出内网，每一个决策都有法可依、有据可查。
 </p>
 
 <p align="center">
-  <a href="./backend"><img src="https://img.shields.io/badge/Backend-FastAPI-009688?style=for-the-badge" alt="Backend"></a>
-  <a href="./frontend"><img src="https://img.shields.io/badge/Frontend-React%2018-61DAFB?style=for-the-badge" alt="Frontend"></a>
-  <a href="./backend/engine"><img src="https://img.shields.io/badge/Engine-EcoMind%20自建-success?style=for-the-badge" alt="Engine"></a>
-  <a href="./LICENSE"><img src="https://img.shields.io/badge/License-Apache--2.0-blue?style=for-the-badge" alt="License"></a>
-  <!-- AUTO-DOC:VERSION_BADGE -->
-<img src="https://img.shields.io/badge/Version-2.2.0-green?style=for-the-badge"/>
-<!-- /AUTO-DOC:VERSION_BADGE -->
-  <img src="https://img.shields.io/badge/Production-100%25-brightgreen?style=for-the-badge"/>
+  <a href="https://github.com/xiejianjun000/EcoMind-OS/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-Apache--2.0-blue?style=flat-square" alt="License"></a>
+  <a href="./backend"><img src="https://img.shields.io/badge/Backend-FastAPI-009688?style=flat-square" alt="FastAPI"></a>
+  <a href="./frontend"><img src="https://img.shields.io/badge/Frontend-React_18-61DAFB?style=flat-square" alt="React"></a>
+  <a href="README.zh-CN.md"><img src="https://img.shields.io/badge/中文-README-red?style=flat-square" alt="中文"></a>
 </p>
 
 ---
 
-EcoMind OS 是一个**生态环境垂直领域 AI Agent 管理平台**。它提供自建的 Agent 引擎，驱动 12 个领域专家智能体协同工作——环境监测、环境执法、环境影响评价、碳排放、水生态、应急响应等。零外部 Agent 框架依赖，安装即用。
+## 30 秒跑起来
+
+```bash
+git clone git@github.com:xiejianjun000/EcoMind-OS.git && cd EcoMind-OS
+cd backend && pip install -r requirements.txt                  # 后端依赖
+export DEEPSEEK_API_KEY="sk-your-key"
+python -m uvicorn api.main:app --reload --port 8000            # http://localhost:8000/docs
+
+# 新终端
+cd ../frontend && pnpm install && pnpm dev                     # http://localhost:5173
+```
+
+打开浏览器，开始对话。不需要数据库，不需要 Docker，不需要注册任何服务。
 
 <table>
-<tr><td width="30%"><b>🤖 12 个领域专家</b></td><td>环境监测、环境执法、环境影响评价、排污许可、碳排放、水生态、生物多样性、土壤修复、环境应急、合规审查、公众服务、生态主控。每个专家拥有独立的系统提示词和工具权限矩阵。</td></tr>
-<tr><td><b>🧠 自建 Agent 引擎</b></td><td>纯 Python 对话循环 + 工具执行 + SSE 流式输出，零外部 Agent 框架依赖。支持 Agentic Loop 运行时拦截和多专家并行调度。</td></tr>
-<tr><td><b>🛡️ 六层安全链</b></td><td>L0 全局异常脱敏 → L1 Prompt 注入检测 (15 种注入全拦截) → L2 策略护栏 → L3 输出验证 → L4 幻觉检测 → L5 审计追踪 → L6 国密安全审批。含路径遍历防护和安全响应头。</td></tr>
-<tr><td><b>📊 实时环境数据</b></td><td>对接环境监测网络，14 城市 AQI/PM2.5/PM10/O₃ 等 9 项指标实时更新，支持城市排名、预报趋势和历史对比。</td></tr>
-<tr><td><b>🔧 45 个 AI 工具</b></td><td>环境查询、法规检索、政策抓取、报告生成、代码读写、Shell 执行、文件分析、知识图谱查询、Web 搜索等全场景覆盖。</td></tr>
-<tr><td><b>🌍 Cesium 3D 可视化</b></td><td>湖南省地形 3D 场景 + 监测站点实时数据叠加 + 多种数据图层。支持 Cesium + Deck.gl 双引擎渲染。</td></tr>
-<tr><td><b>🐳 一键部署</b></td><td>Docker Compose + Nginx 反向代理 + 健康检查。支持 vLLM 本地推理。提供 Electron 桌面客户端。</td></tr>
+<tr><td width="30%"><b>🧠 11 个领域专家</b></td><td>助手统一调度，10 个领域专家各司其职——环境监测、执法监察、环评审批、排污许可、碳排放、应急管理、生物多样性、生态修复、生态督察、公众服务。每个专家有独立的 SOUL 人格和工具权限矩阵，对话中一键切换。</td></tr>
+<tr><td><b>🛡️ 六层安全链</b></td><td>L0 全局异常脱敏 → L1 Prompt 注入检测 → L2 策略护栏 → L3 输出验证 → L4 幻觉检测 → L5 审计追踪 → L6 国密审批。15 种注入攻击全拦截，SM2/SM3/SM4 国密算法内置。</td></tr>
+<tr><td><b>📡 四平台消息网关</b></td><td>飞书、微信、企业微信、钉钉——扫码即连。执法人员在现场用手机发消息，EcoMind 在服务器上调度专家、检索法规、生成文书，结果实时推回手机。一个网关进程，四个平台同时在线。</td></tr>
+<tr><td><b>🔍 法规语义搜索</b></td><td>不靠关键词匹配。"废气排放"搜到"大气污染物排放标准"，"黑烟"关联到"林格曼黑度"。SQLite + numpy 向量检索引擎，零外部数据库依赖。法规数据不出内网。</td></tr>
+<tr><td><b>🧬 越用越聪明</b></td><td>记忆蒸馏、遗忘曲线、夜间反思——EcoMind 会记住你的偏好、纠正过的错误、常用的法规。每办一个案件就长一分经验。三层知识图谱自动构建法规引用网络。</td></tr>
+<tr><td><b>📊 实时环境数据</b></td><td>对接湖南省生态环境厅监测网络，14 市州 AQI/PM2.5/PM10/O₃/SO₂/NO₂/CO 七项指标实时更新。城市排名、预报趋势、历史对比，Cesium 3D 地形叠加监测站数据。</td></tr>
 </table>
 
 ---
 
-## 📸 产品截图
+## 常用命令
 
-<p align="center">
-  <img src="docs/assets/screenshot-chat.png" alt="对话界面" width="45%">
-  <img src="docs/assets/screenshot-experts.png" alt="专家管理" width="45%">
-</p>
-<p align="center">
-  <img src="docs/assets/screenshot-agents.png" alt="Agent 仪表盘" width="45%">
-  <img src="docs/assets/screenshot-monitor.png" alt="环境监测" width="45%">
-</p>
+```bash
+# 启动对话
+python -m uvicorn api.main:app --port 8000    # 后端
+pnpm dev                                       # 前端 → http://localhost:5173
+
+# 向量化法规（首次使用）
+curl -X POST http://localhost:8000/api/rag/ingest -d '{"source":"hunan_policy"}'
+
+# 启动消息网关
+curl -X POST http://localhost:8000/api/gateway/start -d '{"platforms":["feishu"]}'
+
+# 扫码连接飞书
+curl -X POST http://localhost:8000/api/gateway/qr/register -d '{"platform":"feishu"}'
+
+# 运行测试
+bash scripts/smoke.sh                          # 6条/10秒烟雾测试
+cd backend && python -m pytest tests/unit/     # 57条单元测试
+
+# 夜间反思（每日凌晨 CI 自动执行，也可手动触发）
+PYTHONPATH=backend python -c "from engine.learning_loop import LearningLoop; LearningLoop().nightly_discovery()"
+```
+
+| 操作 | 网页端 | 消息平台 |
+|------|--------|---------|
+| 开始对话 | 打开 `http://localhost:5173` | 给 Bot 发消息 |
+| 切换专家 | 右侧面板选择 | 发送 `/expert 执法监察` |
+| 搜索法规 | 右侧面板→法规 Tab | 直接问"废气排放标准" |
+| 查看任务 | 对话区下方 TaskList | 发送 `/tasks` |
+| 新建会话 | 左侧栏 "+ 新建会话" | 发送 `/new` |
 
 ---
 
-## 🚀 快速开始
+## 文档
 
-### 一键安装
-
-```bash
-git clone git@github.com:xiejianjun000/EcoMind-OS.git
-cd EcoMind-OS
-
-# 后端
-cd backend
-pip install -r requirements.txt
-export DEEPSEEK_API_KEY="sk-your-key"
-python -m uvicorn api.main:app --reload --port 8000
-
-# 前端（新终端）
-cd ../frontend
-pnpm install
-pnpm dev  # http://localhost:5173
-```
-
-### Docker 部署
-
-```bash
-cd deploy
-cp .env.staging .env   # 填入 API Key
-./start.sh             # 一键启动 api + nginx
-```
-
----
-
-## 📖 文档导航
+所有核心文档在仓库内，不需要外站。
 
 | 你想做什么 | 文档 |
 |-----------|------|
-| 了解 EcoMind 的设计理念 | [SOUL-EcoMind.md](./spec/SOUL-EcoMind.md) |
-| 查看架构决策 | [design.md](./spec/design.md) |
-| 了解 Agent 引擎实现 | [loop.py](./backend/engine/loop.py) |
-| 查看 12 专家提示词 | [chat.py](./backend/api/routers/chat.py) |
-| 配置模型路由 | [model_service.py](./backend/api/services/model_service.py) |
-| 部署到生产环境 | [ECOMIND_DEPLOYMENT_ARCHITECTURE.md](./docs/ECOMIND_DEPLOYMENT_ARCHITECTURE.md) |
+| 了解设计理念和核心人格 | [SOUL-EcoMind.md](./spec/SOUL-EcoMind.md) |
+| 查看架构决策和模块划分 | [design.md](./spec/design.md) |
+| 理解 Agent 引擎实现 | [loop.py](./backend/engine/loop.py) |
+| 查看 11 专家配置 | [ecc/hunan-agents/](./backend/skills/ecc/hunan-agents/) |
+| 了解记忆进化系统 | [memory_evolution.py](./backend/engine/memory_evolution.py) |
+| 了解闭环学习引擎 | [learning_loop.py](./backend/engine/learning_loop.py) |
+| 配置消息网关 | [gateway_config.json](./backend/gateway/gateway_config.json) |
+| 部署到生产环境 | [deploy/](./deploy/) |
 | 查看安全加固规则 | [safety_chain.py](./backend/api/routers/safety_chain.py) |
-| 运行测试 | [tests/](./tests/) |
 | 贡献代码 | [CONTRIBUTING.md](./CONTRIBUTING.md) |
-| 查看测试计划 | [TEST_PLAN.md](./TEST_PLAN.md) |
 
 ---
 
-## 🏗️ 技术架构
-
-```
-用户浏览器 (React 18 + Cesium 3D + ECharts)
-        │  REST / SSE / WebSocket
-        ▼
-┌──────────────────────────────────────────────┐
-│              FastAPI (port 8000)              │
-│                                               │
-│  ┌─────────┐  ┌──────────┐  ┌─────────────┐  │
-│  │ 全局异常 │  │ 虚拟路径  │  │ 安全响应头  │  │
-│  │ 处理器   │  │ 映射系统  │  │ 中间件      │  │
-│  └─────────┘  └──────────┘  └─────────────┘  │
-│                                               │
-│  ┌─────────────────────────────────────────┐  │
-│  │         EcoAgentEngine (自建)            │  │
-│  │  对话循环 · 工具执行 · SSE 流式 · 验证  │  │
-│  └─────────────────────────────────────────┘  │
-│                                               │
-│  ┌──────────┐ ┌──────────┐ ┌─────────────┐   │
-│  │EcoMemory │ │EcoVerif- │ │Workflow      │   │
-│  │SQLite 3层│ │ier 验证  │ │State Machine │   │
-│  └──────────┘ └──────────┘ └─────────────┘   │
-│                                               │
-│  ┌─────────────────────────────────────────┐  │
-│  │  LiteLLM: DeepSeek/Qwen/GLM/Yi + vLLM   │  │
-│  └─────────────────────────────────────────┘  │
-└──────────────────────────────────────────────┘
-```
-
----
-
-## 📁 项目结构
+## 项目结构
 
 ```
 EcoMind-OS/
-├── backend/                    # FastAPI — 21 路由 + 11 服务 + 6 引擎模块
-├── frontend/                   # React 18 — 30+ 页面 + 35 组件 + 10 Zustand Store
-├── spec/                       # 规格文档 — 人格定义 · 架构决策 · 审计标准
-├── deploy/                     # Docker + Nginx + 一键部署脚本
-├── tests/                      # 压力测试引擎 (2600行) + E2E
-├── electron/                   # 桌面客户端
-├── docs/                       # 技术文档 + 架构图
-├── openspec/                   # SpecCoding 变更管理
-├── docker-compose.yml          # 根级一键部署
-├── CLAUDE.md                   # Claude Code 项目规则
-├── CONTRIBUTING.md             # 贡献指南
-└── TEST_PLAN.md                # 测试计划
+├── backend/                         # FastAPI 后端
+│   ├── api/                         # 路由 + 服务层
+│   ├── engine/                      # EcoAgentEngine 自建引擎 (17 模块)
+│   ├── gateway/platforms/           # 消息网关 (飞书/微信/企微/钉钉)
+│   ├── rag/                         # RAG 向量检索引擎
+│   ├── graph/                       # 三层知识图谱
+│   ├── marketplace/                 # 技能插件市场
+│   └── tests/                       # 单元/集成/契约/安全/混沌测试
+├── frontend/                        # React 18 三面板布局
+├── spec/                            # 项目规格 (灵魂铁律/架构/审计)
+├── deploy/                          # Docker + Nginx + systemd
+├── scripts/                         # 烟雾测试 / 文档自动同步 / Git运维
+└── .github/workflows/               # CI/CD (烟雾→单元→集成→夜间反思)
 ```
 
-> 📁 完整结构见 [CODE_WIKI.md](./CODE_WIKI.md)
-
 ---
 
-## 🧪 生产级审计
-
-<table>
-<tr><td><b>审计维度</b></td><td><b>检查项</b></td><td><b>结果</b></td><td><b>关键指标</b></td></tr>
-<tr><td>1. 数据完备性</td><td>8</td><td>✅ 全通过</td><td>14城市三端交叉验证 · AQI 0-500合规 · 知识图谱无孤立引用</td></tr>
-<tr><td>2. 并发与负载</td><td>5</td><td>✅ 全通过</td><td>20并发 9ms/req · 5并发流式全成功 · 124 req/s</td></tr>
-<tr><td>3. 安全加固</td><td>14</td><td>✅ 全通过</td><td>15种注入全拦截 · SQL+XSS全拦截 · 路径遍历已堵</td></tr>
-<tr><td>4. 容错恢复</td><td>5</td><td>✅ 全通过</td><td>无效JSON/危险工具/不存在API均正确拒绝</td></tr>
-<tr><td>5. 性能基准</td><td>3</td><td>✅ 全通过</td><td>19接口全&lt;100ms · 流式TTFB 588ms · P50 10.5ms</td></tr>
-<tr><td>6. 边界条件</td><td>15</td><td>✅ 全通过</td><td>Unicode/Emoji/日文/RTL · 14前端路由 · 流式隔离</td></tr>
-<tr><td colspan="2"><b>综合</b></td><td><b>🟢 100%</b></td><td><b>50/50 项通过 — 满足生产级部署标准</b></td></tr>
-</table>
-
-> 📄 [完整审计数据](./tests/stress_test_results.json) · [测试报告](./tests/stress_test_report.md)
-
----
-
-## 🛠️ 技术栈
-
-<!-- AUTO-DOC:TECH_STACK -->
-| 层次 | 技术 |
-|------|------|
-| 前端 | React 18 · TypeScript 5.7 · Vite 6 · Ant Design 5 · shadcn/ui · Tailwind CSS 4 · Cesium 3D · ECharts 5 · Zustand 5 |
-| 后端 | FastAPI · Pydantic v2 · **EcoAgentEngine (自建)** · **EcoToolRegistry** · **EcoVerifier** · LiteLLM · httpx |
-| AI 模型 | DeepSeek-V3/Coder · Qwen-Max/Plus/Turbo · GLM-4 · Yi-Large |
-| 部署 | Docker Compose · Nginx · systemd/launchd · Shell 一键脚本 |
-| 引擎 | auto_skill, config_watcher, context_compactor, ecomind_logging, hermes_memory, hermes_tools, learning_loop, loop |
-| 规模 | 29733 行 Python (4983 文件) · 147 前端文件 |
-<!-- /AUTO-DOC:TECH_STACK -->
-
----
-
-## 📊 项目进度
-
-| 阶段 | 状态 | 内容 |
-|------|------|------|
-| Phase 1A | ✅ | 前端 9 模块路由 + Dashboard + i18n + 主题 |
-| Phase 1B | ✅ | Cesium 3D (6 组件) + 前后端联调 + vLLM 本地推理 |
-| v2.0 | ✅ | 自建引擎/安全/记忆/工作流 — 零外部 Agent 框架依赖 |
-| v2.1 | ✅ | 三层防御 + 安全加固 + 生产级审计 + Docker + E2E |
-
----
-
-## 💬 社区
+## 社区
 
 - 🐛 [提交 Issue](https://github.com/xiejianjun000/EcoMind-OS/issues)
 - 📖 [贡献指南](./CONTRIBUTING.md)
-- 📋 [测试计划](./TEST_PLAN.md)
 - 🌐 关注 `@xiejianjun000` 获取更新
 
 ---
 
-## 📄 许可证
+## 致谢
+
+EcoMind OS 受以下项目和理念启发：Hermes Agent (Nous Research) 的自我进化架构、Claude Code 的 Skill 插件化体系、Trae Solo 的 UI 设计规范、Understand-Anything 的知识图谱理念、Anthropic 的网络安全技能。
+
+---
+
+## 许可证
 
 Apache License 2.0 — 详见 [LICENSE](./LICENSE)。
 
----
-
-## ⭐ Star History
-
-<a href="https://star-history.com/#xiejianjun000/EcoMind-OS&Date">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=xiejianjun000/EcoMind-OS&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=xiejianjun000/EcoMind-OS&type=Date&theme=light" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=xiejianjun000/EcoMind-OS&type=Date" width="100%" />
- </picture>
-</a>
-
----
-
-## 🙏 致谢
-
-EcoMind OS 自建架构受以下开源项目理念启发：ECC (Skills + Memory + Security pattern)、Claude-Mem (持久化压缩上下文)、Understand-Anything (交互式知识图谱)、Anthropic-Cybersecurity-Skills (结构化安全规则)。
-
----
-
 <p align="center">
-  <em>🌱 生态，自此思考。 &nbsp; 🌍 Intelligence that Nurtures the Planet.</em>
+  <em>🌱 数据不到不开口，法规不引不下笔。</em>
 </p>
