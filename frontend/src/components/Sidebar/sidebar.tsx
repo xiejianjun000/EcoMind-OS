@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import {
   Search,
   Plus,
@@ -21,9 +22,16 @@ import {
   BookOpen,
   Zap,
   Users,
+  LayoutTemplate,
+  FolderOpen,
+  Circle,
 } from "lucide-react"
 import { useTheme } from "@/providers/ThemeProvider"
+import { useExpertStore } from "@/store/expertStore"
+import { useTeamStore } from "@/store/teamStore"
+import { EXPERT_GROUPS } from "@/types/team"
 import { ExpertList } from "./expert-list"
+import { TeamPanel } from "./team-panel"
 import { SessionList } from "./session-list"
 
 interface SidebarProps {
@@ -34,11 +42,15 @@ interface SidebarProps {
 
 export function Sidebar({ open, className }: SidebarProps) {
   const { theme, setTheme } = useTheme()
+  const { experts, skills, connectors, knowledgeBases, sidebarExpandedSections, toggleSidebarSection } = useExpertStore()
+  const { templates, activeTeamId, setActiveTeam } = useTeamStore()
+
   const [expertsExpanded, setExpertsExpanded] = useState(true)
   const [skillsExpanded, setSkillsExpanded] = useState(false)
   const [connectorsExpanded, setConnectorsExpanded] = useState(false)
   const [knowledgeExpanded, setKnowledgeExpanded] = useState(false)
-  const [automationExpanded, setAutomationExpanded] = useState(false)
+  const [teamExpanded, setTeamExpanded] = useState(true)
+  const [templatesExpanded, setTemplatesExpanded] = useState(false)
 
   if (!open) {
     return (
@@ -53,6 +65,9 @@ export function Sidebar({ open, className }: SidebarProps) {
           <Button variant="ghost" size="icon">
             <Bot className="h-5 w-5" />
           </Button>
+          <Button variant="ghost" size="icon">
+            <Users className="h-5 w-5" />
+          </Button>
         </div>
       </div>
     )
@@ -65,23 +80,47 @@ export function Sidebar({ open, className }: SidebarProps) {
         <div className="flex items-center gap-2 mb-4">
           <Bot className="h-6 w-6 text-primary" />
           <span className="font-semibold text-lg">EcoMind OS</span>
+          <Badge variant="secondary" className="ml-auto text-[10px]">v1.0</Badge>
         </div>
         {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="搜索任务..."
+            placeholder="搜索专家、技能、团队..."
             className="pl-9 bg-background"
           />
         </div>
       </div>
 
-      {/* New Chat Button */}
-      <div className="p-4">
+      {/* Quick Actions */}
+      <div className="p-3 space-y-2">
         <Button className="w-full gap-2" size="sm">
           <Plus className="h-4 w-4" />
           新建会话
         </Button>
+        {/* Quick Templates */}
+        <div className="flex gap-1.5">
+          {templates.slice(0, 3).map((tmpl) => (
+            <Button
+              key={tmpl.templateId}
+              variant="outline"
+              size="sm"
+              className="flex-1 gap-1 text-xs h-7"
+              onClick={() => {
+                useTeamStore.getState().createTeam({
+                  name: tmpl.name,
+                  templateId: tmpl.templateId,
+                  leadExpertId: tmpl.leadExpertId,
+                  memberExpertIds: tmpl.memberExpertIds,
+                })
+                setTeamExpanded(true)
+              }}
+            >
+              <LayoutTemplate className="h-3 w-3" />
+              {tmpl.name.slice(0, 2)}
+            </Button>
+          ))}
+        </div>
       </div>
 
       <Separator />
@@ -89,15 +128,26 @@ export function Sidebar({ open, className }: SidebarProps) {
       {/* Navigation */}
       <ScrollArea className="flex-1">
         <div className="p-2">
-          {/* Experts */}
+          {/* Experts - Grouped */}
           <SidebarSection
             icon={<Sparkles className="h-4 w-4" />}
             title="专家"
             expanded={expertsExpanded}
             onExpandedChange={setExpertsExpanded}
-            badge="12"
+            badge={`${experts.length}`}
           >
             <ExpertList />
+          </SidebarSection>
+
+          {/* Team */}
+          <SidebarSection
+            icon={<Users className="h-4 w-4" />}
+            title="团队"
+            expanded={teamExpanded}
+            onExpandedChange={setTeamExpanded}
+            badge={activeTeamId ? "1" : undefined}
+          >
+            <TeamPanel />
           </SidebarSection>
 
           {/* Skills */}
@@ -106,11 +156,16 @@ export function Sidebar({ open, className }: SidebarProps) {
             title="技能"
             expanded={skillsExpanded}
             onExpandedChange={setSkillsExpanded}
+            badge={`${skills.length}`}
           >
-            <SkillItem icon={<Sparkles className="h-4 w-4" />} label="3D地图分析" />
-            <SkillItem icon={<BookOpen className="h-4 w-4" />} label="报告生成" />
-            <SkillItem icon={<Zap className="h-4 w-4" />} label="合规校验" />
-            <SkillItem icon={<Users className="h-4 w-4" />} label="遥感解译" />
+            {skills.map((skill) => (
+              <SkillItem
+                key={skill.id}
+                icon={<Sparkles className="h-4 w-4" />}
+                label={skill.name}
+                badge={`${skill.expertIds.length}`}
+              />
+            ))}
           </SidebarSection>
 
           {/* Connectors */}
@@ -119,10 +174,17 @@ export function Sidebar({ open, className }: SidebarProps) {
             title="连接器"
             expanded={connectorsExpanded}
             onExpandedChange={setConnectorsExpanded}
+            badge={`${connectors.filter(c => c.status === 'connected').length}/${connectors.length}`}
           >
-            <SkillItem icon={<Plug className="h-4 w-4" />} label="监测站点" />
-            <SkillItem icon={<Plug className="h-4 w-4" />} label="IoT传感器" />
-            <SkillItem icon={<Plug className="h-4 w-4" />} label="卫星遥感" />
+            {connectors.map((conn) => (
+              <SkillItem
+                key={conn.id}
+                icon={<Plug className="h-4 w-4" />}
+                label={conn.name}
+                badge={conn.status === 'connected' ? '●' : '○'}
+                badgeColor={conn.status === 'connected' ? 'text-green-500' : 'text-muted-foreground'}
+              />
+            ))}
           </SidebarSection>
 
           {/* Knowledge Base */}
@@ -131,29 +193,24 @@ export function Sidebar({ open, className }: SidebarProps) {
             title="资料库"
             expanded={knowledgeExpanded}
             onExpandedChange={setKnowledgeExpanded}
+            badge={`${knowledgeBases.length}`}
           >
-            <SkillItem icon={<BookOpen className="h-4 w-4" />} label="腾讯文档" />
-            <SkillItem icon={<BookOpen className="h-4 w-4" />} label="ima知识库" />
-            <SkillItem icon={<BookOpen className="h-4 w-4" />} label="乐享知识库" />
-          </SidebarSection>
-
-          {/* Automation */}
-          <SidebarSection
-            icon={<Zap className="h-4 w-4" />}
-            title="自动化"
-            expanded={automationExpanded}
-            onExpandedChange={setAutomationExpanded}
-          >
-            <SkillItem icon={<Zap className="h-4 w-4" />} label="定时巡检" />
-            <SkillItem icon={<Zap className="h-4 w-4" />} label="异常告警" />
-            <SkillItem icon={<Zap className="h-4 w-4" />} label="自动报告" />
+            {knowledgeBases.map((kb) => (
+              <SkillItem
+                key={kb.id}
+                icon={<BookOpen className="h-4 w-4" />}
+                label={kb.name}
+                badge={`${kb.itemCount}`}
+              />
+            ))}
           </SidebarSection>
 
           <Separator className="my-4" />
 
           {/* Workspaces / Sessions */}
           <div className="space-y-2">
-            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <FolderOpen className="h-3 w-3" />
               工作空间
             </div>
             <SessionList />
@@ -179,24 +236,14 @@ export function Sidebar({ open, className }: SidebarProps) {
             <Settings className="h-4 w-4" />
           </Button>
         </div>
-        {/* Team Members */}
-        <div className="flex items-center gap-2 mt-4">
-          <div className="flex -space-x-2">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="h-8 w-8 rounded-full bg-primary/20 border-2 border-background flex items-center justify-center text-xs font-medium"
-              >
-                {String.fromCharCode(64 + i)}
-              </div>
-            ))}
-          </div>
-          <span className="text-xs text-muted-foreground">团队成员</span>
-        </div>
       </div>
     </div>
   )
 }
+
+// ============================================================
+// Sub-components
+// ============================================================
 
 interface SidebarSectionProps {
   icon: React.ReactNode
@@ -240,13 +287,18 @@ function SidebarSection({
 interface SkillItemProps {
   icon: React.ReactNode
   label: string
+  badge?: string
+  badgeColor?: string
 }
 
-function SkillItem({ icon, label }: SkillItemProps) {
+function SkillItem({ icon, label, badge, badgeColor }: SkillItemProps) {
   return (
     <button className="flex items-center gap-2 w-full px-2 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors">
       {icon}
-      <span>{label}</span>
+      <span className="flex-1 text-left truncate">{label}</span>
+      {badge && (
+        <span className={cn("text-xs", badgeColor || "text-muted-foreground")}>{badge}</span>
+      )}
     </button>
   )
 }

@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EcoMind OS - GAIA-ECO 三栏布局预览</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0a0f;
+  --bg-card: #111118;
+  --bg-hover: #1a1a24;
+  --bg-active: #1e1e2e;
+  --border: #1e1e30;
+  --text: #e4e4ec;
+  --text-muted: #8888a0;
+  --text-dim: #606078;
+  --primary: #10b981;
+  --primary-glow: rgba(16, 185, 129, 0.15);
+  --accent-blue: #3b82f6;
+  --accent-amber: #f59e0b;
+  --accent-red: #ef4444;
+  --accent-purple: #8b5cf6;
+  --accent-cyan: #06b6d4;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --font-mono: 'Consolas', 'Courier New', monospace;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== Top Bar ===== */
+.topbar {
+  height: 44px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 12px;
+  z-index: 10;
+  flex-shrink: 0;
+}
+.topbar-logo {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--primary);
+  letter-spacing: 0.5px;
+}
+.topbar-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 8px var(--primary-glow);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.topbar-status {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+.topbar-model {
+  font-size: 11px;
+  color: var(--primary);
+  background: var(--primary-glow);
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+/* ===== Main Container ===== */
+.main-container {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ===== Left Sidebar ===== */
+.sidebar {
+  width: 280px;
+  min-width: 280px;
+  background: var(--bg-card);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.sidebar-header {
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.sidebar-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.sidebar-btn {
+  width: 28px; height: 28px;
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all 0.15s;
+}
+.sidebar-btn:hover { background: var(--bg-active); color: var(--text); }
+.sidebar-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+.sidebar-scroll::-webkit-scrollbar { width: 4px; }
+.sidebar-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* Expert Group */
+.expert-group {
+  padding: 4px 12px;
+}
+.expert-group-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  padding: 10px 4px 6px;
+}
+.expert-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.15s;
+  font-size: 13px;
+  position: relative;
+}
+.expert-item:hover { background: var(--bg-hover); }
+.expert-item.active {
+  background: var(--primary-glow);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+.expert-avatar {
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.expert-info { flex: 1; min-width: 0; }
+.expert-name { font-size: 13px; font-weight: 500; line-height: 1.2; }
+.expert-role { font-size: 11px; color: var(--text-muted); line-height: 1.3; }
+.expert-level {
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+.level-l3 { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); }
+.level-l2 { background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); }
+.level-l1 { background: rgba(16, 185, 129, 0.15); color: var(--primary); }
+
+/* Quick Templates */
+.template-section { padding: 12px; border-top: 1px solid var(--border); }
+.template-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.template-card {
+  padding: 10px 12px;
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.template-card:hover { border-color: var(--primary); background: var(--primary-glow); }
+.template-card-title { font-size: 12px; font-weight: 600; margin-bottom: 2px; }
+.template-card-desc { font-size: 11px; color: var(--text-muted); }
+
+/* ===== Center Chat ===== */
+.chat-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  min-width: 0;
+}
+.chat-header {
+  height: 52px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.chat-header-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+.chat-header-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: 8px;
+  padding: 2px 8px;
+  background: var(--bg-card);
+  border-radius: 10px;
+}
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.chat-messages::-webkit-scrollbar { width: 4px; }
+.chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* Message Bubble */
+.msg {
+  display: flex;
+  gap: 12px;
+  max-width: 85%;
+  animation: fadeIn 0.3s ease;
+}
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.msg.user { align-self: flex-end; flex-direction: row-reverse; }
+.msg.system { align-self: flex-start; max-width: 90%; }
+.msg-avatar {
+  width: 34px; height: 34px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.msg-content {
+  padding: 12px 16px;
+  border-radius: var(--radius-lg);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.msg.user .msg-content { background: var(--bg-card); border: 1px solid var(--border); }
+.msg.system .msg-content { background: var(--bg-card); border: 1px solid var(--border); }
+.msg-time { font-size: 10px; color: var(--text-dim); margin-top: 4px; }
+.msg-badge {
+  display: inline-block;
+  font-size: 10px;
+  padding: 1px 8px;
+  border-radius: 10px;
+  margin-left: 6px;
+}
+
+/* Thinking chain */
+.think-block {
+  margin: 8px 0;
+  padding: 10px 14px;
+  background: rgba(139, 92, 246, 0.08);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: var(--radius);
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.think-block summary { font-weight: 600; color: var(--accent-purple); font-size: 11px; cursor: pointer; }
+.think-block p { margin-top: 6px; line-height: 1.5; }
+
+/* Code block */
+.code-block {
+  margin: 8px 0;
+  background: #0d0d14;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: var(--bg-hover);
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.code-copy {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.code-copy:hover { color: var(--text); background: var(--bg-active); }
+.code-body {
+  padding: 10px 14px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-x: auto;
+  color: #c9d1d9;
+}
+.code-body .kw { color: #ff7b72; }
+.code-body .str { color: #a5d6ff; }
+.code-body .fn { color: #d2a8ff; }
+.code-body .cm { color: #8b949e; }
+
+/* Hallucination badge */
+.hallu-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--accent-red);
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 10px;
+  margin-top: 8px;
+}
+
+/* ===== Chat Input ===== */
+.chat-input-area {
+  border-top: 1px solid var(--border);
+  padding: 12px 20px 16px;
+  background: var(--bg-card);
+  flex-shrink: 0;
+}
+.input-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.toolbar-btn {
+  height: 28px;
+  padding: 0 10px;
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s;
+}
+.toolbar-btn:hover { color: var(--text); border-color: var(--primary); }
+.toolbar-btn.model-active {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-glow);
+}
+.toolbar-spacer { flex: 1; }
+.input-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+.input-box {
+  flex: 1;
+  min-height: 44px;
+  max-height: 120px;
+  padding: 10px 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  resize: none;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.input-box:focus { border-color: var(--primary); }
+.input-box::placeholder { color: var(--text-dim); }
+.send-btn {
+  width: 44px; height: 44px;
+  background: var(--primary);
+  border: none;
+  border-radius: var(--radius-lg);
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.send-btn:hover { opacity: 0.9; transform: scale(1.02); }
+.env-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 8px;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+.env-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.env-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+}
+.env-dot.green { background: var(--primary); }
+.env-dot.amber { background: var(--accent-amber); }
+
+/* ===== Right Panel ===== */
+.right-panel {
+  width: 320px;
+  min-width: 320px;
+  background: var(--bg-card);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.panel-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.panel-tab {
+  flex: 1;
+  padding: 10px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+}
+.panel-tab:hover { color: var(--text); }
+.panel-tab.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+.panel-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+.panel-content::-webkit-scrollbar { width: 4px; }
+.panel-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* Artifact card */
+.artifact-card {
+  padding: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.artifact-card:hover { border-color: var(--primary); }
+.artifact-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.artifact-icon {
+  width: 32px; height: 32px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.artifact-title { font-size: 13px; font-weight: 500; }
+.artifact-desc { font-size: 11px; color: var(--text-muted); line-height: 1.4; margin-top: 4px; }
+.artifact-meta {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+/* Status panel */
+.status-card {
+  padding: 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 10px;
+}
+.status-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.status-card-title {
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.status-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+}
+.status-dot.alive { background: var(--primary); box-shadow: 0 0 6px var(--primary-glow); }
+.status-dot.dead { background: var(--text-dim); }
+.status-badge {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+.status-badge.active { background: rgba(16,185,129,0.15); color: var(--primary); }
+.status-badge.warn { background: rgba(245,158,11,0.15); color: var(--accent-amber); }
+.status-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 11px;
+}
+.status-item-label { color: var(--text-muted); }
+.status-item-value { color: var(--text); font-weight: 500; }
+
+/* Notification item */
+.notif-item {
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+  border-left: 3px solid var(--accent-amber);
+}
+.notif-item.critical { border-left-color: var(--accent-red); }
+.notif-item.info { border-left-color: var(--accent-blue); }
+.notif-title { font-size: 12px; font-weight: 600; margin-bottom: 2px; }
+.notif-desc { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+.notif-time { font-size: 10px; color: var(--text-dim); margin-top: 6px; }
+
+/* Section title */
+.section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin: 16px 0 8px;
+  padding-left: 2px;
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+.empty-state-icon { font-size: 32px; margin-bottom: 8px; opacity: 0.3; }
+
+/* Team Panel */
+.team-card {
+  padding: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.team-card:hover { border-color: var(--accent-blue); }
+.team-card-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+.team-card-members {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.team-member-dot {
+  width: 20px; height: 20px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+}
+.team-progress {
+  height: 3px;
+  background: var(--border);
+  border-radius: 3px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+.team-progress-bar { height: 100%; background: var(--primary); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="topbar">
+  <div class="topbar-dot"></div>
+  <span class="topbar-logo">EcoMind OS</span>
+  <span style="font-size:11px;color:var(--text-dim);">GAIA-ECO v2.0</span>
+  <div class="topbar-status">🟢 系统运行中</div>
+  <span class="topbar-model">Qwen3-14B</span>
+</div>
+
+<!-- Main Layout -->
+<div class="main-container">
+
+  <!-- ===== LEFT SIDEBAR ===== -->
+  <aside class="sidebar">
+    <!-- Expert List -->
+    <div class="sidebar-header">
+      <span class="sidebar-title">🤖 专家智能体</span>
+      <button class="sidebar-btn" title="新建会话">+</button>
+    </div>
+    <div class="sidebar-scroll">
+      <!-- Core Group -->
+      <div class="expert-group">
+        <div class="expert-group-label">核心调度</div>
+        <div class="expert-item active">
+          <div class="expert-avatar" style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;">G</div>
+          <div class="expert-info">
+            <div class="expert-name">GAIA 主控</div>
+            <div class="expert-role">生态大脑总调度</div>
+          </div>
+          <span class="expert-level level-l3">L3</span>
+        </div>
+      </div>
+
+      <!-- Monitoring Group -->
+      <div class="expert-group">
+        <div class="expert-group-label">环境监测</div>
+        <div class="expert-item">
+          <div class="expert-avatar" style="background:linear-gradient(135deg,#06b6d4,#0891b2);color:#fff;">监</div>
+          <div class="expert-info">
+            <div class="expert-name">环境监测专家</div>
+            <div class="expert-role">AQI/水质/土壤/噪声</div>
+          </div>
+          <span class="expert-level level-l2">L2</span>
+        </div>
+        <div class="expert-item">
+          <div class="expert-avatar" style="background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;">水</div>
+          <div class="expert-info">
+            <div class="expert-name">水生态专家</div>
+            <div class="expert-role">流域水质/排污口</div>
+          </div>
+          <span class="expert-level level-l2">L2</span>
+        </div>
+      </div>
+
+      <!-- Approval Group -->
+      <div class="expert-group">
+        <div class="expert-group-label">审批合规</div>
+        <div class="expert-item">
+          <div class="expert-avatar" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:#fff;">评</div>
+          <div class="expert-info">
+            <div class="expert-name">环评审批专家</div>
+            <div class="expert-role">环境影响评价审批</div>
+          </div>
+          <span class="expert-level level-l3">L3</span>
+        </div>
+        <div class="expert-item">
+          <div class="expert-avatar" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;">许</div>
+          <div class="expert-info">
+            <div class="expert-name">排污许可专家</div>
+            <div class="expert-role">许可证核发/核查</div>
+          </div>
+          <span class="expert-level level-l3">L3</span>
+        </div>
+      </div>
+
+      <!-- Enforcement Group -->
+      <div class="expert-group">
+        <div class="expert-group-label">执法监察</div>
+        <div class="expert-item">
+          <div class="expert-avatar" style="background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;">执</div>
+          <div class="expert-info">
+            <div class="expert-name">执法监察专家</div>
+            <div class="expert-role">现场执法/案件办理</div>
+          </div>
+          <span class="expert-level level-l2">L2</span>
+        </div>
+        <div class="expert-item">
+          <div class="expert-avatar" style="background:linear-gradient(135deg,#ec4899,#db2777);color:#fff;">督</div>
+          <div class="expert-info">
+            <div class="expert-name">生态督察专家</div>
+            <div class="expert-role">督察整改/回头看</div>
+          </div>
+          <span class="expert-level level-l3">L3</span>
+        </div>
+      </div>
+
+      <!-- Special Group -->
+      <div class="expert-group">
+        <div class="expert-group-label">专项领域</div>
+        <div class="expert-item">
+          <div class="expert-avatar" style="background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;">生</div>
+          <div class="expert-info">
+            <div class="expert-name">生物多样性专家</div>
+            <div class="expert-role">物种/栖息地/保护区</div>
+          </div>
+          <span class="expert-level level-l1">L1</span>
+        </div>
+        <div class="expert-item">
+          <div class="expert-avatar" style="background:linear-gradient(135deg,#64748b,#475569);color:#fff;">碳</div>
+          <div class="expert-info">
+            <div class="expert-name">碳排放专家</div>
+            <div class="expert-role">碳核算/碳交易</div>
+          </div>
+          <span class="expert-level level-l2">L2</span>
+        </div>
+        <div class="expert-item">
+          <div class="expert-avatar" style="background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;">急</div>
+          <div class="expert-info">
+            <div class="expert-name">应急管理专家</div>
+            <div class="expert-role">突发环境事件响应</div>
+          </div>
+          <span class="expert-level level-l1">L1</span>
+        </div>
+      </div>
+
+      <!-- Team Section -->
+      <div class="expert-group">
+        <div class="expert-group-label">👥 团队协作</div>
+        <div class="team-card">
+          <div class="team-card-name">📋 环评审批团队</div>
+          <div class="team-card-members">
+            <div class="team-member-dot" style="background:#10b981;">G</div>
+            <div class="team-member-dot" style="background:#8b5cf6;">评</div>
+            <div class="team-member-dot" style="background:#f59e0b;">许</div>
+            <div class="team-member-dot" style="background:#3b82f6;">水</div>
+            <div class="team-member-dot" style="background:#64748b;">碳</div>
+            <span style="font-size:10px;color:var(--text-dim);margin-left:4px;">5人</span>
+          </div>
+          <div class="team-progress"><div class="team-progress-bar" style="width:65%;"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Templates -->
+    <div class="template-section">
+      <div style="font-size:11px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">⚡ 快捷模板</div>
+      <div class="template-grid">
+        <div class="template-card">
+          <div class="template-card-title">📋 环评报告审批</div>
+          <div class="template-card-desc">GAIA + 环评 + 排污许可 + 水生态 + 碳排放</div>
+        </div>
+        <div class="template-card">
+          <div class="template-card-title">🚨 环境应急响应</div>
+          <div class="template-card-desc">应急管理 + 环境监测 + GAIA + 执法监察</div>
+        </div>
+        <div class="template-card">
+          <div class="template-card-title">🔍 生态督察整改</div>
+          <div class="template-card-desc">督察 + 执法 + 监测 + GAIA 主控协调</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===== CENTER CHAT ===== -->
+  <main class="chat-area">
+    <div class="chat-header">
+      <div class="expert-avatar" style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:16px;">G</div>
+      <span class="chat-header-title">GAIA 生态大脑</span>
+      <span class="chat-header-sub">Qwen3-14B</span>
+      <span style="font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(16,185,129,0.15);color:var(--primary);">L3 安全级</span>
+      <span style="font-size:10px;color:var(--text-dim);margin-left:auto;">3条消息</span>
+    </div>
+
+    <div class="chat-messages">
+      <!-- System Message -->
+      <div class="msg system">
+        <div class="expert-avatar" style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;">G</div>
+        <div>
+          <div class="msg-content">
+            👋 你好！我是 <strong>GAIA 生态大脑</strong>，EcoMind OS 的核心调度引擎。<br><br>
+            我可以帮你：<br>
+            • 📊 <strong>环境数据分析</strong> — AQI、水质、土壤、噪声监测<br>
+            • 📋 <strong>环评审批辅助</strong> — 报告审核、合规检查、流程指引<br>
+            • 🔍 <strong>执法办案支持</strong> — 法律检索、证据分析、文书生成<br>
+            • 🚨 <strong>应急响应调度</strong> — 事件评估、预案匹配、资源调配<br>
+            • 👥 <strong>多专家协同</strong> — 组建团队、分配任务、汇总成果
+          </div>
+          <div class="msg-time">15:06</div>
+        </div>
+      </div>
+
+      <!-- User Message -->
+      <div class="msg user">
+        <div>
+          <div class="msg-content">
+            帮我分析一下湖南煤业集团金竹山矿业一平硐煤矿的生态环境违法问题，重点看废水排放和危废处置。
+          </div>
+          <div class="msg-time">15:07</div>
+        </div>
+        <div class="expert-avatar" style="background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;">军</div>
+      </div>
+
+      <!-- AI Response with Thinking Chain -->
+      <div class="msg system">
+        <div class="expert-avatar" style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;">G</div>
+        <div style="min-width:0;">
+          <div class="msg-content">
+            <details class="think-block" open>
+              <summary>🧠 推理过程 (3步)</summary>
+              <p>1. 识别关键词：煤矿、废水排放、危废处置 → 匹配"执法监察专家"+"水生态专家"领域<br>2. 检索知识库：《水污染防治法》第83条、《固体废物污染环境防治法》第112条<br>3. 确定查询维度：排放标准、处置规范、执法依据、既往案例</p>
+            </details>
+
+            根据分析，一平硐煤矿存在以下生态环境违法问题：
+
+            <strong>一、废水排放方面</strong>
+
+            1. <strong>矿井涌水超标排放</strong>：根据《煤炭工业污染物排放标准》(GB 20426-2006)，矿井水 pH 值应控制在 6-9 范围，但该矿多处排口监测数据显示 pH 值在 2.8-4.2 之间，属<strong style="color:var(--accent-red);">严重超标</strong>。
+
+            2. <strong>适用法律</strong>：《水污染防治法》第83条——"超过水污染物排放标准排放水污染物的，由县级以上人民政府环境保护主管部门责令改正，处十万元以上一百万元以下的罚款"。
+
+            <div class="code-block">
+              <div class="code-header">
+                <span>📄 法律依据</span>
+                <button class="code-copy">复制</button>
+              </div>
+              <div class="code-body">
+<span class="cm"># 《水污染防治法》第83条</span>
+违反本法规定，有下列行为之一的，由县级以上人民政府
+环境保护主管部门责令改正或者责令限制生产、停产整治，
+并处<span class="kw">十万元以上一百万元以下</span>的罚款；情节严重的，
+报经有批准权的人民政府批准，责令停业、关闭：
+<span class="fn">(二)</span> 超过水污染物排放标准或者超过重点水污染物
+排放总量控制指标排放水污染物的；
+              </div>
+            </div>
+
+            <strong>二、危废处置方面</strong>
+
+            3. <strong>废矿物油未规范贮存</strong>：现场检查发现约 5.2 吨废机油、废润滑油露天堆放，未设置危废标识、未采取防渗措施，违反《固体废物污染环境防治法》第112条。
+
+            <span class="hallu-badge">⚠ 低置信度（78%）— 5.2吨数据为模型估算，需实地核实</span>
+          </div>
+          <div class="msg-time">15:08</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Input Area -->
+    <div class="chat-input-area">
+      <div class="input-toolbar">
+        <button class="toolbar-btn model-active">🧠 Qwen3-14B</button>
+        <button class="toolbar-btn">🔬 DeepSeek-R1</button>
+        <button class="toolbar-btn">🌐 GLM-4-9B</button>
+        <span class="toolbar-spacer"></span>
+        <button class="toolbar-btn">📎 上传文件</button>
+        <button class="toolbar-btn">🔗 引用法规</button>
+      </div>
+      <div class="input-row">
+        <textarea class="input-box" placeholder="输入生态环境问题，或使用 @ 召唤专家协同..." rows="2">请详细分析一平硐煤矿的整改方案，特别是酸性矿井水的治理措施。</textarea>
+        <button class="send-btn">➤</button>
+      </div>
+      <div class="env-bar">
+        <div class="env-item"><span class="env-dot green"></span> 安全: L3-本地</div>
+        <div class="env-item"><span class="env-dot green"></span> 连接器: 4/5</div>
+        <div class="env-item"><span class="env-dot amber"></span> API延迟: 45ms</div>
+        <div class="env-item" style="margin-left:auto;">🇨🇳 GB/T 3565 合规</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ===== RIGHT PANEL ===== -->
+  <aside class="right-panel">
+    <div class="panel-tabs">
+      <button class="panel-tab active" onclick="switchTab('preview')">📄 工件</button>
+      <button class="panel-tab" onclick="switchTab('status')">📊 状态</button>
+      <button class="panel-tab" onclick="switchTab('notif')">🔔 通知</button>
+    </div>
+
+    <div class="panel-content" id="tab-preview">
+      <!-- Artifact List -->
+      <div class="artifact-card">
+        <div class="artifact-card-header">
+          <div class="artifact-icon" style="background:rgba(139,92,246,0.15);color:var(--accent-purple);">🗂</div>
+          <span class="artifact-title">执法取证清单-v3</span>
+        </div>
+        <div class="artifact-desc">一平硐煤矿现场检查证据汇编，含 12 份照片、3 份监测报告</div>
+        <div class="artifact-meta">
+          <span>📊 2.4MB</span>
+          <span>🕐 15分钟前</span>
+          <span>👤 执法监察</span>
+        </div>
+      </div>
+
+      <div class="artifact-card">
+        <div class="artifact-card-header">
+          <div class="artifact-icon" style="background:rgba(59,130,246,0.15);color:var(--accent-blue);">📊</div>
+          <span class="artifact-title">水质分析报告</span>
+        </div>
+        <div class="artifact-desc">2026年6月矿井涌水 pH/Fe/Mn 监测数据分析</div>
+        <div class="artifact-meta">
+          <span>📊 1.8MB</span>
+          <span>🕐 1小时前</span>
+          <span>👤 环境监测</span>
+        </div>
+      </div>
+
+      <div class="artifact-card">
+        <div class="artifact-card-header">
+          <div class="artifact-icon" style="background:rgba(245,158,11,0.15);color:var(--accent-amber);">📋</div>
+          <span class="artifact-title">整改通知书草稿</span>
+        </div>
+        <div class="artifact-desc">责令改正违法行为决定书 (初稿)</div>
+        <div class="artifact-meta">
+          <span>📝 待审批</span>
+          <span>🕐 2小时前</span>
+          <span>👤 GAIA</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-content" id="tab-status" style="display:none;">
+      <!-- Agent Status -->
+      <div class="status-card">
+        <div class="status-card-header">
+          <span class="status-card-title"><span class="status-dot alive"></span> GAIA 主控</span>
+          <span class="status-badge active">运行中</span>
+        </div>
+        <div class="status-item">
+          <span class="status-item-label">模型</span>
+          <span class="status-item-value">Qwen3-14B</span>
+        </div>
+        <div class="status-item">
+          <span class="status-item-label">API延迟</span>
+          <span class="status-item-value" style="color:var(--accent-amber);">45ms</span>
+        </div>
+        <div class="status-item">
+          <span class="status-item-label">安全等级</span>
+          <span class="status-item-value" style="color:var(--primary);">L3-本地推理</span>
+        </div>
+        <div class="status-item">
+          <span class="status-item-label">会话数</span>
+          <span class="status-item-value">1,247</span>
+        </div>
+      </div>
+
+      <div class="status-card">
+        <div class="status-card-header">
+          <span class="status-card-title"><span class="status-dot alive"></span> 环境监测专家</span>
+          <span class="status-badge active">就绪</span>
+        </div>
+        <div class="status-item">
+          <span class="status-item-label">数据源</span>
+          <span class="status-item-value">国控站 + 省控站</span>
+        </div>
+      </div>
+
+      <div class="section-title">🔌 连接器状态</div>
+      <div class="status-card">
+        <div class="status-item">
+          <span class="status-item-label">环境监测 API</span>
+          <span class="status-item-value" style="color:var(--primary);">🟢 已连接</span>
+        </div>
+        <div class="status-item">
+          <span class="status-item-label">法规数据库</span>
+          <span class="status-item-value" style="color:var(--primary);">🟢 已连接</span>
+        </div>
+        <div class="status-item">
+          <span class="status-item-label">地理信息 GIS</span>
+          <span class="status-item-value" style="color:var(--primary);">🟢 已连接</span>
+        </div>
+        <div class="status-item">
+          <span class="status-item-label">IoT 物联平台</span>
+          <span class="status-item-value" style="color:var(--accent-amber);">🟡 延迟</span>
+        </div>
+        <div class="status-item">
+          <span class="status-item-label">政务公文系统</span>
+          <span class="status-item-value" style="color:var(--text-dim);">🔴 未连接</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-content" id="tab-notif" style="display:none;">
+      <div class="notif-item critical">
+        <div class="notif-title">🔴 幻觉风险警报</div>
+        <div class="notif-desc">一平硐煤矿回复中"5.2吨废矿物油"为模型估算，建议实地核实</div>
+        <div class="notif-time">15:08:23</div>
+      </div>
+      <div class="notif-item">
+        <div class="notif-title">🟡 审批待办</div>
+        <div class="notif-desc">整改通知书草稿需 L3 级别审批确认</div>
+        <div class="notif-time">15:07:45</div>
+      </div>
+      <div class="notif-item info">
+        <div class="notif-title">🔵 系统通知</div>
+        <div class="notif-desc">IoT 物联平台连接延迟升高至 120ms</div>
+        <div class="notif-time">15:06:10</div>
+      </div>
+      <div class="notif-item info">
+        <div class="notif-title">🔵 模型切换</div>
+        <div class="notif-desc">GAIA 主控已切换至 Qwen3-14B (本地推理)</div>
+        <div class="notif-time">15:05:00</div>
+      </div>
+    </div>
+  </aside>
+
+</div>
+
+<script>
+function switchTab(tab) {
+  document.querySelectorAll('.panel-tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.panel-content').forEach(p => p.style.display = 'none');
+  event.target.classList.add('active');
+  document.getElementById('tab-' + tab).style.display = 'block';
+}
+
+// Expert click simulation
+document.querySelectorAll('.expert-item').forEach(item => {
+  item.addEventListener('click', function() {
+    document.querySelectorAll('.expert-item').forEach(i => i.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+
+// Model selector
+document.querySelectorAll('.toolbar-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    if (this.textContent.startsWith('🧠') || this.textContent.startsWith('🔬') || this.textContent.startsWith('🌐')) {
+      document.querySelectorAll('.toolbar-btn').forEach(b => {
+        if (b.textContent.startsWith('🧠') || b.textContent.startsWith('🔬') || b.textContent.startsWith('🌐')) {
+          b.classList.remove('model-active');
+        }
+      });
+      this.classList.add('model-active');
+    }
+  });
+});
+</script>
+</body>
+</html>

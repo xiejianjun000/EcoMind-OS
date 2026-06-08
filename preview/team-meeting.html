@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>一平硐煤矿 · 专家团队会议 — EcoMind OS</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0a0f;
+  --bg-card: #111118;
+  --bg-hover: #1a1a24;
+  --bg-active: #1e1e2e;
+  --border: #1e1e30;
+  --text: #e4e4ec;
+  --text-muted: #8888a0;
+  --text-dim: #606078;
+  --primary: #10b981;
+  --primary-glow: rgba(16,185,129,0.15);
+  --accent-blue: #3b82f6;
+  --accent-amber: #f59e0b;
+  --accent-red: #ef4444;
+  --accent-purple: #8b5cf6;
+  --accent-cyan: #06b6d4;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --font-mono: 'Consolas','Courier New',monospace;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* Top Banner */
+.banner {
+  background: linear-gradient(135deg, #0d1b14 0%, #0a1a12 50%, #0d1117 100%);
+  border-bottom: 1px solid rgba(16,185,129,0.2);
+  padding: 20px 32px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.banner-dot {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 16px rgba(16,185,129,0.5);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.banner-title { font-size: 20px; font-weight: 700; letter-spacing: 0.5px; }
+.banner-sub { font-size: 13px; color: var(--text-muted); }
+.banner-badge {
+  margin-left: auto;
+  padding: 4px 14px;
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(245,158,11,0.15);
+  color: var(--accent-amber);
+  border: 1px solid rgba(245,158,11,0.3);
+  animation: blink 1.5s infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.6} }
+
+/* Main Grid */
+.main-grid {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 0;
+  min-height: calc(100vh - 110px);
+}
+
+/* Left: Team Panel */
+.team-panel {
+  background: var(--bg-card);
+  border-right: 1px solid var(--border);
+  padding: 24px 20px;
+  overflow-y: auto;
+}
+.team-panel::-webkit-scrollbar { width: 4px; }
+.team-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+.section-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin: 20px 0 10px;
+}
+.section-label:first-child { margin-top: 0; }
+
+/* Phase indicator */
+.phase-bar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 20px;
+}
+.phase-step {
+  flex: 1;
+  text-align: center;
+  position: relative;
+}
+.phase-dot {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  margin: 0 auto 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  position: relative;
+  z-index: 1;
+}
+.phase-dot.done { background: var(--primary); color: #fff; }
+.phase-dot.active { background: var(--primary-glow); color: var(--primary); border: 2px solid var(--primary); animation: pulse 2s infinite; }
+.phase-dot.pending { background: var(--bg-hover); color: var(--text-dim); border: 2px solid var(--border); }
+.phase-line {
+  position: absolute;
+  top: 16px; left: 60%; right: -40%;
+  height: 2px;
+  background: var(--border);
+  z-index: 0;
+}
+.phase-line.done { background: var(--primary); }
+.phase-label { font-size: 10px; color: var(--text-dim); white-space: nowrap; }
+
+/* Team Members */
+.member-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: var(--radius);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  margin-bottom: 8px;
+  transition: all 0.2s;
+}
+.member-card:hover { border-color: var(--primary); }
+.member-card.active { border-color: var(--primary); background: var(--primary-glow); }
+.member-avatar {
+  width: 42px; height: 42px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+.member-info { flex: 1; min-width: 0; }
+.member-name { font-size: 14px; font-weight: 600; }
+.member-role { font-size: 11px; color: var(--text-muted); }
+.member-status {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.member-status.speaking { background: var(--accent-purple); box-shadow: 0 0 10px rgba(139,92,246,0.6); animation: pulse 1s infinite; }
+.member-status.ready { background: var(--primary); }
+.member-status.thinking { background: var(--accent-amber); animation: pulse 1.5s infinite; }
+.member-status.done { background: var(--text-dim); }
+
+/* Project Brief */
+.project-brief {
+  padding: 14px;
+  background: var(--bg);
+  border: 1px solid rgba(16,185,129,0.2);
+  border-radius: var(--radius);
+  margin-top: 12px;
+}
+.brief-title { font-size: 12px; font-weight: 700; color: var(--primary); margin-bottom: 8px; }
+.brief-item { font-size: 11px; color: var(--text-muted); line-height: 1.6; padding: 3px 0; }
+.brief-item strong { color: var(--text); }
+
+/* Right: Discussion Area */
+.discussion-area {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+/* Meeting header */
+.meeting-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.meeting-title { font-size: 16px; font-weight: 700; }
+.meeting-meta { font-size: 11px; color: var(--text-muted); margin-left: auto; }
+
+/* Messages */
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.messages::-webkit-scrollbar { width: 4px; }
+.messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* System event */
+.sys-event {
+  text-align: center;
+  padding: 8px;
+}
+.sys-event span {
+  font-size: 11px;
+  color: var(--text-dim);
+  padding: 4px 16px;
+  background: var(--bg-card);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+/* Expert message */
+.expert-msg {
+  display: flex;
+  gap: 14px;
+  max-width: 90%;
+  animation: fadeIn 0.4s ease;
+}
+@keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+.expert-msg.reverse { align-self: flex-end; flex-direction: row-reverse; }
+.msg-avatar {
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+.msg-bubble {
+  padding: 14px 18px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  line-height: 1.7;
+  min-width: 0;
+}
+.msg-sender {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.msg-time { font-size: 10px; color: var(--text-dim); margin-top: 6px; }
+
+/* Tag/Badge styles */
+.tag {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+.tag-law { background: rgba(239,68,68,0.12); color: var(--accent-red); }
+.tag-data { background: rgba(59,130,246,0.12); color: var(--accent-blue); }
+.tag-action { background: rgba(245,158,11,0.12); color: var(--accent-amber); }
+.tag-done { background: rgba(16,185,129,0.12); color: var(--primary); }
+
+/* Content highlight */
+.highlight-box {
+  margin: 10px 0;
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.highlight-box.red { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); }
+.highlight-box.amber { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); }
+.highlight-box.green { background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2); }
+
+table.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin: 8px 0;
+}
+.data-table th {
+  text-align: left;
+  padding: 6px 10px;
+  background: var(--bg-hover);
+  color: var(--text-dim);
+  font-weight: 600;
+  font-size: 11px;
+  border-bottom: 1px solid var(--border);
+}
+.data-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(30,30,48,0.5);
+}
+.data-table tr:hover td { background: var(--bg-hover); }
+.val-bad { color: var(--accent-red); font-weight: 600; }
+.val-warn { color: var(--accent-amber); font-weight: 600; }
+.val-ok { color: var(--primary); }
+
+/* Decision box */
+.decision-box {
+  margin: 12px 0;
+  padding: 14px 16px;
+  background: rgba(16,185,129,0.06);
+  border: 1px solid rgba(16,185,129,0.25);
+  border-radius: var(--radius);
+}
+.decision-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 8px;
+}
+.decision-list { list-style: none; font-size: 12px; line-height: 1.8; }
+.decision-list li::before { content: "▸ "; color: var(--primary); }
+
+/* Footer bar */
+.footer-bar {
+  padding: 12px 24px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--bg-card);
+}
+.footer-status {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.footer-actions { margin-left: auto; display: flex; gap: 8px; }
+.footer-btn {
+  padding: 8px 16px;
+  border-radius: var(--radius);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: 1px solid var(--border);
+  background: var(--bg-hover);
+  color: var(--text-muted);
+}
+.footer-btn:hover { color: var(--text); border-color: var(--primary); }
+.footer-btn.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+.footer-btn.primary:hover { opacity: 0.9; }
+
+/* Typewriter cursor */
+.cursor::after {
+  content: "▊";
+  animation: blink 1s infinite;
+}
+</style>
+</head>
+<body>
+
+<!-- Top Banner -->
+<div class="banner">
+  <div class="banner-dot"></div>
+  <div>
+    <div class="banner-title">🏔️ 一平硐煤矿 · 生态环境专家团队会议</div>
+    <div class="banner-sub">湖南煤业集团金竹山矿业 | 娄底市生态环境局冷水江分局对接项目</div>
+  </div>
+  <div class="banner-badge">🟡 团队会议进行中 · Phase 2/4</div>
+</div>
+
+<!-- Main Grid -->
+<div class="main-grid">
+
+<!-- ===== LEFT: Team Panel ===== -->
+<aside class="team-panel">
+  
+  <!-- Phase Progress -->
+  <div class="section-label">📊 任务阶段</div>
+  <div class="phase-bar">
+    <div class="phase-step">
+      <div class="phase-dot done">✓</div>
+      <div class="phase-line done"></div>
+      <div class="phase-label">信息汇总</div>
+    </div>
+    <div class="phase-step">
+      <div class="phase-dot active">2</div>
+      <div class="phase-line"></div>
+      <div class="phase-label">专家分析</div>
+    </div>
+    <div class="phase-step">
+      <div class="phase-dot pending">3</div>
+      <div class="phase-line"></div>
+      <div class="phase-label">综合研判</div>
+    </div>
+    <div class="phase-step">
+      <div class="phase-dot pending">4</div>
+      <div class="phase-label">输出报告</div>
+    </div>
+  </div>
+
+  <!-- Team Members -->
+  <div class="section-label">👥 专家团队 (5人)</div>
+
+  <div class="member-card active">
+    <div class="member-avatar" style="background:linear-gradient(135deg,#10b981,#059669);">G</div>
+    <div class="member-info">
+      <div class="member-name">GAIA 主控</div>
+      <div class="member-role">会议主持 · 总协调</div>
+    </div>
+    <div class="member-status speaking"></div>
+  </div>
+
+  <div class="member-card">
+    <div class="member-avatar" style="background:linear-gradient(135deg,#06b6d4,#0891b2);">监</div>
+    <div class="member-info">
+      <div class="member-name">环境监测专家</div>
+      <div class="member-role">水质/土壤数据分析</div>
+    </div>
+    <div class="member-status done"></div>
+  </div>
+
+  <div class="member-card">
+    <div class="member-avatar" style="background:linear-gradient(135deg,#3b82f6,#2563eb);">水</div>
+    <div class="member-info">
+      <div class="member-name">水生态专家</div>
+      <div class="member-role">矿井涌水治理方案</div>
+    </div>
+    <div class="member-status ready"></div>
+  </div>
+
+  <div class="member-card">
+    <div class="member-avatar" style="background:linear-gradient(135deg,#ef4444,#dc2626);">执</div>
+    <div class="member-info">
+      <div class="member-name">执法监察专家</div>
+      <div class="member-role">法律依据/案件分析</div>
+    </div>
+    <div class="member-status done"></div>
+  </div>
+
+  <div class="member-card">
+    <div class="member-avatar" style="background:linear-gradient(135deg,#ec4899,#db2777);">督</div>
+    <div class="member-info">
+      <div class="member-name">生态督察专家</div>
+      <div class="member-role">整改方案/督查督办</div>
+    </div>
+    <div class="member-status thinking"></div>
+  </div>
+
+  <!-- Project Brief -->
+  <div class="project-brief">
+    <div class="brief-title">📋 项目简况</div>
+    <div class="brief-item"><strong>主体：</strong>湖南煤业集团金竹山矿业一平硐煤矿</div>
+    <div class="brief-item"><strong>对接单位：</strong>娄底市生态环境局冷水江分局</div>
+    <div class="brief-item"><strong>核心问题：</strong>①酸性矿井涌水超标排放 ②废矿物油危废未规范处置</div>
+    <div class="brief-item"><strong>产出物：</strong>生态环境监管汇报材料 + 整改答复材料 + 谢平情况说明</div>
+    <div class="brief-item"><strong>安全等级：</strong>L3 - 全部本地推理</div>
+    <div class="brief-item"><strong>模型：</strong>Qwen3-14B (本地)</div>
+  </div>
+</aside>
+
+<!-- ===== RIGHT: Discussion ===== -->
+<main class="discussion-area">
+
+  <div class="meeting-header">
+    <span style="font-size:18px;">📋</span>
+    <span class="meeting-title">团队协同分析</span>
+    <span class="meeting-meta">GAIA 主持 · 5人参会 · 15:08 开始</span>
+  </div>
+
+  <div class="messages">
+
+    <!-- System: Meeting Start -->
+    <div class="sys-event">
+      <span>🔔 GAIA 主控召集团队会议 — 一平硐煤矿生态环境问题专题</span>
+    </div>
+
+    <!-- GAIA Opens -->
+    <div class="expert-msg">
+      <div class="msg-avatar" style="background:linear-gradient(135deg,#10b981,#059669);">G</div>
+      <div>
+        <div class="msg-bubble">
+          <div class="msg-sender">
+            <span style="color:var(--primary);">GAIA 主控</span>
+            <span class="tag tag-action">会议主持</span>
+          </div>
+          各位专家，今天我们聚焦<strong>湖南煤业集团金竹山矿业一平硐煤矿</strong>的生态环境违法问题。<br><br>
+          根据军哥提供的材料，需要围绕<strong>三个核心任务</strong>展开协同分析：<br>
+          ❶ 废水排放数据定性分析<br>
+          ❷ 危废处置合规性判断<br>
+          ❸ 整改方案与答复材料建议<br><br>
+          <strong>请环境监测专家先汇报水质监测数据。</strong>
+        </div>
+        <div class="msg-time">15:08:00</div>
+      </div>
+    </div>
+
+    <!-- Monitoring Expert -->
+    <div class="expert-msg">
+      <div class="msg-avatar" style="background:linear-gradient(135deg,#06b6d4,#0891b2);">监</div>
+      <div>
+        <div class="msg-bubble">
+          <div class="msg-sender">
+            <span style="color:var(--accent-cyan);">环境监测专家</span>
+            <span class="tag tag-data">数据分析</span>
+          </div>
+          收到。我已调取该矿<strong>最近12个月监测数据</strong>，核心指标汇总如下：
+
+          <table class="data-table">
+            <tr><th>监测项目</th><th>标准限值</th><th>实测范围</th><th>超标倍数</th><th>判定</th></tr>
+            <tr><td>pH 值</td><td>6-9</td><td class="val-bad">2.8-4.2</td><td class="val-bad">—</td><td class="val-bad">严重超标</td></tr>
+            <tr><td>总铁 (Fe)</td><td>≤6 mg/L</td><td class="val-bad">48-156</td><td class="val-bad">8-26x</td><td class="val-bad">严重超标</td></tr>
+            <tr><td>总锰 (Mn)</td><td>≤4 mg/L</td><td class="val-bad">12-38</td><td class="val-bad">3-9.5x</td><td class="val-bad">严重超标</td></tr>
+            <tr><td>SS</td><td>≤70 mg/L</td><td class="val-warn">85-210</td><td class="val-warn">1.2-3x</td><td class="val-warn">超标</td></tr>
+            <tr><td>COD</td><td>≤70 mg/L</td><td class="val-ok">38-65</td><td>—</td><td class="val-ok">达标</td></tr>
+          </table>
+
+          <div class="highlight-box red">
+            <strong>⚠ 关键发现：</strong>pH 2.8-4.2 属于<strong>强酸性矿井涌水</strong>，由煤系地层黄铁矿（FeS₂）氧化产生。该酸性水未经有效处理直排，导致受纳水体严重酸化，已构成<strong>生态环境损害</strong>。
+          </div>
+        </div>
+        <div class="msg-time">15:08:32</div>
+      </div>
+    </div>
+
+    <!-- Enforcement Expert -->
+    <div class="expert-msg">
+      <div class="msg-avatar" style="background:linear-gradient(135deg,#ef4444,#dc2626);">执</div>
+      <div>
+        <div class="msg-bubble">
+          <div class="msg-sender">
+            <span style="color:var(--accent-red);">执法监察专家</span>
+            <span class="tag tag-law">法律依据</span>
+          </div>
+          基于监测数据，我梳理对应的<strong>法律适用清单</strong>：
+
+          <div class="highlight-box red">
+            <strong>📜 违法行为一：超标排放水污染物</strong><br>
+            · 违反：《水污染防治法》第10条（排放标准强制性规定）<br>
+            · 罚则：第83条第(二)项 — <strong>10万-100万元罚款</strong>，情节严重可责令停业关闭<br>
+            · 依据：pH 2.8 远超 6-9 标准，属"严重超标"，应适用<strong>从重处罚</strong>
+          </div>
+
+          <div class="highlight-box amber">
+            <strong>📜 违法行为二：未规范处置危险废物</strong><br>
+            · 违反：《固体废物污染环境防治法》第79条（危废贮存规范）<br>
+            · 罚则：第112条第(六)项 — <strong>处所需处置费用3-5倍罚款</strong>，最低20万<br>
+            · 注：废矿物油属《国家危险废物名录》HW08，严禁露天堆放
+          </div>
+
+          <strong>建议：二行为并处，建议罚款不低于50万元</strong>，同时责令限期整改。
+        </div>
+        <div class="msg-time">15:09:05</div>
+      </div>
+    </div>
+
+    <!-- System: Phase Transition -->
+    <div class="sys-event">
+      <span>🔄 GAIA 推进 Phase 2→3: 进入综合研判</span>
+    </div>
+
+    <!-- Water Expert -->
+    <div class="expert-msg">
+      <div class="msg-avatar" style="background:linear-gradient(135deg,#3b82f6,#2563eb);">水</div>
+      <div>
+        <div class="msg-bubble">
+          <div class="msg-sender">
+            <span style="color:var(--accent-blue);">水生态专家</span>
+            <span class="tag tag-action">治理方案</span>
+          </div>
+          针对酸性矿井涌水，我提出<strong>三阶段治理方案</strong>：
+
+          <div class="decision-box">
+            <div class="decision-title">💧 酸性矿井涌水治理方案</div>
+            <ul class="decision-list">
+              <li><strong>阶段一（紧急/7天）</strong>：投加石灰乳（Ca(OH)₂）中和至 pH 6.5-7.5，应急降低酸性</li>
+              <li><strong>阶段二（整改/60天）</strong>：建设主动处理系统 — 曝气氧化 + 石灰中和 + 混凝沉淀 + 压滤脱水</li>
+              <li><strong>阶段三（长效/180天）</strong>：源头治理 — 封堵废弃巷道、控制入渗水量、建设在线监测站</li>
+              <li><strong>成本估算：</strong>阶段一 3-5万，阶段二 80-120万，阶段三 200-300万</li>
+            </ul>
+          </div>
+
+          <strong>对危废处置的建议：</strong>废矿物油应委托有资质单位（HW08类）规范处置，建设标准危废暂存间（防渗+导流槽+标识+台账），预计投入 15-20 万。
+        </div>
+        <div class="msg-time">15:09:38</div>
+      </div>
+    </div>
+
+    <!-- Inspector Expert -->
+    <div class="expert-msg">
+      <div class="msg-avatar" style="background:linear-gradient(135deg,#ec4899,#db2777);">督</div>
+      <div>
+        <div class="msg-bubble">
+          <div class="msg-sender">
+            <span style="color:#ec4899;">生态督察专家</span>
+            <span class="tag tag-done">整改督办</span>
+          </div>
+          结合各位分析，我对<strong>汇报材料和答复材料的框架建议</strong>如下：
+
+          <div class="highlight-box green">
+            <strong>📝 汇报材料框架：</strong><br>
+            1. 基本情况（矿山背景+现场核查经过）<br>
+            2. 违法事实认定（引用监测量化数据 + 法律条文具体到款）<br>
+            3. 处理意见（罚款金额建议+整改要求+时限）<br>
+            4. 附件（监测报告+现场照片+法律依据摘录）
+          </div>
+
+          <strong>📌 关键时间节点建议：</strong><br>
+          · 7日内：下达责令改正决定书<br>
+          · 30日内：企业提交整改方案<br>
+          · 90日内：完成主体工程整改<br>
+          · 180日内：验收销号
+
+          <br><br>
+          另外，<strong>谢平情况说明</strong>应侧重其履职情况与责任认定，建议单独成文后附入汇报材料。
+        </div>
+        <div class="msg-time">15:10:12</div>
+      </div>
+    </div>
+
+    <!-- GAIA Summarizes -->
+    <div class="expert-msg">
+      <div class="msg-avatar" style="background:linear-gradient(135deg,#10b981,#059669);">G</div>
+      <div>
+        <div class="msg-bubble">
+          <div class="msg-sender">
+            <span style="color:var(--primary);">GAIA 主控</span>
+            <span class="tag tag-done">会议总结</span>
+          </div>
+          <strong>团队分析完成，整理以下共识：</strong>
+
+          <div class="decision-box">
+            <div class="decision-title">✅ 团队决议</div>
+            <ul class="decision-list">
+              <li><strong>违法事实认定：</strong>pH 2.8-4.2 / Fe 48-156mg/L / Mn 12-38mg/L 三项严重超标 + 废矿物油未规范贮存</li>
+              <li><strong>适用法律：</strong>《水污染防治法》第83条 + 《固废法》第112条，建议罚款 ≥50万元</li>
+              <li><strong>治理方案：</strong>三阶段（紧急中和→主动处理→源头治理），总预算 300-430万</li>
+              <li><strong>材料框架：</strong>已确定四部分汇报结构 + 时间节点</li>
+              <li><strong>安全提醒：</strong>pH 2.8 属强酸性，执法人员现场核查需注意人身安全防护</li>
+            </ul>
+          </div>
+
+          <strong>下一阶段：</strong>我将汇总各专家分析结果，生成<strong>生态环境监管汇报材料（初稿）</strong>，提交军哥审核后对接娄底市生态环境局冷水江分局。
+        </div>
+        <div class="msg-time">15:11:00</div>
+      </div>
+    </div>
+
+    <!-- System: Meeting Summary -->
+    <div class="sys-event">
+      <span>✅ 团队会议结束 · 4位专家发言 · 5项决议 · 预计产出汇报材料初稿</span>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="footer-bar">
+    <div class="footer-status">
+      💬 5人参会 · 4人已发言 · Phase 2/4 完成
+    </div>
+    <div class="footer-actions">
+      <button class="footer-btn">📄 导出会议纪要</button>
+      <button class="footer-btn">📊 生成数据报告</button>
+      <button class="footer-btn primary">📝 生成汇报材料初稿</button>
+    </div>
+  </div>
+
+</main>
+
+</div>
+
+<script>
+// Simple hover effects
+document.querySelectorAll('.member-card').forEach(card => {
+  card.addEventListener('click', function() {
+    this.classList.toggle('active');
+  });
+});
+
+document.querySelectorAll('.footer-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const orig = this.textContent;
+    this.textContent = '⏳ 处理中...';
+    setTimeout(() => {
+      this.textContent = '✅ 已生成';
+      this.style.color = 'var(--primary)';
+      setTimeout(() => {
+        this.textContent = orig;
+        this.style.color = '';
+      }, 2000);
+    }, 1500);
+  });
+});
+</script>
+</body>
+</html>

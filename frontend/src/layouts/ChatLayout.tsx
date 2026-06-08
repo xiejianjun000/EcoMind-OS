@@ -16,28 +16,28 @@ export function ChatLayout({ className }: ChatLayoutProps) {
 
   return (
     <div className={cn("flex h-screen bg-background", className)}>
-      {/* Left Sidebar */}
+      {/* Left Sidebar — Experts + Team + Skills + Connectors */}
       <Sidebar
         open={sidebarOpen}
         onOpenChange={setSidebarOpen}
         className={cn(
-          "transition-all duration-300 ease-in-out",
-          sidebarOpen ? "w-[280px]" : "w-[60px]"
+          "transition-all duration-300 ease-in-out flex-shrink-0",
+          sidebarOpen ? "w-[280px]" : "w-[48px]"
         )}
       />
 
-      {/* Main Chat Area */}
+      {/* Main Chat Area — Messages + Input */}
       <main className="flex-1 flex flex-col min-w-0">
         <Outlet />
       </main>
 
-      {/* Right Artifact Panel */}
+      {/* Right Artifact Panel — Artifacts + Tasks + Notifications + Preview + Status */}
       <ArtifactPanel
         open={artifactPanelOpen}
         onOpenChange={setArtifactPanelOpen}
         className={cn(
-          "transition-all duration-300 ease-in-out",
-          artifactPanelOpen ? "w-[320px]" : "w-[0px] overflow-hidden"
+          "transition-all duration-300 ease-in-out flex-shrink-0",
+          artifactPanelOpen ? "w-[320px]" : "w-[40px]"
         )}
       />
     </div>

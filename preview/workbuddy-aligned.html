@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EcoMind OS — WorkBuddy 对齐版</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0f;--bg2:#0f0f17;--bg3:#15151f;--bg-hover:#1c1c2a;--bg-active:#1e1e30;
+  --bd:#1e1e30;--bd2:#2a2a40;--tx:#e4e4ec;--tx2:#9090a8;--tx3:#606078;
+  --grn:#10b981;--grn-bg:rgba(16,185,129,0.12);--blu:#3b82f6;--amb:#f59e0b;--red:#ef4444;--pur:#8b5cf6;
+  --r:8px;--rr:12px;
+}
+body{font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--tx);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* Top Bar — WorkBuddy style */
+.topbar{height:40px;background:var(--bg2);border-bottom:1px solid var(--bd);display:flex;align-items:center;padding:0 12px;gap:8px;flex-shrink:0}
+.top-logo{font-size:13px;font-weight:700;color:var(--grn);display:flex;align-items:center;gap:6px}
+.top-dot{width:7px;height:7px;border-radius:50%;background:var(--grn);box-shadow:0 0 8px rgba(16,185,129,0.4)}
+.top-model{font-size:11px;padding:2px 10px;border-radius:10px;background:var(--grn-bg);color:var(--grn);margin-left:auto;font-weight:500}
+.top-user{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#4f46e5);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;cursor:pointer}
+
+/* Main Layout */
+.main{display:flex;flex:1;overflow:hidden}
+
+/* ===== LEFT SIDEBAR — WorkBuddy Aligned ===== */
+.sidebar{width:52px;min-width:52px;background:var(--bg2);border-right:1px solid var(--bd);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:6px;flex-shrink:0;transition:width 0.2s}
+.sidebar:hover{width:200px}
+.sidebar:hover .nav-label{display:inline}
+.sidebar:hover .nav-item{justify-content:flex-start;padding:8px 12px;width:calc(100% - 8px)}
+
+.nav-item{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:8px;cursor:pointer;color:var(--tx2);font-size:16px;transition:all 0.15s;position:relative;white-space:nowrap;overflow:hidden}
+.nav-item:hover{background:var(--bg-hover);color:var(--tx)}
+.nav-item.active{background:var(--grn-bg);color:var(--grn)}
+.nav-label{font-size:13px;font-weight:500;margin-left:10px;display:none}
+.nav-badge{position:absolute;top:2px;right:2px;width:6px;height:6px;border-radius:50%;background:var(--red)}
+.nav-sep{width:24px;height:1px;background:var(--bd);margin:4px 0;flex-shrink:0}
+.sidebar-bottom{margin-top:auto}
+
+/* ===== LEFT SUB-PANEL ===== */
+.sub-panel{width:280px;min-width:280px;background:var(--bg3);border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden}
+.sub-header{padding:12px 16px;border-bottom:1px solid var(--bd);font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.sub-scroll{flex:1;overflow-y:auto;padding:8px}
+.sub-scroll::-webkit-scrollbar{width:4px}
+.sub-scroll::-webkit-scrollbar-thumb{background:var(--bd);border-radius:4px}
+
+/* Expert Group in sub-panel */
+.exp-group-title{font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:1.5px;padding:12px 8px 6px}
+.exp-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;transition:all 0.15s;font-size:13px}
+.exp-item:hover{background:var(--bg-hover)}
+.exp-item.active{background:var(--grn-bg);border:1px solid rgba(16,185,129,0.2)}
+.exp-avatar{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0}
+.exp-info{flex:1;min-width:0}
+.exp-name{font-size:13px;font-weight:500;line-height:1.2}
+.exp-role{font-size:11px;color:var(--tx2);line-height:1.3}
+.lvl{font-size:9px;padding:1px 6px;border-radius:10px;font-weight:600}
+.lvl-l3{background:rgba(239,68,68,0.12);color:var(--red)}
+.lvl-l2{background:rgba(245,158,11,0.12);color:var(--amb)}
+.lvl-l1{background:rgba(16,185,129,0.12);color:var(--grn)}
+
+/* Team card in sub-panel */
+.team-card{padding:10px;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;margin:4px 0;cursor:pointer;transition:all 0.15s}
+.team-card:hover{border-color:var(--blu)}
+.team-name{font-size:12px;font-weight:600;margin-bottom:4px}
+.team-dots{display:flex;gap:2px;align-items:center}
+.team-dot{width:18px;height:18px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff}
+.team-prog{height:3px;background:var(--bd);border-radius:3px;margin-top:6px;overflow:hidden}
+.team-prog-bar{height:100%;background:var(--grn);border-radius:3px}
+
+/* Quick task card */
+.quick-card{padding:12px;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;margin:4px 0;cursor:pointer;transition:all 0.15s}
+.quick-card:hover{border-color:var(--grn);background:var(--grn-bg)}
+.quick-title{font-size:12px;font-weight:600;margin-bottom:3px}
+.quick-desc{font-size:11px;color:var(--tx2)}
+
+/* Skill item */
+.skill-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:all 0.15s;font-size:12px}
+.skill-item:hover{background:var(--bg-hover)}
+.skill-icon{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+
+/* Automation item */
+.auto-item{padding:10px 12px;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;margin:4px 0}
+.auto-name{font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.auto-status{font-size:10px;padding:1px 8px;border-radius:8px;margin-left:auto}
+.auto-status.active{background:rgba(16,185,129,0.12);color:var(--grn)}
+.auto-status.paused{background:rgba(245,158,11,0.12);color:var(--amb)}
+.auto-sched{font-size:11px;color:var(--tx2)}
+
+/* Notes item */
+.note-item{padding:8px 10px;border-radius:8px;cursor:pointer;transition:all 0.15s;font-size:12px}
+.note-item:hover{background:var(--bg-hover)}
+.note-title{font-weight:500;margin-bottom:2px}
+.note-date{font-size:10px;color:var(--tx3)}
+
+/* Settings section */
+.set-item{display:flex;align-items:center;gap:10px;padding:9px 16px;cursor:pointer;transition:all 0.15s;font-size:13px;border-radius:8px;margin:2px 8px}
+.set-item:hover{background:var(--bg-hover)}
+.set-icon{font-size:15px;color:var(--tx2);width:22px;text-align:center}
+
+/* User card */
+.user-card{padding:14px 16px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px}
+.user-avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#4f46e5);display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;font-weight:700}
+.user-name{font-size:14px;font-weight:600}
+.user-email{font-size:11px;color:var(--tx2)}
+
+/* ===== CENTER CHAT ===== */
+.chat{flex:1;display:flex;flex-direction:column;background:var(--bg);min-width:0}
+.chat-bar{height:44px;border-bottom:1px solid var(--bd);display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0}
+.chat-title{font-size:14px;font-weight:600}
+.chat-sub{font-size:11px;color:var(--tx2);margin-left:4px;padding:2px 8px;background:var(--bg2);border-radius:8px}
+.chat-mode{display:flex;margin-left:auto;gap:4px}
+.mode-btn{padding:4px 12px;border-radius:6px;font-size:11px;cursor:pointer;border:1px solid var(--bd);background:var(--bg2);color:var(--tx2);transition:all 0.15s}
+.mode-btn:hover{color:var(--tx);border-color:var(--bd2)}
+.mode-btn.ac{background:var(--grn-bg);border-color:rgba(16,185,129,0.3);color:var(--grn)}
+.chat-msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.chat-msgs::-webkit-scrollbar{width:4px}
+.chat-msgs::-webkit-scrollbar-thumb{background:var(--bd);border-radius:4px}
+
+.msg{display:flex;gap:10px;max-width:85%;animation:fadeIn 0.3s}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.msg.user{align-self:flex-end;flex-direction:row-reverse}
+.msg-av{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0}
+.msg-blk{padding:10px 14px;border-radius:10px;font-size:13px;line-height:1.6;background:var(--bg3);border:1px solid var(--bd)}
+.msg.user .msg-blk{background:var(--bg2)}
+.msg-time{font-size:10px;color:var(--tx3);margin-top:4px}
+.think{background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.2);border-radius:6px;padding:8px 12px;font-size:11px;color:var(--tx2);margin:6px 0}
+.think summary{font-weight:600;color:var(--pur);font-size:10px;cursor:pointer}
+.hallu{display:inline-flex;align-items:center;gap:3px;background:rgba(239,68,68,0.12);color:var(--red);font-size:10px;padding:2px 8px;border-radius:8px;margin-top:6px}
+.code-blk{background:#0d0d16;border:1px solid var(--bd);border-radius:6px;overflow:hidden;margin:6px 0}
+.code-head{display:flex;justify-content:space-between;padding:4px 10px;background:var(--bg-hover);font-size:10px;color:var(--tx2);border-bottom:1px solid var(--bd)}
+.code-body{padding:8px 12px;font-family:Consolas,monospace;font-size:11px;line-height:1.5;color:#c9d1d9}
+
+.chat-input-area{border-top:1px solid var(--bd);padding:10px 16px 12px;background:var(--bg2);flex-shrink:0}
+.input-tools{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.tool-btn{padding:3px 10px;border-radius:6px;font-size:10px;cursor:pointer;border:1px solid var(--bd);background:var(--bg);color:var(--tx2);transition:all 0.15s}
+.tool-btn:hover{color:var(--tx);border-color:var(--bd2)}
+.tool-btn.on{border-color:var(--grn);color:var(--grn);background:var(--grn-bg)}
+.input-row{display:flex;gap:8px;align-items:flex-end}
+.input-box{flex:1;min-height:38px;max-height:100px;padding:8px 12px;background:var(--bg);border:1px solid var(--bd);border-radius:10px;color:var(--tx);font-size:13px;font-family:inherit;resize:none;outline:none}
+.input-box:focus{border-color:var(--grn)}
+.input-box::placeholder{color:var(--tx3)}
+.send-btn{width:38px;height:38px;background:var(--grn);border:none;border-radius:10px;color:#fff;font-size:16px;cursor:pointer;flex-shrink:0;transition:all 0.15s}
+.send-btn:hover{opacity:0.9}
+
+/* ===== RIGHT PANEL — WorkBuddy Aligned ===== */
+.right{width:340px;min-width:340px;background:var(--bg3);border-left:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+.r-tabs{display:flex;border-bottom:1px solid var(--bd);flex-shrink:0}
+.r-tab{flex:1;padding:10px;text-align:center;font-size:11px;font-weight:500;color:var(--tx2);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;background:none;border-top:none;border-left:none;border-right:none}
+.r-tab:hover{color:var(--tx)}
+.r-tab.on{color:var(--grn);border-bottom-color:var(--grn)}
+.r-content{flex:1;overflow-y:auto;padding:12px}
+.r-content::-webkit-scrollbar{width:4px}
+.r-content::-webkit-scrollbar-thumb{background:var(--bd);border-radius:4px}
+
+.r-card{padding:12px;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;margin-bottom:8px}
+.r-card:hover{border-color:var(--bd2)}
+.r-card-head{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.r-card-icon{width:30px;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.r-card-title{font-size:12px;font-weight:600}
+.r-card-desc{font-size:11px;color:var(--tx2);line-height:1.4}
+.r-card-meta{display:flex;gap:12px;margin-top:6px;font-size:10px;color:var(--tx3)}
+.r-card-file{font-size:10px;color:var(--blu)}
+.r-card-status{font-size:10px;padding:1px 6px;border-radius:6px;margin-left:auto}
+.r-card-status.done{background:rgba(16,185,129,0.12);color:var(--grn)}
+.r-card-status.running{background:rgba(59,130,246,0.12);color:var(--blu);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+
+/* Log item */
+.log-item{padding:8px;border-left:2px solid var(--bd);margin-left:8px;margin-bottom:6px;font-size:11px}
+.log-item.ok{border-left-color:var(--grn)}
+.log-item.warn{border-left-color:var(--amb)}
+.log-item.err{border-left-color:var(--red)}
+.log-time{font-size:10px;color:var(--tx3)}
+.log-text{color:var(--tx2);margin-top:2px;line-height:1.4}
+
+/* History search */
+.hist-search{padding:8px 10px;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.hist-search input{flex:1;background:none;border:none;color:var(--tx);font-size:12px;outline:none}
+.hist-search input::placeholder{color:var(--tx3)}
+.hist-item{padding:8px 10px;border-radius:6px;cursor:pointer;font-size:12px;margin-bottom:4px;transition:all 0.15s}
+.hist-item:hover{background:var(--bg-hover)}
+.hist-title{font-weight:500}
+.hist-meta{font-size:10px;color:var(--tx3);margin-top:2px}
+
+/* State indicator */
+.state-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;font-size:11px}
+.state-label{color:var(--tx2)}
+.state-val{font-weight:500}
+.state-dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:4px}
+.state-dot.g{background:var(--grn)}
+.state-dot.y{background:var(--amb)}
+.state-dot.r{background:var(--red)}
+</style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="topbar">
+  <div class="top-dot"></div>
+  <span class="top-logo">EcoMind OS</span>
+  <span style="font-size:10px;color:var(--tx3);margin-left:4px">GAIA-ECO v2.0</span>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:6px">
+    <span class="top-model">Qwen3-14B</span>
+    <div class="top-user">军</div>
+  </div>
+</div>
+
+<!-- Main Layout -->
+<div class="main">
+
+<!-- ===== LEFT SIDEBAR (WorkBuddy style) ===== -->
+<nav class="sidebar" id="sidebar">
+  <!-- 1. 新建任务 -->
+  <div class="nav-item active" onclick="switchNav('new-task')" title="新建任务">
+    <span>＋</span><span class="nav-label">新建任务</span>
+  </div>
+  <!-- 2. 助理 -->
+  <div class="nav-item" onclick="switchNav('assistant')" title="助理">
+    <span>💬</span><span class="nav-label">助理</span>
+  </div>
+  <div class="nav-sep"></div>
+  <!-- 3. 专家（专家团队） -->
+  <div class="nav-item" onclick="switchNav('experts')" title="专家团队">
+    <span>👥</span><span class="nav-label">专家团队</span>
+  </div>
+  <!-- 4. 技能 -->
+  <div class="nav-item" onclick="switchNav('skills')" title="技能">
+    <span>🔧</span><span class="nav-label">技能</span>
+  </div>
+  <!-- 5. 自动化 -->
+  <div class="nav-item" onclick="switchNav('automation')" title="自动化">
+    <span>⏰</span><span class="nav-label">自动化</span>
+  </div>
+  <div class="nav-sep"></div>
+  <!-- 6. 资料库 -->
+  <div class="nav-item" onclick="switchNav('notes')" title="资料库">
+    <span>📚</span><span class="nav-label">资料库</span>
+  </div>
+  <!-- 7. 任务 -->
+  <div class="nav-item" onclick="switchNav('tasks')" title="任务">
+    <span>📋</span><span class="nav-label">任务</span>
+    <span class="nav-badge"></span>
+  </div>
+  <!-- 8. 空间 -->
+  <div class="nav-item" onclick="switchNav('workspace')" title="空间">
+    <span>📁</span><span class="nav-label">空间</span>
+  </div>
+  <div class="sidebar-bottom">
+    <div class="nav-sep"></div>
+    <!-- 9. 用户设置 -->
+    <div class="nav-item" onclick="switchNav('settings')" title="用户设置">
+      <span>⚙</span><span class="nav-label">设置</span>
+    </div>
+  </div>
+</nav>
+
+<!-- ===== LEFT SUB-PANEL (dynamic content based on nav) ===== -->
+<aside class="sub-panel" id="subPanel">
+  <!-- Default: New Task -->
+  <div class="sub-header">🆕 新建任务</div>
+  <div class="sub-scroll" id="subContent">
+    <!-- Quick Templates -->
+    <div class="exp-group-title">快捷模板</div>
+    <div class="quick-card">
+      <div class="quick-title">📋 环评报告审批</div>
+      <div class="quick-desc">GAIA + 环评 + 排污许可 + 水生态</div>
+    </div>
+    <div class="quick-card">
+      <div class="quick-title">🚨 环境应急响应</div>
+      <div class="quick-desc">应急 + 监测 + GAIA + 执法</div>
+    </div>
+    <div class="quick-card">
+      <div class="quick-title">🔍 生态督察整改</div>
+      <div class="quick-desc">督察 + 执法 + 监测 + GAIA</div>
+    </div>
+    <div class="exp-group-title">最近任务</div>
+    <div class="note-item">
+      <div class="note-title">一平硐煤矿废水分析</div>
+      <div class="note-date">今天 15:08</div>
+    </div>
+    <div class="note-item">
+      <div class="note-title">湖南煤业监管汇报</div>
+      <div class="note-date">今天 11:30</div>
+    </div>
+  </div>
+</aside>
+
+<!-- ===== CENTER CHAT ===== -->
+<main class="chat">
+  <div class="chat-bar">
+    <div class="exp-avatar" style="background:linear-gradient(135deg,#10b981,#059669);">G</div>
+    <span class="chat-title">GAIA 生态大脑</span>
+    <span class="chat-sub">Qwen3-14B</span>
+    <div style="font-size:10px;padding:2px 8px;border-radius:8px;background:rgba(16,185,129,0.12);color:var(--grn)">L3</div>
+    <div class="chat-mode">
+      <button class="mode-btn ac">Craft</button>
+      <button class="mode-btn">Ask</button>
+      <button class="mode-btn">Plan</button>
+    </div>
+  </div>
+
+  <div class="chat-msgs">
+    <div class="msg">
+      <div class="msg-av" style="background:linear-gradient(135deg,#10b981,#059669)">G</div>
+      <div>
+        <div class="msg-blk">👋 我是GAIA生态大脑。可调度12位领域专家协同处理生态环境监管、审批、执法、应急任务。输入你的需求，或点击左侧<strong>专家团队</strong>召唤专项专家。</div>
+        <div class="msg-time">15:06</div>
+      </div>
+    </div>
+    <div class="msg user">
+      <div class="msg-av" style="background:linear-gradient(135deg,#6366f1,#4f46e5)">军</div>
+      <div><div class="msg-blk">帮我分析湖南煤业集团一平硐煤矿的废水排放违法问题</div><div class="msg-time">15:07</div></div>
+    </div>
+    <div class="msg">
+      <div class="msg-av" style="background:linear-gradient(135deg,#10b981,#059669)">G</div>
+      <div>
+        <div class="msg-blk">
+          <details class="think" open><summary>🧠 推理 (3步)</summary>1. 识别关键词 → 匹配专家：执法监察+水生态<br>2. 检索知识库 →《水污染防治法》第83条<br>3. 确定维度 → 排放标准/执法依据/既往案例</details>
+          初步分析结果：pH 2.8-4.2 属<strong style="color:var(--red)">严重超标</strong>。建议启动<strong>环境执法+水生态专家</strong>协同研判。
+          <span class="hallu">⚠ 置信度 82% — 需实测数据确认</span>
+        </div>
+        <div class="msg-time">15:08</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="chat-input-area">
+    <div class="input-tools">
+      <button class="tool-btn on">🧠 Qwen3</button>
+      <button class="tool-btn">🔬 DeepSeek</button>
+      <button class="tool-btn">🌐 GLM-4</button>
+      <span style="flex:1"></span>
+      <button class="tool-btn">📎 上传</button>
+      <button class="tool-btn">🔗 法规</button>
+      <button class="tool-btn">👥 召唤专家</button>
+      <span style="font-size:10px;color:var(--tx3);margin-left:4px">| 安全: L3 | 连接器: 4/5 | API: 45ms</span>
+    </div>
+    <div class="input-row">
+      <textarea class="input-box" placeholder="输入生态环境问题，或 @召唤专家..." rows="1">详细分析一平硐煤矿酸性矿井涌水的治理方案</textarea>
+      <button class="send-btn">➤</button>
+    </div>
+  </div>
+</main>
+
+<!-- ===== RIGHT PANEL (WorkBuddy style) ===== -->
+<aside class="right" id="rightPanel">
+  <div class="r-tabs">
+    <button class="r-tab on" onclick="switchRightTab('exec')">📊 执行记录</button>
+    <button class="r-tab" onclick="switchRightTab('result')">📄 结果</button>
+    <button class="r-tab" onclick="switchRightTab('log')">📝 日志</button>
+    <button class="r-tab" onclick="switchRightTab('history')">🔍 历史</button>
+  </div>
+
+  <!-- Execution Record -->
+  <div class="r-content" id="tab-exec">
+    <div class="r-card">
+      <div class="r-card-head">
+        <div class="r-card-icon" style="background:rgba(59,130,246,0.12);color:var(--blu)">🔍</div>
+        <span class="r-card-title">正在执行：废水排放分析</span>
+        <span class="r-card-status running">进行中</span>
+      </div>
+      <div style="height:4px;background:var(--bd);border-radius:2px;margin:8px 0">
+        <div style="width:65%;height:100%;background:var(--blu);border-radius:2px"></div>
+      </div>
+      <div class="r-card-desc">
+        ⚙ 环境监测专家 → 调取监测数据...<br>
+        ⚙ 水生态专家 → 分析pH异常原因...<br>
+        ⏳ 执法监察专家 → 等待数据中...
+      </div>
+    </div>
+
+    <div class="r-card">
+      <div class="r-card-head">
+        <div class="r-card-icon" style="background:rgba(16,185,129,0.12);color:var(--grn)">✅</div>
+        <span class="r-card-title">环评审批团队会议</span>
+        <span class="r-card-status done">已完成</span>
+      </div>
+      <div class="r-card-desc">5人团队协同完成一平硐煤矿分析</div>
+      <div class="r-card-meta"><span>🕐 15:11</span><span>📊 5项决议</span></div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="r-content" id="tab-result" style="display:none">
+    <div class="r-card">
+      <div class="r-card-head">
+        <div class="r-card-icon" style="background:rgba(139,92,246,0.12);color:var(--pur)">🗂</div>
+        <span class="r-card-title">执法取证清单 v3</span>
+      </div>
+      <div class="r-card-desc">一平硐煤矿现场检查证据汇编，含12份照片、3份监测报告</div>
+      <div class="r-card-meta"><span>📊 2.4MB</span><span>🕐 15分钟前</span><span class="r-card-file">查看文件 →</span></div>
+    </div>
+    <div class="r-card">
+      <div class="r-card-head">
+        <div class="r-card-icon" style="background:rgba(59,130,246,0.12);color:var(--blu)">📊</div>
+        <span class="r-card-title">水质分析报告</span>
+      </div>
+      <div class="r-card-desc">2026年6月矿井涌水 pH/Fe/Mn 监测数据分析</div>
+      <div class="r-card-meta"><span>📊 1.8MB</span><span>🕐 1小时前</span><span class="r-card-file">下载 →</span></div>
+    </div>
+    <div class="r-card">
+      <div class="r-card-head">
+        <div class="r-card-icon" style="background:rgba(245,158,11,0.12);color:var(--amb)">📋</div>
+        <span class="r-card-title">整改通知书草稿</span>
+      </div>
+      <div class="r-card-desc">责令改正违法行为决定书 (初稿)</div>
+      <div class="r-card-meta"><span>📝 待审批</span><span>🕐 2小时前</span></div>
+    </div>
+  </div>
+
+  <!-- Log -->
+  <div class="r-content" id="tab-log" style="display:none">
+    <div class="log-item ok"><div class="log-time">15:11:03</div><div class="log-text">✅ GAIA主控 — 团队会议总结完成 (5项决议)</div></div>
+    <div class="log-item ok"><div class="log-time">15:10:12</div><div class="log-text">✅ 生态督察专家 — 汇报材料框架建议已生成</div></div>
+    <div class="log-item ok"><div class="log-time">15:09:38</div><div class="log-text">✅ 水生态专家 — 三阶段治理方案已输出</div></div>
+    <div class="log-item warn"><div class="log-time">15:09:05</div><div class="log-text">⚠ 执法监察专家 — 法律依据匹配中，置信度标注中</div></div>
+    <div class="log-item ok"><div class="log-time">15:08:32</div><div class="log-text">✅ 环境监测专家 — 12个月水质数据汇总完成</div></div>
+    <div class="log-item ok"><div class="log-time">15:08:00</div><div class="log-text">✅ GAIA主控 — 团队会议开始，5人参会</div></div>
+    <div class="log-item ok"><div class="log-time">15:07:45</div><div class="log-text">✅ 系统 — 自动匹配专家组合：执法+水+监测+督察</div></div>
+  </div>
+
+  <!-- History -->
+  <div class="r-content" id="tab-history" style="display:none">
+    <div class="hist-search">
+      <span style="font-size:13px">🔍</span>
+      <input placeholder="搜索历史任务...">
+    </div>
+    <div class="hist-item">
+      <div class="hist-title">一平硐煤矿废水排放分析</div>
+      <div class="hist-meta">今天 15:08 · GAIA + 4专家 · 已完成</div>
+    </div>
+    <div class="hist-item">
+      <div class="hist-title">湖南煤业集团监管汇报材料</div>
+      <div class="hist-meta">今天 11:30 · 执法监察 · 已完成</div>
+    </div>
+    <div class="hist-item">
+      <div class="hist-title">谢平情况说明起草</div>
+      <div class="hist-meta">昨天 16:45 · 公众参与专家 · 已完成</div>
+    </div>
+    <div class="hist-item">
+      <div class="hist-title">娄底锑都投资采购舞弊分析</div>
+      <div class="hist-meta">昨天 10:20 · GAIA + 执法 · 已完成</div>
+    </div>
+  </div>
+</aside>
+
+</div>
+
+<script>
+// Left nav switching
+function switchNav(target) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  event.target.closest('.nav-item').classList.add('active');
+
+  const sub = document.getElementById('subContent');
+  const header = document.querySelector('.sub-header');
+  const panels = {
+    'new-task': { title: '🆕 新建任务', html: '<div class="exp-group-title">快捷模板</div><div class="quick-card"><div class="quick-title">📋 环评报告审批</div><div class="quick-desc">GAIA + 环评 + 排污许可 + 水生态</div></div><div class="quick-card"><div class="quick-title">🚨 环境应急响应</div><div class="quick-desc">应急 + 监测 + GAIA + 执法</div></div><div class="quick-card"><div class="quick-title">🔍 生态督察整改</div><div class="quick-desc">督察 + 执法 + 监测 + GAIA</div></div><div class="exp-group-title">最近任务</div><div class="note-item"><div class="note-title">一平硐煤矿废水分析</div><div class="note-date">今天 15:08</div></div><div class="note-item"><div class="note-title">湖南煤业监管汇报</div><div class="note-date">今天 11:30</div></div>' },
+    'assistant': { title: '💬 AI 助理', html: '<div class="exp-group-title">对话模式</div><div class="set-item"><span class="set-icon">💬</span>日常办公问答</div><div class="set-item"><span class="set-icon">📝</span>文档写作助手</div><div class="set-item"><span class="set-icon">📊</span>数据分析助手</div><div class="exp-group-title">最近对话</div><div class="note-item"><div class="note-title">生态法典培训PPT</div><div class="note-date">今天</div></div>' },
+    'experts': { title: '👥 专家团队', html: '<div class="exp-group-title">核心调度</div><div class="exp-item active"><div class="exp-avatar" style="background:linear-gradient(135deg,#10b981,#059669)">G</div><div class="exp-info"><div class="exp-name">GAIA 主控</div><div class="exp-role">生态大脑总调度</div></div><span class="lvl lvl-l3">L3</span></div><div class="exp-group-title">环境监测</div><div class="exp-item"><div class="exp-avatar" style="background:linear-gradient(135deg,#06b6d4,#0891b2)">监</div><div class="exp-info"><div class="exp-name">环境监测专家</div><div class="exp-role">AQI/水质/土壤</div></div><span class="lvl lvl-l2">L2</span></div><div class="exp-item"><div class="exp-avatar" style="background:linear-gradient(135deg,#3b82f6,#2563eb)">水</div><div class="exp-info"><div class="exp-name">水生态专家</div><div class="exp-role">流域水质/排污口</div></div><span class="lvl lvl-l2">L2</span></div><div class="exp-group-title">审批合规</div><div class="exp-item"><div class="exp-avatar" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed)">评</div><div class="exp-info"><div class="exp-name">环评审批专家</div><div class="exp-role">环评技术审核</div></div><span class="lvl lvl-l3">L3</span></div><div class="exp-item"><div class="exp-avatar" style="background:linear-gradient(135deg,#f59e0b,#d97706)">许</div><div class="exp-info"><div class="exp-name">排污许可专家</div><div class="exp-role">许可证核发</div></div><span class="lvl lvl-l3">L3</span></div><div class="exp-group-title">执法监察</div><div class="exp-item"><div class="exp-avatar" style="background:linear-gradient(135deg,#ef4444,#dc2626)">执</div><div class="exp-info"><div class="exp-name">执法监察专家</div><div class="exp-role">案件办理/法律</div></div><span class="lvl lvl-l2">L2</span></div><div class="exp-item"><div class="exp-avatar" style="background:linear-gradient(135deg,#ec4899,#db2777)">督</div><div class="exp-info"><div class="exp-name">生态督察专家</div><div class="exp-role">督察整改</div></div><span class="lvl lvl-l3">L3</span></div><div class="exp-group-title">专项领域</div><div class="exp-item"><div class="exp-avatar" style="background:linear-gradient(135deg,#22c55e,#16a34a)">生</div><div class="exp-info"><div class="exp-name">生物多样性专家</div><div class="exp-role">物种/栖息地</div></div><span class="lvl lvl-l1">L1</span></div><div class="exp-item"><div class="exp-avatar" style="background:linear-gradient(135deg,#64748b,#475569)">碳</div><div class="exp-info"><div class="exp-name">碳排放专家</div><div class="exp-role">碳核算/碳交易</div></div><span class="lvl lvl-l2">L2</span></div><div class="exp-item"><div class="exp-avatar" style="background:linear-gradient(135deg,#f97316,#ea580c)">急</div><div class="exp-info"><div class="exp-name">应急管理专家</div><div class="exp-role">突发环境事件</div></div><span class="lvl lvl-l1">L1</span></div><div class="exp-group-title">团队</div><div class="team-card"><div class="team-name">📋 环评审批团队 (5人)</div><div class="team-dots"><span class="team-dot" style="background:#10b981">G</span><span class="team-dot" style="background:#8b5cf6">评</span><span class="team-dot" style="background:#f59e0b">许</span><span class="team-dot" style="background:#3b82f6">水</span><span class="team-dot" style="background:#64748b">碳</span></div><div class="team-prog"><div class="team-prog-bar" style="width:65%"></div></div></div><div class="exp-group-title">消息</div><div class="set-item"><span class="set-icon">🟡</span>审批待办: 整改通知书需确认</div><div class="set-item"><span class="set-icon">🔵</span>系统: IoT连接延迟升高</div>' },
+    'skills': { title: '🔧 技能市场', html: '<div class="exp-group-title">文档处理</div><div class="skill-item"><div class="skill-icon" style="background:rgba(59,130,246,0.12);color:var(--blu)">📄</div>PDF读写 · 已安装</div><div class="skill-item"><div class="skill-icon" style="background:rgba(59,130,246,0.12);color:var(--blu)">📝</div>Word模板 · 已安装</div><div class="skill-item"><div class="skill-icon" style="background:rgba(59,130,246,0.12);color:var(--blu)">📊</div>PPT生成 · 已安装</div><div class="exp-group-title">数据处理</div><div class="skill-item"><div class="skill-icon" style="background:rgba(16,185,129,0.12);color:var(--grn)">📈</div>Excel分析 · 已安装</div><div class="skill-item"><div class="skill-icon" style="background:rgba(16,185,129,0.12);color:var(--grn)">🗄</div>数据库查询 · 未安装</div><div class="exp-group-title">生态环境专用</div><div class="skill-item"><div class="skill-icon" style="background:rgba(139,92,246,0.12);color:var(--pur)">🌊</div>水质模型WASP · 已安装</div><div class="skill-item"><div class="skill-icon" style="background:rgba(139,92,246,0.12);color:var(--pur)">🏭</div>排放核算工具 · 已安装</div><div class="skill-item"><div class="skill-icon" style="background:rgba(139,92,246,0.12);color:var(--pur)">⚖</div>法规检索 · 已安装</div><div class="skill-item"><div class="skill-icon" style="background:rgba(245,158,11,0.12);color:var(--amb)">🗺</div>GIS空间分析 · 未安装</div><div class="exp-group-title">通信协同</div><div class="skill-item"><div class="skill-icon" style="background:rgba(239,68,68,0.12);color:var(--red)">✉</div>公文生成 · 已安装</div>' },
+    'automation': { title: '⏰ 自动化', html: '<div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button style="padding:5px 14px;border-radius:6px;font-size:11px;cursor:pointer;border:1px solid var(--grn);background:var(--grn-bg);color:var(--grn)">＋ 新建自动化</button></div><div class="auto-item"><div class="auto-name">🌅 每日环境简报<span class="auto-status active">运行中</span></div><div class="auto-sched">每天 08:00 · 汇总AQI+水质+舆情</div></div><div class="auto-item"><div class="auto-name">📊 周度执法数据报表<span class="auto-status active">运行中</span></div><div class="auto-sched">每周一 09:00 · 生成上周执法统计</div></div><div class="auto-item"><div class="auto-name">🔔 督察整改到期提醒<span class="auto-status paused">已暂停</span></div><div class="auto-sched">每天 10:00 · 检查即将到期的整改事项</div></div>' },
+    'notes': { title: '📚 资料库', html: '<div class="hist-search"><span>🔍</span><input placeholder="搜索资料..."></div><div class="exp-group-title">法规库</div><div class="note-item"><div class="note-title">《环境保护法》全文</div><div class="note-date">最新修订版</div></div><div class="note-item"><div class="note-title">《水污染防治法》释义</div><div class="note-date">2026版</div></div><div class="exp-group-title">案例库</div><div class="note-item"><div class="note-title">环境执法典型案例汇编</div><div class="note-date">2024-2026</div></div><div class="exp-group-title">报告模板</div><div class="note-item"><div class="note-title">生态环境监管汇报模板</div><div class="note-date">v3.0</div></div>' },
+    'tasks': { title: '📋 任务列表', html: '<div class="exp-group-title">进行中</div><div class="note-item"><div class="note-title">一平硐煤矿废水分析</div><div class="note-date">创建: 今天 15:08 · GAIA + 4专家</div></div><div class="exp-group-title">已完成</div><div class="note-item"><div class="note-title">湖南煤业监管汇报</div><div class="note-date">完成: 今天 11:30 · 待审核</div></div><div class="note-item"><div class="note-title">谢平情况说明</div><div class="note-date">完成: 昨天 16:45</div></div><div class="note-item"><div class="note-title">采购舞弊专项分析</div><div class="note-date">完成: 昨天 10:20</div></div>' },
+    'workspace': { title: '📁 工作空间', html: '<div class="exp-group-title">当前空间</div><div class="set-item"><span class="set-icon">📁</span>一平硐煤矿项目</div><div class="exp-group-title">其他空间</div><div class="set-item"><span class="set-icon">📁</span>娄底锑都投资采购案</div><div class="set-item"><span class="set-icon">📁</span>生态法典培训材料</div><div class="set-item"><span class="set-icon">📁</span>谢和平社保案</div>' },
+    'settings': { title: '👤 用户设置', html: '<div class="user-card"><div class="user-avatar">军</div><div><div class="user-name">军哥</div><div class="user-email">xiejianjun000@github</div></div></div><div class="exp-group-title">账户</div><div class="set-item"><span class="set-icon">👤</span>个人资料</div><div class="set-item"><span class="set-icon">🔑</span>修改密码</div><div class="set-item"><span class="set-icon">🔐</span>安全设置</div><div class="exp-group-title">偏好</div><div class="set-item"><span class="set-icon">🎨</span>主题 · 暗色</div><div class="set-item"><span class="set-icon">🌐</span>语言 · 中文</div><div class="set-item"><span class="set-icon">🔔</span>通知设置</div><div class="exp-group-title">系统</div><div class="set-item"><span class="set-icon">📋</span>关于 EcoMind OS</div><div class="set-item"><span class="set-icon">🚪</span>退出登录</div>' }
+  };
+
+  const panel = panels[target];
+  if (panel) {
+    header.textContent = panel.title;
+    sub.innerHTML = panel.html;
+  }
+}
+
+// Right tab switching
+function switchRightTab(tab) {
+  document.querySelectorAll('.r-tab').forEach(t => t.classList.remove('on'));
+  event.target.classList.add('on');
+  ['exec','result','log','history'].forEach(id => {
+    document.getElementById('tab-'+id).style.display = (id===tab) ? 'block' : 'none';
+  });
+}
+
+// Mode buttons
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('ac'));
+    this.classList.add('ac');
+  });
+});
+
+// Expert items
+document.addEventListener('click', function(e) {
+  if (e.target.closest('.exp-item')) {
+    const el = e.target.closest('.exp-item');
+    el.parentElement.querySelectorAll('.exp-item').forEach(i => i.classList.remove('active'));
+    el.classList.add('active');
+  }
+});
+</script>
+</body>
+</html>

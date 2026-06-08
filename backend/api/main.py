@@ -13,7 +13,7 @@ from typing import AsyncGenerator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.routers import agents, workflows, security, models
+from api.routers import agents, workflows, security, models, teams, reviews, skills, auth, automations, notes, workspaces
 from api.websocket.manager import WebSocketManager
 
 logger = logging.getLogger(__name__)
@@ -64,6 +64,13 @@ def create_app() -> FastAPI:
     application.include_router(workflows.router, prefix="/api/workflows", tags=["Workflows"])
     application.include_router(security.router, prefix="/api/security", tags=["Security"])
     application.include_router(models.router, prefix="/api/models", tags=["Models"])
+    application.include_router(teams.router, prefix="/api/teams", tags=["Teams"])
+    application.include_router(reviews.router, prefix="/api/reviews", tags=["Reviews"])
+    application.include_router(skills.router, prefix="/api/skills", tags=["Skills"])
+    application.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
+    application.include_router(automations.router, prefix="/api/automations", tags=["Automations"])
+    application.include_router(notes.router, prefix="/api/notes", tags=["Notes"])
+    application.include_router(workspaces.router, prefix="/api/workspaces", tags=["Workspaces"])
 
     # 注册 WebSocket 端点
     from api.websocket.manager import websocket_endpoint
