@@ -83,6 +83,16 @@ print('✅ Nightly OK')
       contents: write
     steps:
       - uses: actions/checkout@v4
+      - name: Auto-update docs
+        run: |
+          python3 scripts/auto-doc.py
+          if ! git diff --quiet; then
+            git config user.name "EcoMind CI"
+            git config user.email "ci@ecomind.dev"
+            git add -A
+            git commit -m "docs: auto-sync from code scan [skip ci]"
+            git push
+          fi
       - name: Auto tag
         run: |
           git config user.name "EcoMind CI"

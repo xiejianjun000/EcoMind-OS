@@ -13,7 +13,9 @@
   <a href="./frontend"><img src="https://img.shields.io/badge/Frontend-React%2018-61DAFB?style=for-the-badge" alt="Frontend"></a>
   <a href="./backend/engine"><img src="https://img.shields.io/badge/Engine-EcoMind%20自建-success?style=for-the-badge" alt="Engine"></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-Apache--2.0-blue?style=for-the-badge" alt="License"></a>
-  <img src="https://img.shields.io/badge/Version-2.1.0-green?style=for-the-badge"/>
+  <!-- AUTO-DOC:VERSION_BADGE -->
+<img src="https://img.shields.io/badge/Version-2.2.0-green?style=for-the-badge"/>
+<!-- /AUTO-DOC:VERSION_BADGE -->
   <img src="https://img.shields.io/badge/Production-100%25-brightgreen?style=for-the-badge"/>
 </p>
 
@@ -166,12 +168,16 @@ EcoMind-OS/
 
 ## 🛠️ 技术栈
 
+<!-- AUTO-DOC:TECH_STACK -->
 | 层次 | 技术 |
 |------|------|
-| 前端 | React 18 · TypeScript 5.7 · Vite 6 · Ant Design 5 · Cesium 1.127 · Deck.gl 9 · ECharts 5 · Zustand 5 · Tailwind CSS 4 |
-| 后端 | FastAPI · Pydantic v2 · **EcoAgentEngine (自建)** · **EcoToolRegistry (自建)** · **EcoVerifier (自建)** · LiteLLM · httpx |
-| AI 模型 | DeepSeek-V3/Coder · Qwen-Max/Plus/Turbo · GLM-4 · Yi-Large · ChatGLM · Baichuan · MiniCPM · vLLM 本地推理 |
-| 部署 | Docker Compose · Nginx · Electron · Shell 一键脚本 |
+| 前端 | React 18 · TypeScript 5.7 · Vite 6 · Ant Design 5 · shadcn/ui · Tailwind CSS 4 · Cesium 3D · ECharts 5 · Zustand 5 |
+| 后端 | FastAPI · Pydantic v2 · **EcoAgentEngine (自建)** · **EcoToolRegistry** · **EcoVerifier** · LiteLLM · httpx |
+| AI 模型 | DeepSeek-V3/Coder · Qwen-Max/Plus/Turbo · GLM-4 · Yi-Large |
+| 部署 | Docker Compose · Nginx · systemd/launchd · Shell 一键脚本 |
+| 引擎 | auto_skill, config_watcher, context_compactor, ecomind_logging, hermes_memory, hermes_tools, learning_loop, loop |
+| 规模 | 29733 行 Python (4983 文件) · 147 前端文件 |
+<!-- /AUTO-DOC:TECH_STACK -->
 
 ---
 
