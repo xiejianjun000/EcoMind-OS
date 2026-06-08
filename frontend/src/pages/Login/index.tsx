@@ -1,8 +1,8 @@
 /**
  * Login 页面 — 多角色登录
- *
- * 支持四种角色的快速登录:
- *   🏛️ 厅领导 / 👔 处长 / 🏙️ 市州 / 🛡️ 管理员
+ * 
+ * 设计基调: 政务驾驶舱 × 深色科技风
+ * 视觉宣言: "权威而不冰冷 — 让登录成为进入指挥舱的仪式"
  */
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -29,7 +29,6 @@ const LoginPage: React.FC = () => {
   const { login } = useAuthStore();
   const [loading, setLoading] = useState(false);
 
-  /** All roles land on the main chat page */
   const getRedirectPath = (): string => '/chat'
 
   const handleLogin = async (values: { username: string; password: string }) => {
@@ -59,38 +58,30 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'linear-gradient(135deg, #0F172A 0%, #1E3A5F 50%, #0F172A 100%)',
-    }}>
+    <div className="min-h-screen flex items-center justify-center"
+      style={{ background: 'hsl(158, 20%, 5%)' }}>
       <div style={{ width: 480, maxWidth: '90vw' }}>
         {/* Logo + 标题 */}
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{
-            width: 72, height: 72, margin: '0 auto 16px',
-            borderRadius: 16,
-            background: 'linear-gradient(135deg, #00A86B, #3B82F6)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 32,
-          }}>
-            🌿
+        <div className="text-center" style={{ marginBottom: 32 }}>
+          <div className="mx-auto flex items-center justify-center rounded-2xl"
+            style={{
+              width: 72, height: 72, marginBottom: 16,
+              background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--domain-water)))',
+            }}>
+            <span className="text-3xl select-none">🌿</span>
           </div>
-          <Title level={2} style={{ color: '#F8FAFC', margin: 0 }}>EcoMind OS</Title>
-          <Text style={{ color: '#94A3B8', fontSize: 15 }}>
+          <Title level={2} className="!text-white !m-0">EcoMind OS</Title>
+          <Text className="text-slate-400 text-[15px]">
             湖南省生态环境厅 · AI 指挥驾驶舱
           </Text>
         </div>
 
         {/* 登录表单 */}
         <Card
+          className="border rounded-xl backdrop-blur-lg"
           style={{
-            background: 'rgba(15,23,42,0.85)',
-            borderColor: '#334155',
-            borderRadius: 12,
-            backdropFilter: 'blur(10px)',
+            background: 'hsl(158 10% 7% / 0.85)',
+            borderColor: 'hsl(var(--border))',
           }}
           bodyStyle={{ padding: 32 }}
         >
@@ -101,17 +92,17 @@ const LoginPage: React.FC = () => {
           >
             <Form.Item name="username" rules={[{ required: true, message: '请输入账号' }]}>
               <Input
-                prefix={<UserOutlined style={{ color: '#94A3B8' }} />}
+                prefix={<UserOutlined className="text-slate-400" />}
                 placeholder="账号"
-                style={{ background: '#1E293B', borderColor: '#334155', color: '#F8FAFC' }}
+                className="bg-slate-800 border-slate-700 text-slate-100"
               />
             </Form.Item>
 
             <Form.Item name="password" rules={[{ required: true, message: '请输入密码' }]}>
               <Input.Password
-                prefix={<LockOutlined style={{ color: '#94A3B8' }} />}
+                prefix={<LockOutlined className="text-slate-400" />}
                 placeholder="密码"
-                style={{ background: '#1E293B', borderColor: '#334155', color: '#F8FAFC' }}
+                className="bg-slate-800 border-slate-700 text-slate-100"
               />
             </Form.Item>
 
@@ -121,12 +112,9 @@ const LoginPage: React.FC = () => {
                 htmlType="submit"
                 loading={loading}
                 block
+                className="h-11 text-[15px] font-semibold !border-none"
                 style={{
-                  height: 44,
-                  background: 'linear-gradient(135deg, #00A86B, #10B981)',
-                  border: 'none',
-                  fontSize: 15,
-                  fontWeight: 600,
+                  background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(160, 55%, 42%))',
                 }}
               >
                 登 录
@@ -134,33 +122,26 @@ const LoginPage: React.FC = () => {
             </Form.Item>
           </Form>
 
-          <Divider style={{ borderColor: '#334155', margin: '8px 0 16px' }}>
-            <Text style={{ color: '#64748B', fontSize: 12 }}>快速登录</Text>
+          <Divider className="!border-slate-700 !my-2 !mb-4">
+            <Text className="text-slate-500 text-xs">快速登录</Text>
           </Divider>
 
           {/* 快速登录卡片 */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          <div className="flex flex-wrap gap-2">
             {QUICK_ACCOUNTS.map((acc) => (
               <Tag
                 key={acc.username}
-                style={{
-                  cursor: 'pointer',
-                  padding: '4px 12px',
-                  background: '#1E293B',
-                  border: '1px solid #334155',
-                  borderRadius: 6,
-                  fontSize: 12,
-                }}
+                className="cursor-pointer px-3 py-1 rounded-md text-xs bg-slate-800 border-slate-700"
                 onClick={() => handleQuickLogin(acc.username)}
               >
-                <span style={{ marginRight: 4 }}>{acc.icon}</span>
+                <span className="mr-1">{acc.icon}</span>
                 {acc.label}
               </Tag>
             ))}
           </div>
 
-          <Paragraph style={{ marginTop: 16, textAlign: 'center', marginBottom: 0 }}>
-            <Text style={{ color: '#475569', fontSize: 11 }}>
+          <Paragraph className="mt-4 text-center !mb-0">
+            <Text className="text-slate-600 text-[11px]">
               演示环境 · 密码: 123456
             </Text>
           </Paragraph>

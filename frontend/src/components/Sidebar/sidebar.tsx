@@ -86,7 +86,7 @@ export function Sidebar({ open, className, onFileClick, onOpenSettings, onContex
     )
   }
 
-  // ── Nav items — main navigation: click → switch right context panel ──
+  // ── Nav items — main navigation ──
   const mainNavItems = [
     { icon: <MessageSquare className="h-4 w-4" />, label: "助理", view: "chat",
       active: activeView === "chat" || location.pathname === "/chat",
@@ -97,12 +97,18 @@ export function Sidebar({ open, className, onFileClick, onOpenSettings, onContex
       }
     },
     { icon: <Sparkles className="h-4 w-4" />, label: "专家", view: "expert",
-      active: activeView === "expert",
-      onClick: () => openContext("case")
+      active: location.pathname === "/experts",
+      onClick: () => {
+        setActiveView("expert")
+        navigate("/experts")
+      }
     },
     { icon: <Wrench className="h-4 w-4" />, label: "技能", view: "skill",
-      active: activeView === "skill",
-      onClick: () => openContext("insight")
+      active: location.pathname === "/skills",
+      onClick: () => {
+        setActiveView("skill")
+        navigate("/skills")
+      }
     },
     { icon: <Shield className="h-4 w-4" />, label: "安全", view: "security",
       active: activeView === "security",
@@ -139,10 +145,10 @@ export function Sidebar({ open, className, onFileClick, onOpenSettings, onContex
 
   // ── Mock workspace folders ──
   const workspaces = [
-    { name: "生态环境监测", files: 12 },
-    { name: "执法监察", files: 8 },
-    { name: "环评项目", files: 5 },
-    { name: "应急管理", files: 3 },
+    { name: "生态环境监测", files: 12, color: "text-domain-ecology" },
+    { name: "执法监察", files: 8, color: "text-domain-carbon" },
+    { name: "环评项目", files: 5, color: "text-domain-water" },
+    { name: "应急管理", files: 3, color: "text-alert-critical" },
   ]
 
   return (
@@ -172,7 +178,7 @@ export function Sidebar({ open, className, onFileClick, onOpenSettings, onContex
       <ScrollArea className="flex-1">
         <div className="p-2">
 
-          {/* ── 1. Main nav: 助理 / 专家 / 技能 / 连接器 ── */}
+          {/* ── 1. Main nav ── */}
           <div className="mb-1">
             {mainNavItems.map((item) => (
               <SidebarNavItem
@@ -222,14 +228,14 @@ export function Sidebar({ open, className, onFileClick, onOpenSettings, onContex
           {workspaces.map((ws) => (
             <button
               key={ws.name}
-              className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-200 group"
+              className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors duration-150 group"
             >
-              <Folder className="h-4 w-4 text-yellow-500 flex-shrink-0" />
+              <Folder className={cn("h-4 w-4 flex-shrink-0", ws.color)} />
               <span className="flex-1 text-left truncate">{ws.name}</span>
-              <span className="text-[10px] text-muted-foreground flex-shrink-0">{ws.files}</span>
+              <span className="text-xs text-muted-foreground flex-shrink-0">{ws.files}</span>
             </button>
           ))}
-          <button className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-200">
+          <button className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors duration-150">
             <FolderOpen className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             <span>打开工作空间</span>
           </button>
@@ -357,8 +363,7 @@ function SidebarUserFooter() {
         <button className="flex items-center gap-3 px-1 py-1.5 w-full rounded-lg hover:bg-accent transition-colors cursor-pointer">
           <Avatar className="h-8 w-8 ring-2 ring-primary/20">
             <AvatarFallback
-              className="text-[10px] text-white font-medium"
-              style={{ background: "linear-gradient(135deg, #52c41a, #1677ff)" }}
+              className="text-xs text-primary-foreground font-medium bg-primary"
             >
               {initials}
             </AvatarFallback>
@@ -378,8 +383,7 @@ function SidebarUserFooter() {
         <div className="flex items-center gap-3 px-3 py-2.5">
           <Avatar className="h-10 w-10 ring-2 ring-primary/20">
             <AvatarFallback
-              className="text-xs text-white font-medium"
-              style={{ background: "linear-gradient(135deg, #52c41a, #1677ff)" }}
+              className="text-xs text-primary-foreground font-medium bg-primary"
             >
               {initials}
             </AvatarFallback>

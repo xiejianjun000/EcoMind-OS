@@ -41,3 +41,8 @@ chroma_db/
 # IDE / Editor
 *.swo
 *~
+*.bak
+*.db
+*.db-shm
+*.db-wal
+backend/outputs/

@@ -58,9 +58,9 @@ interface ExpertItemProps {
 
 function ExpertItem({ expert, isActive, onClick, className }: ExpertItemProps) {
   const statusColors = {
-    online: "bg-green-500",
-    busy: "bg-yellow-500",
-    offline: "bg-gray-400",
+    online: "bg-domain-ecology",
+    busy: "bg-alert-moderate",
+    offline: "bg-muted-foreground/40",
   }
 
   return (
