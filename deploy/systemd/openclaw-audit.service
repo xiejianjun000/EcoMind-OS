@@ -1,0 +1,31 @@
+[Unit]
+Description=ECO-Audit OpenClaw Agent — 审计调度与执行
+Documentation=file:///opt/ecomind/docs/openclaw-audit.md
+After=hermes-api.service guardian.service
+Wants=hermes-api.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/ecomind/engine
+ExecStartPre=/opt/ecomind/scripts/audit_entry.sh --health-check
+ExecStart=/opt/ecomind/engine/openclaw-audit --config /opt/ecomind/config/audit.yaml
+Restart=on-failure
+RestartSec=15
+
+# 环境变量
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+Environment="AUDIT_MODE=standard"
+Environment="AUDIT_LOG_DIR=/opt/ecomind/logs"
+Environment="AUDIT_OUTPUT_DIR=/opt/ecomind/output"
+Environment="AUDIT_RULES_DIR=/opt/ecomind/rules"
+Environment="FEISHU_WEBHOOK="
+Environment="FEISHU_SECRET="
+
+# 日志
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=ecomind-audit
+
+[Install]
+WantedBy=multi-user.target

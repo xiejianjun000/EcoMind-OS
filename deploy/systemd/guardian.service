@@ -1,0 +1,37 @@
+[Unit]
+Description=ECO-Audit Guardian (门神) — 只读挂载 / 基线校验 / 心跳监控
+Documentation=file:///opt/ecomind/docs/guardian.md
+After=local-fs.target
+Before=hermes-api.service openclaw-audit.service
+
+[Service]
+Type=simple
+ExecStart=/opt/ecomind/scripts/guardian.sh
+Restart=on-failure
+RestartSec=5
+WatchdogSec=120
+
+# 安全加固
+ReadOnlyPaths=/dev/sd?
+NoNewPrivileges=false
+ProtectSystem=strict
+ReadWritePaths=/opt/ecomind/logs /opt/ecomind/output
+ProtectHome=yes
+PrivateTmp=yes
+
+# 资源限制
+MemoryMax=256M
+CPUQuota=25%
+
+# 日志
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=ecomind-guardian
+
+# 环境
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+Environment="GUARDIAN_INTERVAL=30"
+Environment="BASELINE_PATH=/opt/ecomind/baseline.sha256"
+
+[Install]
+WantedBy=multi-user.target

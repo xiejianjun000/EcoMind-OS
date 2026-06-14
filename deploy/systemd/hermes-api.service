@@ -1,0 +1,28 @@
+[Unit]
+Description=ECO-Audit Hermes API — 记忆与推理服务
+Documentation=file:///opt/ecomind/docs/hermes.md
+After=guardian.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/ecomind/engine
+ExecStart=/opt/ecomind/engine/hermes-api --config /opt/ecomind/config/hermes.yaml
+Restart=on-failure
+RestartSec=10
+
+# 环境变量
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+Environment="HERMES_PORT=8081"
+Environment="HERMES_MODEL_DIR=/opt/ecomind/models"
+Environment="HERMES_DB_PATH=/opt/ecomind/data/hermes.db"
+Environment="HERMES_LOG_LEVEL=info"
+
+# 日志
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=ecomind-hermes
+
+[Install]
+WantedBy=multi-user.target

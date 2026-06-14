@@ -1,0 +1,468 @@
+{
+  "meta": {
+    "version": "3.0",
+    "description": "ECO-Audit V3.0 自进化学习引擎案例库",
+    "source": "环发〔2015〕175号典型案例 + V3.0自动学习生成",
+    "last_updated": "2026-06-14T16:35:00+08:00",
+    "total_cases": 24,
+    "auto_generated": 0
+  },
+  "cases": [
+    {
+      "id": "CASE-001",
+      "name": "某钢铁企业篡改CEMS二氧化硫斜率参数案",
+      "cheat_type": "tampering",
+      "industry": "钢铁",
+      "pollutant_factors": ["SO2"],
+      "description": "运维人员擅自将CEMS分析仪SO2通道斜率参数从1.0修改为0.6，使监测数据降低40%。通过比对验收报告中的斜率备案值与实际运行参数发现异常。",
+      "detection_method": "参数四方比对（EEPROM/数采仪/工控机/验收报告）",
+      "related_rules": ["R004", "R049"],
+      "legal_basis": [
+        "环境监测数据弄虚作假行为判定及处理办法-第四条第1项",
+        "生态环境法典-第八十条"
+      ],
+      "confidence": 0.95,
+      "detection_rule": "R004",
+      "source": "环发〔2015〕175号",
+      "auto_generated": false,
+      "created_at": "2026-06-14T16:35:00+08:00"
+    },
+    {
+      "id": "CASE-002",
+      "name": "某化工厂注入清洁空气稀释排放样品案",
+      "cheat_type": "interference",
+      "industry": "化工",
+      "pollutant_factors": ["NOx", "SO2", "颗粒物"],
+      "description": "在CEMS采样管路中私自接入压缩空气管路，定时注入清洁空气稀释样品，使排放浓度人为降低。检查采样管路连接和管路压力异常发现。",
+      "detection_method": "采样管路物理检查 + 压力数据异常分析",
+      "related_rules": ["R015", "R053"],
+      "legal_basis": [
+        "环境监测数据弄虚作假行为判定及处理办法-第四条第4项",
+        "大气污染防治法-第二十条"
+      ],
+      "confidence": 0.92,
+      "detection_rule": "R015",
+      "source": "环发〔2015〕175号",
+      "auto_generated": false,
+      "created_at": "2026-06-14T16:35:00+08:00"
+    },
+    {
+      "id": "CASE-003",
+      "name": "某水泥厂长期恒值数据伪造案",
+      "cheat_type": "forgery",
+      "industry": "水泥",
+      "pollutant_factors": ["颗粒物", "NOx"],
+      "description": "连续3个月CEMS排放数据变异系数低于0.5%，数据长期恒值。经现场核查发现分析仪实际处于故障状态，数据为软件锁定输出。",
+      "detection_method": "变异系数(CV)分析 + 设备运行状态检查",
+      "related_rules": ["R054"],
+      "legal_basis": [
+        "环境监测数据弄虚作假行为判定及处理办法-第五条第1项",
+        "生态环境监测条例-第二十一条"
+      ],
+      "confidence": 0.90,
+      "detection_rule": "R054",
+      "source": "环发〔2015〕175号",
+      "auto_generated": false,
+      "created_at": "2026-06-14T16:35:00+08:00"
+    },
+    {
+      "id": "CASE-004",
+      "name": "某电厂旁路偷排案",
+      "cheat_type": "evasion",
+      "industry": "电力",
+      "pollutant_factors": ["SO2", "NOx"],
+      "description": "在脱硫脱硝设施后设置旁路管道，监测时段关闭旁路、正常排放，监测结束后打开旁路直接排放。通过DCS系统操作记录和烟道温度异常发现。",
+      "detection_method": "DCS操作记录分析 + 烟道温度/压力时序比对",
+      "related_rules": ["R055", "R056"],
+      "legal_basis": [
+        "环境监测数据弄虚作假行为判定及处理办法-第四条第12项",
+        "大气污染防治法-第二十条"
+      ],
+      "confidence": 0.88,
+      "detection_rule": "R055",
+      "source": "环发〔2015〕175号",
+      "auto_generated": false,
+      "created_at": "2026-06-14T16:35:00+08:00"
+    },
+    {
+      "id": "CASE-005",
+      "name": "某污水处理站氨氮>总氮逻辑矛盾案",
+      "cheat_type": "tampering",
+      "industry": "污水处理",
+      "pollutant_factors": ["氨氮", "总氮"],
+      "description": "在线监测数据中出现氨氮浓度大于总氮浓度的记录，违反水质化学基本逻辑。经核查为人为修改氨氮分析仪参数导致。",
+      "detection_method": "氨氮-总氮逐条逻辑校验",
+      "related_rules": ["R051"],
+      "legal_basis": [
+        "环境监测数据弄虚作假行为判定及处理办法-第四条第1项",
+        "水污染防治法-第三十九条"
+      ],
+      "confidence": 0.93,
+      "detection_rule": "R051",
+      "source": "环发〔2015〕175号",
+      "auto_generated": false,
+      "created_at": "2026-06-14T16:35:00+08:00"
+    },
+    {
+      "id": "CASE-006",
+      "name": "某垃圾焚烧厂治理设施与排放数据不一致案",
+      "cheat_type": "forgery",
+      "industry": "垃圾焚烧",
+      "pollutant_factors": ["HCl", "SO2", "颗粒物"],
+      "description": "治理设施运行记录显示处于停运状态，但排放数据却显示达标。经核查为运维公司伪造运行记录和排放数据。",
+      "detection_method": "治理设施运行参数与排放数据时序对齐分析",
+      "related_rules": ["R055"],
+      "legal_basis": [
+        "环境监测数据弄虚作假行为判定及处理办法-第五条第5项",
+        "生态环境监测条例-第二十一条"
+      ],
+      "confidence": 0.91,
+      "detection_rule": "R055",
+      "source": "环发〔2015〕175号",
+      "auto_generated": false,
+      "created_at": "2026-06-14T16:35:00+08:00"
+    },
+    {
+      "id": "CASE-007",
+      "name": "某制药企业分析仪隐藏菜单篡改参数案",
+      "cheat_type": "tampering",
+      "industry": "制药",
+      "pollutant_factors": ["COD", "氨氮"],
+      "description": "分析仪内置隐藏工程菜单，运维人员通过输入特殊密码进入后修改量程范围和校准参数。使用YARA规则库扫描发现隐藏菜单入口程序。",
+      "detection_method": "YARA规则扫描 + 固件哈希校验",
+      "related_rules": ["R001", "R011"],
+      "legal_basis": [
+        "环境监测数据弄虚作假行为判定及处理办法-第四条第1项",
+        "刑法-第286条"
+      ],
+      "confidence": 0.94,
+      "detection_rule": "R001",
+      "source": "环发〔2015〕175号",
+      "auto_generated": false,
+      "created_at": "2026-06-14T16:35:00+08:00"
+    },
+    {
+      "id": "CASE-008",
+      "name": "某电镀厂生产工况与排放数据矛盾案",
+      "cheat_type": "evasion",
+      "industry": "电镀",
+      "pollutant_factors": ["总铬", "六价铬", "pH"],
+      "description": "生产记录显示满负荷运行，但排放数据长期处于低值。核查发现企业人为调整监测时段，仅在生产负荷低时进行监测。",
+      "detection_method": "生产负荷与排放数据时序关联分析",
+      "related_rules": ["R056"],
+      "legal_basis": [
+        "环境监测数据弄虚作假行为判定及处理办法-第四条第3项",
+        "排污许可管理条例-第二十条"
+      ],
+      "confidence": 0.87,
+      "detection_rule": "R056",
+      "source": "环发〔2015〕175号",
+      "auto_generated": false,
+      "created_at": "2026-06-14T16:35:00+08:00"
+    },
+    {
+      "id": "CASE-009",
+      "name": "某焦化厂双套算法作弊案",
+      "cheat_type": "tampering",
+      "industry": "焦化",
+      "pollutant_factors": ["SO2", "NOx", "颗粒物"],
+      "description": "分析仪内置两套算法，一套用于显示和上传（经过人为调整），一套用于内部真实记录。同时读取两个通道数据后发现存在系统性偏差。",
+      "detection_method": "双通道数据同时读取 + 偏差分析",
+      "related_rules": ["R007"],
+      "legal_basis": [
+        "环境监测数据弄虚作假行为判定及处理办法-第四条第8项",
+        "产品质量法"
+      ],
+      "confidence": 0.89,
+      "detection_rule": "R007",
+      "source": "环发〔2015〕175号",
+      "auto_generated": false,
+      "created_at": "2026-06-14T16:35:00+08:00"
+    },
+    {
+      "id": "CASE-010",
+      "name": "某印染厂模拟信号注入案",
+      "cheat_type": "tampering",
+      "industry": "印染",
+      "pollutant_factors": ["COD", "氨氮", "总磷"],
+      "description": "在分析仪信号输入端接入模拟信号发生器，注入预设的合格数据替代真实测量信号。检查信号线路和输入源后发现异常。",
+      "detection_method": "信号线路检查 + 输入源溯源",
+      "related_rules": ["R006"],
+      "legal_basis": [
+        "环境监测数据弄虚作假行为判定及处理办法-第四条第5项",
+        "刑法-第286条"
+      ],
+      "confidence": 0.90,
+      "detection_rule": "R006",
+      "source": "环发〔2015〕175号",
+      "auto_generated": false,
+      "created_at": "2026-06-14T16:35:00+08:00"
+    },
+    {
+      "id": "CASE-011",
+      "name": "某造纸厂运维单位参与造假案",
+      "cheat_type": "instigation",
+      "industry": "造纸",
+      "pollutant_factors": ["COD", "氨氮"],
+      "description": "第三方运维单位受排污单位指使，擅自修改分析仪参数并伪造运维记录。通过运维日志时间戳矛盾和参数变更记录发现。",
+      "detection_method": "运维日志审计 + 参数变更记录比对",
+      "related_rules": ["R003", "R061"],
+      "legal_basis": [
+        "环境监测数据弄虚作假行为判定及处理办法-第六条第4项",
+        "生态环境监测条例-第二十一条"
+      ],
+      "confidence": 0.86,
+      "detection_rule": "R003",
+      "source": "环发〔2015〕175号",
+      "auto_generated": false,
+      "created_at": "2026-06-14T16:35:00+08:00"
+    },
+    {
+      "id": "CASE-012",
+      "name": "某石化厂数据阶跃信号检测案",
+      "cheat_type": "forgery",
+      "industry": "石化",
+      "pollutant_factors": ["VOCs", "苯系物"],
+      "description": "排放数据出现明显的阶跃变化（从超标突然变为达标），无工艺变更支持。经核查为人为替换数据导致。",
+      "detection_method": "滑动窗口阶跃检测算法",
+      "related_rules": ["R058"],
+      "legal_basis": [
+        "环境监测数据弄虚作假行为判定及处理办法-第五条第4项",
+        "生态环境监测条例-第二十一条"
+      ],
+      "confidence": 0.88,
+      "detection_rule": "R058",
+      "source": "环发〔2015〕175号",
+      "auto_generated": false,
+      "created_at": "2026-06-14T16:35:00+08:00"
+    },
+    {
+      "id": "CASE-013",
+      "name": "某燃煤锅炉过度平滑数据案",
+      "cheat_type": "forgery",
+      "industry": "电力",
+      "pollutant_factors": ["SO2", "NOx"],
+      "description": "排放数据频谱分析显示过度平滑特征，存在人工干预痕迹。正常排放数据应有一定波动性。",
+      "detection_method": "频谱分析 + 自相关性检测",
+      "related_rules": ["R059"],
+      "legal_basis": [
+        "环境监测数据弄虚作假行为判定及处理办法-第五条第1项",
+        "HJ 75-2017"
+      ],
+      "confidence": 0.85,
+      "detection_rule": "R059",
+      "source": "环发〔2015〕175号",
+      "auto_generated": false,
+      "created_at": "2026-06-14T16:35:00+08:00"
+    },
+    {
+      "id": "CASE-014",
+      "name": "某钢铁厂远程维护通道未授权访问案",
+      "cheat_type": "tampering",
+      "industry": "钢铁",
+      "pollutant_factors": ["颗粒物"],
+      "description": "CEMS工控机开放了未授权的远程维护端口，发现非工作时间段的远程登录记录和参数修改操作。",
+      "detection_method": "网络端口扫描 + 远程登录日志分析",
+      "related_rules": ["R008"],
+      "legal_basis": [
+        "环办监测函〔2024〕214号",
+        "刑法-第285条"
+      ],
+      "confidence": 0.87,
+      "detection_rule": "R008",
+      "source": "环发〔2015〕175号",
+      "auto_generated": false,
+      "created_at": "2026-06-14T16:35:00+08:00"
+    },
+    {
+      "id": "CASE-015",
+      "name": "某水泥厂数据保持功能作弊案",
+      "cheat_type": "tampering",
+      "industry": "水泥",
+      "pollutant_factors": ["颗粒物", "NOx"],
+      "description": "分析仪具有'数据保持'功能，在'校准'状态下锁定输出数据，掩盖实际超标排放。通过检查设备功能菜单发现。",
+      "detection_method": "设备功能菜单检查 + 校准状态数据分析",
+      "related_rules": ["R005"],
+      "legal_basis": [
+        "环办执法函〔2021〕484号",
+        "HJ 212-2025"
+      ],
+      "confidence": 0.91,
+      "detection_rule": "R005",
+      "source": "环发〔2015〕175号",
+      "auto_generated": false,
+      "created_at": "2026-06-14T16:35:00+08:00"
+    },
+    {
+      "id": "CASE-016",
+      "name": "某化工厂颗粒物采样嘴尺寸不符案",
+      "cheat_type": "interference",
+      "industry": "化工",
+      "pollutant_factors": ["颗粒物"],
+      "description": "CEMS颗粒物采样嘴实际尺寸与备案文件不符（备案12mm，实际8mm），导致采样流量和浓度测量失真。",
+      "detection_method": "采样嘴物理尺寸测量 + 备案文件比对",
+      "related_rules": ["R014"],
+      "legal_basis": [
+        "HJ 75-2017",
+        "GB/T 16157-1996"
+      ],
+      "confidence": 0.93,
+      "detection_rule": "R014",
+      "source": "环发〔2015〕175号",
+      "auto_generated": false,
+      "created_at": "2026-06-14T16:35:00+08:00"
+    },
+    {
+      "id": "CASE-017",
+      "name": "某电厂预设数据包排放作弊案",
+      "cheat_type": "forgery",
+      "industry": "电力",
+      "pollutant_factors": ["SO2", "NOx", "颗粒物"],
+      "description": "分析仪存储了预设数据包，校准后输出可预测的固定值序列，替代真实测量数据。通过分析校准后数据序列规律性发现。",
+      "detection_method": "校准后数据序列规律性分析",
+      "related_rules": ["R009"],
+      "legal_basis": [
+        "环境监测数据弄虚作假行为判定及处理办法-第五条第5项",
+        "生态环境监测条例-第二十一条"
+      ],
+      "confidence": 0.89,
+      "detection_rule": "R009",
+      "source": "环发〔2015〕175号",
+      "auto_generated": false,
+      "created_at": "2026-06-14T16:35:00+08:00"
+    },
+    {
+      "id": "CASE-018",
+      "name": "某污水处理厂设备认证造假案",
+      "cheat_type": "tampering",
+      "industry": "污水处理",
+      "pollutant_factors": ["COD", "氨氮", "总磷"],
+      "description": "在线监测设备CCEP认证证书系伪造，铭牌信息与认证证书不一致。通过国家认监委网站核验证书真伪发现。",
+      "detection_method": "CCEP证书在线核验 + 铭牌信息比对",
+      "related_rules": ["R010"],
+      "legal_basis": [
+        "产品质量法-第五十三条",
+        "生态环境监测条例-第十七条"
+      ],
+      "confidence": 0.96,
+      "detection_rule": "R010",
+      "source": "环发〔2015〕175号",
+      "auto_generated": false,
+      "created_at": "2026-06-14T16:35:00+08:00"
+    },
+    {
+      "id": "CASE-019",
+      "name": "某玻璃厂多因子同步骤降案",
+      "cheat_type": "tampering",
+      "industry": "玻璃",
+      "pollutant_factors": ["SO2", "NOx", "颗粒物"],
+      "description": "三个排放因子在同一时间段内同步骤降50%以上，无工艺变更或治理设施升级支持。经核查为同时修改三个通道参数。",
+      "detection_method": "多因子同步骤降检测算法",
+      "related_rules": ["R053"],
+      "legal_basis": [
+        "环境监测数据弄虚作假行为判定及处理办法-第四条第2/4/6项",
+        "生态环境法典-第八十条"
+      ],
+      "confidence": 0.92,
+      "detection_rule": "R053",
+      "source": "环发〔2015〕175号",
+      "auto_generated": false,
+      "created_at": "2026-06-14T16:35:00+08:00"
+    },
+    {
+      "id": "CASE-020",
+      "name": "某电厂飞检时空矛盾案",
+      "cheat_type": "forgery",
+      "industry": "电力",
+      "pollutant_factors": ["SO2"],
+      "description": "同一采样人员同一天的采样任务地理分布在两个相距80公里的站点，时间上不可能完成。通过GPS定位和时间戳分析发现。",
+      "detection_method": "GPS定位 + 时间可行性分析",
+      "related_rules": ["R012"],
+      "legal_basis": [
+        "环境监测数据弄虚作假行为判定及处理办法-第五条第6项",
+        "生态环境监测条例-第二十一条"
+      ],
+      "confidence": 0.94,
+      "detection_rule": "R012",
+      "source": "环发〔2015〕175号",
+      "auto_generated": false,
+      "created_at": "2026-06-14T16:35:00+08:00"
+    },
+    {
+      "id": "CASE-021",
+      "name": "某石化厂非法修改固件案",
+      "cheat_type": "tampering",
+      "industry": "石化",
+      "pollutant_factors": ["VOCs"],
+      "description": "VOCs分析仪固件被非法修改，植入了数据过滤功能。通过SHA256哈希校验比对厂家官方固件发现。",
+      "detection_method": "固件SHA256哈希校验",
+      "related_rules": ["R011"],
+      "legal_basis": [
+        "刑法-第286条",
+        "关于办理环境污染刑事案件适用法律若干问题的解释-第一条"
+      ],
+      "confidence": 0.97,
+      "detection_rule": "R011",
+      "source": "环发〔2015〕175号",
+      "auto_generated": false,
+      "created_at": "2026-06-14T16:35:00+08:00"
+    },
+    {
+      "id": "CASE-022",
+      "name": "某钢铁厂软件阈值设定作弊案",
+      "cheat_type": "tampering",
+      "industry": "钢铁",
+      "pollutant_factors": ["SO2", "NOx"],
+      "description": "分析软件中设置了非法的数据输出上限（SO2≤200mg/m³），超过上限的数据自动截断。通过检查软件配置参数发现。",
+      "detection_method": "软件配置参数检查 + 阈值设定审计",
+      "related_rules": ["R013"],
+      "legal_basis": [
+        "环境监测数据弄虚作假行为判定及处理办法-第四条第8项",
+        "刑法-第37条之一"
+      ],
+      "confidence": 0.90,
+      "detection_rule": "R013",
+      "source": "环发〔2015〕175号",
+      "auto_generated": false,
+      "created_at": "2026-06-14T16:35:00+08:00"
+    },
+    {
+      "id": "CASE-023",
+      "name": "某污水处理厂物料衡算矛盾案",
+      "cheat_type": "forgery",
+      "industry": "污水处理",
+      "pollutant_factors": ["COD", "总氮", "总磷"],
+      "description": "根据排污许可证核定的排污总量和实际生产量反推的理论排放浓度，远高于监测数据。通过物料衡算发现数据造假。",
+      "detection_method": "物料衡算 + 排污许可数据反推",
+      "related_rules": ["R060"],
+      "legal_basis": [
+        "环境保护税法",
+        "排污许可管理条例-第二十条"
+      ],
+      "confidence": 0.88,
+      "detection_rule": "R060",
+      "source": "环发〔2015〕175号",
+      "auto_generated": false,
+      "created_at": "2026-06-14T16:35:00+08:00"
+    },
+    {
+      "id": "CASE-024",
+      "name": "某垃圾焚烧厂反吹维护与数据响应矛盾案",
+      "cheat_type": "forgery",
+      "industry": "垃圾焚烧",
+      "pollutant_factors": ["HCl", "SO2", "颗粒物"],
+      "description": "反吹操作后数据响应时间和恢复时间与物理预期不符。正常反吹后数据应有波动恢复过程，但监测数据无明显变化。",
+      "detection_method": "反吹后数据响应时序分析",
+      "related_rules": ["R062"],
+      "legal_basis": [
+        "HJ 75-2017",
+        "生态环境监测条例-第二十一条"
+      ],
+      "confidence": 0.85,
+      "detection_rule": "R062",
+      "source": "环发〔2015〕175号",
+      "auto_generated": false,
+      "created_at": "2026-06-14T16:35:00+08:00"
+    }
+  ]
+}
